@@ -21,7 +21,7 @@ if ($unrecognized) {
     cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
 }
 
-if ($options['help'] or (!$options['list'] and !$options['execute'])) {
+if ($options['help']) {
     $help =
 "Scheduled cron tasks.
 
