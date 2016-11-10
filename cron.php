@@ -5,7 +5,7 @@
 * Should never be called by a php 4.3.0 implementation. 
 */
 require('../../config.php');
-require_once("$CFG->dirroot/local/search/lib.php");
+require_once($CFG->dirroot.'/local/search/lib.php');
 
 echo '<pre>';
 echo "Moodle 2 Plain text indexer\n";
@@ -24,9 +24,9 @@ try{
     mtrace("\n--DELETE----");
     require($CFG->dirroot.'/local/search/delete.php');
     mtrace("--UPDATE----");
-    require_once($CFG->dirroot.'/local/search/update.php');
+    require($CFG->dirroot.'/local/search/update.php');
     mtrace("--ADD-------");
-    require_once($CFG->dirroot.'/local/search/add.php');
+    require($CFG->dirroot.'/local/search/add.php');
     mtrace("------------");
     //mtrace("cron finished.</pre>");
     mtrace('done');

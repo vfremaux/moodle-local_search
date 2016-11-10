@@ -1,8 +1,26 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * Global Search Engine for Moodle
  *
  * @package local_search
+ * @category local
  * @subpackage document_wrappers
  * @contributor Tatsuva Shirai 20090530
  * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
@@ -30,7 +48,7 @@ class ForumSearchDocument extends SearchDocument {
     */
     public function __construct(&$post, $forum_id, $course_id, $itemtype, $context_id) {
         global $DB;
-        
+
         // generic information
         $doc = new StdClass;
         $doc->docid        = $post['id'];
@@ -139,7 +157,7 @@ function forum_get_content_for_index(&$forum) {
     $cm = $DB->get_record('course_modules', array('course' => $forum->course, 'module' => $coursemodule, 'instance' => $forum->id));
     $context = context_module::instance($cm->id);
 
-    foreach($posts as $aPost) {
+    foreach ($posts as $aPost) {
         $aPost->itemtype = 'head';
         if ($aPost) {
             if (!empty($aPost->message)) {
@@ -152,7 +170,8 @@ function forum_get_content_for_index(&$forum) {
                     echo ".";
                     $aChild->itemtype = 'post';
                     if (strlen($aChild->message) > 0) {
-                        $documents[] = new ForumSearchDocument(get_object_vars($aChild), $forum->id, $forum->course, 'post', $context->id);
+                        $arr = get_object_vars($aChild);
+                        $documents[] = new ForumSearchDocument($arr, $forum->id, $forum->course, 'post', $context->id);
                     } 
                 } 
             } 
@@ -178,7 +197,8 @@ function forum_single_document($id, $itemtype) {
     if ($cm) {
         $context = context_module::instance($cm->id);
         $post->groupid = $discussion->groupid;
-        return new ForumSearchDocument(get_object_vars($post), $discussion->forum, $discussion->course, $itemtype, $context->id);
+        $arr = get_object_vars($post);
+        return new ForumSearchDocument($arr, $discussion->forum, $discussion->course, $itemtype, $context->id);
     }
     return null;
 }

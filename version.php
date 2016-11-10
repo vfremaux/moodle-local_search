@@ -8,6 +8,11 @@
 //  Just for identification
 ////////////////////////////////////////////////////////////////////////////////
 
-$plugin->version  = 2014102300;
+defined('MOODLE_INTERNAL') || die;
+
+$plugin->version  = 2015072400;
 $plugin->requires = 2012120304;  // Requires this Moodle version
 $plugin->component = 'local_search';
+
+// Non moodle attributes
+$plugin->codeincrement = '2.7.0000';

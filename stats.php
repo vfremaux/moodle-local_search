@@ -1,17 +1,30 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Global Search Engine for Moodle
  *
- * @package search
- * @category core
- * @subpackage search_engine
+ * @package local_search
+ * @category local
  * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
  * Prints some basic statistics about the current index.
  * Does some diagnostics if you are logged in as an administrator.
- * 
  */
 
 require('../../config.php');
@@ -29,19 +42,19 @@ if ($CFG->forcelogin) {
     require_login();
 }
 
-if (empty($CFG->enableglobalsearch)) {
-    error(get_string('globalsearchdisabled', 'local_search'));
+if (empty($config->enable)) {
+    pring_error('globalsearchdisabled', 'local_search');
 }
 
 /// check for php5, but don't die yet
 
-require_once("{$CFG->dirroot}/local/search/indexlib.php");
-    
+require_once($CFG->dirroot.'/local/search/indexlib.php');
+
 $indexinfo = new IndexInfo();
 
 if (!$site = get_site()) {
-    redirect("index.php");
-} 
+    redirect(new moodle_url('/local/search/index.php'));
+}
 
 $strsearch = get_string('search', 'local_search');
 $strquery  = get_string('statistics', 'local_search'); 
@@ -53,7 +66,7 @@ $PAGE->navbar->add($strsearch, 'index.php');
 $PAGE->navbar->add($strquery, 'stats.php');
 $PAGE->navbar->add(get_string('runindexer','local_search'));
 
-// keep things pretty, even if php5 isn't available
+// Keep things pretty, even if php5 isn't available.
 
 echo $OUTPUT->header();
 
@@ -68,7 +81,7 @@ $deletionsinindexstr = get_string('deletionsinindex', 'local_search');
 $documentsindatabasestr = get_string('documentsindatabase', 'local_search');
 $databasestatestr = get_string('databasestate', 'local_search');
 
-/// this table is only for admins, shows index directory size and location
+// This table is only for admins, shows index directory size and location.
 
 if (has_capability('moodle/site:config', context_system::instance())) {
     $datadirectorystr = get_string('datadirectory', 'local_search');
@@ -82,7 +95,7 @@ if (has_capability('moodle/site:config', context_system::instance())) {
     $checkdbadvicestr = get_string('checkdbadvice', 'local_search');
     $runindexerteststr = get_string('runindexertest', 'local_search');
     $runindexerstr = get_string('runindexer', 'local_search');
-    
+
     $admin_table = new html_table();
     $admin_table->tablealign = "center";
     $admin_table->align = array ("right", "left");
@@ -97,42 +110,44 @@ if (has_capability('moodle/site:config', context_system::instance())) {
 
     if ($indexinfo->time > 0) {
         $admin_table->data[] = array(get_string('createdon', 'local_search'), date('r', $indexinfo->time));
-    } 
+    }
     else {
         $admin_table->data[] = array(get_string('createdon', 'local_search'), '-');
-    } 
+    }
 
     if (!$indexinfo->valid($errors)) {
         $admin_table->data[] = array("<strong>{$errorsstr}</strong>", '&nbsp;');
         foreach ($errors as $key => $value) {
             $admin_table->data[] = array($key.' ... ', $value);
-        } 
+        }
     }
 
     echo html_writer::table($admin_table);
 
     echo $OUTPUT->heading($solutionsstr);
-    
+
     unset($admin_table->data);
     if (isset($errors['dir'])) {
         $admin_table->data[] = array($checkdirstr, $checkdiradvicestr);
-    } 
+    }
     if (isset($errors['db'])) {
         $admin_table->data[] = array($checkdbstr, $checkdbadvicestr);
-    } 
-    
-    $admin_table->data[] = array($runindexerteststr, '<a href="tests/index.php" target="_blank">tests/index.php</a>');
-    $admin_table->data[] = array($runindexerstr, '<a href="indexersplash.php" target="_blank">indexersplash.php</a>');
-    
+    }
+
+    $url = new moodle_url('/local/search/tests/index.php');
+    $admin_table->data[] = array($runindexerteststr, '<a href="'.$url.'" target="_blank">tests/index.php</a>');
+    $url = new moodle_url('/local/search/indexsplash.php');
+    $admin_table->data[] = array($runindexerstr, '<a href="'.$url.'" target="_blank">indexersplash.php</a>');
+
     echo html_writer::table($admin_table);
 } 
 
 // this is the standard summary table for normal users, shows document counts
 
 $table = new html_table;
-$table->tablealign = "center";
-$table->align = array ("right", "left");
-$table->wrap = array ("nowrap", "nowrap");
+$table->tablealign = 'center';
+$table->align = array ('right', 'left');
+$table->wrap = array ('nowrap', 'nowrap');
 $table->cellpadding = 5;
 $table->cellspacing = 0;
 $table->width = '500';
@@ -144,7 +159,7 @@ $table->data[] = array("<strong>{$databasestr}</strong>", "<em><strong>{$CFG->pr
 if (has_capability('moodle/site:config', context_system::instance())) {
     //don't want to confuse users if the two totals don't match (hint: they should)
     $table->data[] = array($documentsinindexstr, $indexinfo->indexcount);
-    
+
     //*cough* they should match if deletions were actually removed from the index,
     //as it turns out, they're only marked as deleted and not returned in search results
     $table->data[] = array($deletionsinindexstr, (int)$indexinfo->indexcount - (int)$indexinfo->dbcount);
@@ -154,7 +169,7 @@ $table->data[] = array($documentsindatabasestr, $indexinfo->dbcount);
 
 foreach ($indexinfo->types as $key => $value) {
     $table->data[] = array(get_string('documentsfor', 'local_search') . " '".get_string('modulenameplural', $key)."'", $value);
-} 
+}
 
 echo $OUTPUT->heading($databasestatestr);
 echo html_writer::table($table);

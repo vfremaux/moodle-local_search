@@ -1,10 +1,26 @@
 <?php
-/** 
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
+
+/**
  * Global Search Engine for Moodle
  *
- * @package search
- * @category core
- * @subpackage search_engine
+ * @package local_search
+ * @category local
  * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -25,8 +41,7 @@ public  $url,
         $score,
         $number,
         $courseid;
-} 
-
+}
 
 /**
 * split this into Cache class and extend to SearchCache?
@@ -46,20 +61,20 @@ private $mode,
         } //else
 
         $this->valid = true;
-    } 
+    }
 
     /**
-    * returns the search cache status
-    * @return boolean
-    */
+     * returns the search cache status
+     * @return boolean
+     */
     public function can_cache() {
         return $this->valid;
-    } 
+    }
 
     /**
-    *
-    *
-    */
+     *
+     *
+     */
     public function cache($id = false, $object = false) {
         //see if there was a previous query
         $last_term = $this->fetch('search_last_term');
@@ -67,7 +82,7 @@ private $mode,
         //if this query is different from the last, clear out the last one
         if ($id != false && $last_term != $id) {
             $this->clear($last_term);
-        } 
+        }
 
         //store the new query if id and object are passed in
         if ($object && $id) {
@@ -77,66 +92,66 @@ private $mode,
         //otherwise return the stored results
         } else if ($id && $this->exists($id)) {
             return $this->fetch($id);
-        } 
-    } 
+        }
+    }
 
     /**
-    * do key exist in cache ?
-    * @param id the object key
-    * @return boolean
-    */
+     * do key exist in cache ?
+     * @param id the object key
+     * @return boolean
+     */
     private function exists($id) {
         switch ($this->mode) {
             case 'session' :
             return isset($_SESSION[$id]);
-        } 
-    } 
+        }
+    }
 
     /**
-    * clears a cached object in cache
-    * @param the object key to clear
-    * @return void
-    */
+     * clears a cached object in cache
+     * @param the object key to clear
+     * @return void
+     */
     private function clear($id) {
         switch ($this->mode) {
             case 'session' :
                 unset($_SESSION[$id]);
                 session_unregister($id);
             return;
-        } 
-    } 
+        }
+    }
 
     /**
-    * fetches a cached object
-    * @param id the object identifier
-    * @return the object cached
-    */
+     * fetches a cached object
+     * @param id the object identifier
+     * @return the object cached
+     */
     private function fetch($id) {
         switch ($this->mode) {
             case 'session' :
                 return ($this->exists($id)) ? unserialize($_SESSION[$id]) : false;
-        } 
-    } 
+        }
+    }
 
     /**
-    * put an object in cache
-    * @param id the key for that object
-    * @param object the object to cache as a serialized value
-    * @return void
-    */
+     * put an object in cache
+     * @param id the key for that object
+     * @param object the object to cache as a serialized value
+     * @return void
+     */
     private function store($id, $object) {
         switch ($this->mode) {
             case 'session' :
                 $_SESSION[$id] = serialize($object);
             return;
         }
-    } 
-} 
+    }
+}
 
 /**
-* Represents a single query with results
-*
-*/
+ * Represents a single query with results
+ *
+ */
 class SearchQuery {
     private $index,
             $term,
@@ -149,9 +164,9 @@ class SearchQuery {
             $total_results;
 
     /**
-    * constructor records query parameters
-    *
-    */
+     * constructor records query parameters
+     *
+     */
     public function __construct($term = '', $page = 1, $results_per_page = 10, $cache = false) {
         global $CFG;
 
@@ -175,14 +190,14 @@ class SearchQuery {
             $this->validquery = false;
         } else {
             $this->set_query($this->term);
-        } 
-    } 
-    
+        }
+    }
+
     /**
-    * determines state of query object depending on query entry and 
-    * tries to lauch search if all is OK
-    * @return void (this is only a state changing trigger).
-    */
+     * determines state of query object depending on query entry and 
+     * tries to lauch search if all is OK
+     * @return void (this is only a state changing trigger).
+     */
     public function set_query($term = '') {
         if (!empty($term)) {
             $this->term = $term;
@@ -199,29 +214,29 @@ class SearchQuery {
         } else {
             $this->results = array();
         }
-    } 
+    }
 
     /**
-    * accessor to the result table.
-    * @return an array of result records
-    */
+     * accessor to the result table.
+     * @return an array of result records
+     */
     public function results() {
         return $this->results;
     }
 
     /**
-    * do the effective collection of results
-    * @param boolean $all
-    * @uses USER
-    */
-    private function process_results($all=false) {
+     * do the effective collection of results
+     * @param boolean $all
+     * @uses USER
+     */
+    private function process_results($all = false) {
         global $USER;
 
         // $term = mb_convert_case($this->term, MB_CASE_LOWER, 'UTF-8');
         $term = $this->term;
         $page = optional_param('page', 1, PARAM_INT);
-        
-        //experimental - return more results
+
+        // Experimental - return more results.
         // $strip_arr = array('author:', 'title:', '+', '-', 'doctype:');
         // $stripped_term = str_replace($strip_arr, '', $term);
 
@@ -241,29 +256,10 @@ class SearchQuery {
 
         $realindex = 0;
 
-        /**
-        if (!$all) {
-            if ($finalresults < $this->results_per_page) {
-                $this->pagenumber = 1;
-            } elseif ($this->pagenumber > $totalpages) {
-                $this->pagenumber = $totalpages;
-            }
-
-            $start = ($this->pagenumber - 1) * $this->results_per_page;
-            $end = $start + $this->results_per_page;
-
-            if ($end > $finalresults) {
-                $end = $finalresults;
-            } 
-        } else {
-            $start = 0;
-            $end = $finalresults;
-        } */
-
         for ($i = 0; $i < min($hitcount, ($page) * $this->results_per_page); $i++) {
             $hit = $hits[$i];
 
-            //check permissions on each result
+            // Check permissions on each result.
             if ($this->can_display($USER, $hit->docid, $hit->doctype, $hit->course_id, $hit->group_id, $hit->path, $hit->itemtype, $hit->context_id, $searchables )) {
                 if ($i >= ($page - 1) * $this->results_per_page){
                     $resultdoc->number  = $realindex;
@@ -274,7 +270,7 @@ class SearchQuery {
                     $resultdoc->author  = $hit->author;
                     $resultdoc->courseid = $hit->course_id;
                     $resultdoc->userid  = $hit->user_id; 
-                    
+
                     //and store it
                     $resultdocs[] = clone($resultdoc);
                 }
@@ -287,143 +283,133 @@ class SearchQuery {
 
         $totalpages = ceil($this->total_results/$this->results_per_page);
 
-
         return $resultdocs;
     }
 
     /**
-    * get results of a search query using a caching strategy if available
-    * @return the result documents as an array of search objects
-    */
+     * get results of a search query using a caching strategy if available
+     * @return the result documents as an array of search objects
+     */
     private function get_results() {
         $cache = new SearchCache();
 
         if ($this->cache && $cache->can_cache()) {
             if (!($resultdocs = $cache->cache($this->term))) {
                 $resultdocs = $this->process_results();
-                //cache the results so we don't have to compute this on every page-load
+                // Cache the results so we don't have to compute this on every page-load.
                 $cache->cache($this->term, $resultdocs);
-                //print "Using new results.";
             } else {
-            //There was something in the cache, so we're using that to save time
-            //print "Using cached results.";
-            } 
+            // There was something in the cache, so we're using that to save time.
+            // print "Using cached results.";
+            }
         } else {
-            //no caching :(
-            // print "Caching disabled!";
             $resultdocs = $this->process_results();
-        } 
+        }
         return $resultdocs;
     }
 
     /**
-    * constructs the results paging links on results.
-    * @return string the results paging links
-    */
+     * constructs the results paging links on results.
+     * @return string the results paging links
+     */
     public function page_numbers() {
-      $pages  = $this->total_pages();
-      // $query  = htmlentities($this->term);
-      // http://moodle.org/mod/forum/discuss.php?d=115788
-      $query = htmlentities($this->term,ENT_NOQUOTES,'utf-8');
-      $page   = $this->pagenumber;
-      $next   = get_string('next', 'local_search');
-      $back   = get_string('back', 'local_search');
+        $pages  = $this->total_pages();
+        // $query  = htmlentities($this->term);
+        // http://moodle.org/mod/forum/discuss.php?d=115788
+        $query = htmlentities($this->term,ENT_NOQUOTES,'utf-8');
+        $page   = $this->pagenumber;
+        $next   = get_string('next', 'local_search');
+        $back   = get_string('back', 'local_search');
 
-      $ret = "<div align='center' id='search_page_links'>";
+        $ret = "<div align='center' id='search_page_links'>";
 
-      //Back is disabled if we're on page 1
-      if ($page > 1) {
-        $ret .= "<a href='query.php?query_string={$query}&page=".($page-1)."'>&lt; {$back}</a>&nbsp;";
-      } else {
-        $ret .= "&lt; {$back}&nbsp;";
-      } 
-
-      //don't <a href> the current page
-      for ($i = 1; $i <= $pages; $i++) {
-        if ($page == $i) {
-          $ret .= "($i)&nbsp;";
+        // Back is disabled if we're on page 1.
+        if ($page > 1) {
+            $ret .= "<a href='query.php?query_string={$query}&page=".($page-1)."'>&lt; {$back}</a>&nbsp;";
         } else {
-          $ret .= "<a href='query.php?query_string={$query}&page={$i}'>{$i}</a>&nbsp;";
-        } 
-      } 
+            $ret .= "&lt; {$back}&nbsp;";
+        }
 
-      //Next disabled if we're on the last page
-      if ($page < $pages) {
-        $ret .= "<a href='query.php?query_string={$query}&page=".($page+1)."'>{$next} &gt;</a>&nbsp;";
-      } else {
-        $ret .= "{$next} &gt;&nbsp;";
-      } 
+        //don't <a href> the current page
+        for ($i = 1; $i <= $pages; $i++) {
+            if ($page == $i) {
+                $ret .= "($i)&nbsp;";
+            } else {
+                $ret .= "<a href='query.php?query_string={$query}&page={$i}'>{$i}</a>&nbsp;";
+            }
+        }
 
-      $ret .= "</div>";
+        // Next disabled if we're on the last page.
+        if ($page < $pages) {
+            $ret .= "<a href='query.php?query_string={$query}&page=".($page+1)."'>{$next} &gt;</a>&nbsp;";
+        } else {
+            $ret .= "{$next} &gt;&nbsp;";
+        }
 
-      //shorten really long page lists, to stop table distorting width-ways
-      if (strlen($ret) > 70) {
-        $start = 4;
-        $end = $page - 5;
-        $ret = preg_replace("/<a\D+\d+\D+>$start<\/a>.*?<a\D+\d+\D+>$end<\/a>/", '...', $ret);
+        $ret .= "</div>";
 
-        $start = $page + 5;
-        $end = $pages - 3;
-        $ret = preg_replace("/<a\D+\d+\D+>$start<\/a>.*?<a\D+\d+\D+>$end<\/a>/", '...', $ret);
-      }
+        // Shorten really long page lists, to stop table distorting width-ways;
+        if (strlen($ret) > 70) {
+            $start = 4;
+            $end = $page - 5;
+            $ret = preg_replace("/<a\D+\d+\D+>$start<\/a>.*?<a\D+\d+\D+>$end<\/a>/", '...', $ret);
 
-      return $ret;
+            $start = $page + 5;
+            $end = $pages - 3;
+            $ret = preg_replace("/<a\D+\d+\D+>$start<\/a>.*?<a\D+\d+\D+>$end<\/a>/", '...', $ret);
+        }
+
+        return $ret;
     }
 
     /**
-    * can the user see this result ?
-    * @param user a reference upon the user to be checked for access
-    * @param this_id the item identifier
-    * @param doctype the search document type. MAtches the module or block or 
-    * extra search source definition
-    * @param course_id the course reference of the searched result
-    * @param group_id the group identity attached to the found resource
-    * @param path the path that routes to the local lib.php of the searched 
-    * surrounding object fot that document
-    * @param item_type a subclassing information for complex module data models
-    * @uses CFG
-    * // TODO reorder parameters more consistently
-    */
+     * can the user see this result ?
+     * @param user a reference upon the user to be checked for access
+     * @param this_id the item identifier
+     * @param doctype the search document type. MAtches the module or block or 
+     * extra search source definition
+     * @param course_id the course reference of the searched result
+     * @param group_id the group identity attached to the found resource
+     * @param path the path that routes to the local lib.php of the searched 
+     * surrounding object fot that document
+     * @param item_type a subclassing information for complex module data models
+     * @uses CFG
+     * // TODO reorder parameters more consistently
+     */
     private function can_display(&$user, $this_id, $doctype, $course_id, $group_id, $path, $item_type, $context_id, &$searchables) {
         global $CFG;
-       
-      /**
-      * course related checks
-      */
-      // admins can see everything, anyway.
-      if (has_capability('moodle/site:config', context_system::instance())) {
-        return true;
-      }
-            
-        // first check course compatibility against user : enrolled users to that course can see. 
+
+       /**
+        * course related checks
+        */
+       // Admins can see everything, anyway.
+       if (has_capability('moodle/site:config', context_system::instance())) {
+            return true;
+       }
+
+        // First check course compatibility against user : enrolled users to that course can see.
         $myCourses = get_my_courses($user->id);
         $unenroled = !in_array($course_id, array_keys($myCourses));
-        
-        // if guests are allowed, logged guest can see
+
+        // If guests are allowed, logged guest can see.
         $isallowedguest = (isguest()) ? $DB->get_field('course', 'guest', array('id' => $course_id)) : false ;
-        
+
         if ($unenroled && !$isallowedguest){
             return false;
         }
-        
-        // if user is enrolled or is allowed user and course is hidden, can he see it ?
+
+        // If user is enrolled or is allowed user and course is hidden, can he see it ?
         $visibility = $DB->get_field('course', 'visible', array('id' => $course_id));
-        if ($visibility <= 0){
+        if ($visibility <= 0) {
             if (!has_capability('moodle/course:viewhiddencourses', context_course::instance($course_id))){
                 return false;
             }
         }
-        
+
         /**
-        * prerecorded capabilities
-        */
-        // get context caching information and tries to discard unwanted records here
-        
-        
-        /**
-        * final checks
-        */
-        // then give back indexing data to the module for local check
+         * final checks
+         */
+        // Then give back indexing data to the module for local check.
         $searchable_instance = $searchables[$doctype];
         if ($searchable_instance->location == 'internal') {
             include_once "{$CFG->dirroot}/local/search/documents/{$doctype}_document.php";
@@ -431,68 +417,68 @@ class SearchQuery {
             include_once "{$CFG->dirroot}/{$searchable_instance->location}/$doctype/search_document.php";
         }
         $access_check_function = "{$doctype}_check_text_access";
-        
+
         if (function_exists($access_check_function)){
             $modulecheck = $access_check_function($path, $item_type, $this_id, $user, $group_id, $context_id);
             // echo "module said $modulecheck for item $doctype/$item_type/$this_id";
             return($modulecheck);
         }
-          
+
         return true;
     }
 
     /**
-    *
-    */
+     *
+     */
     public function count() {
-      return $this->total_results;
+        return $this->total_results;
     } //count
 
     /**
-    *
-    */
+     *
+     */
     public function is_valid() {
-      return ($this->validquery and $this->validindex);
+        return ($this->validquery and $this->validindex);
     }
 
     /**
     *
     */
     public function is_valid_query() {
-      return $this->validquery;
+        return $this->validquery;
     }
 
     /**
     *
     */
     public function is_valid_index() {
-      return $this->validindex;
+        return $this->validindex;
     }
 
     /**
     *
     */
     public function total_pages() {
-      return ceil($this->count()/$this->results_per_page);
+        return ceil($this->count()/$this->results_per_page);
     }
 
     /**
     *
     */
     public function get_pagenumber() {
-      return $this->pagenumber;
+        return $this->pagenumber;
     }
 
     /**
     *
     */
     public function get_results_per_page() {
-      return $this->results_per_page;
+        return $this->results_per_page;
     }
 
     /**
     *
-    */    
+    */
     public function __destruct(){
         unset($this->index);
     }

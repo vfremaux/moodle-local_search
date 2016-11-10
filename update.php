@@ -1,9 +1,26 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @subpackage search_engine
+ * @category local
  * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -13,10 +30,6 @@
  * Major chages in this review is passing the xxxx_db_names return to
  * multiple arity to handle multiple document types modules
  */
-
-if (!defined('MOODLE_INTERNAL')) {
-    die('Direct access to this script is forbidden.');    ///  It must be included from the cron script
-}
 
 /// makes inclusions of the Zend Engine more reliable
 ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
@@ -31,18 +44,18 @@ try {
     return;
 }
 
+if (!isset($config)) {
+    $config = get_config('local_search');
+}
+
 $dbcontrol = new IndexDBControl();
 $update_count = 0;
-$indexdate = 0 + @$CFG->search_indexer_update_date;
+$indexdate = 0 + @$config->update_date;
 $startupdatedate = time();
 
-/// indexing changed resources
+// Indexing changed resources.
 
 mtrace("Starting index update (updates)...\n");
-
-if (!isset($config)) {
-    $config = get_config('block_search');
-}
 
 if ($mods = search_collect_searchables(false, true)) {
 
@@ -109,49 +122,49 @@ if ($mods = search_collect_searchables(false, true)) {
                             } 
                         } 
                     }
-                    
+
                     foreach ($updates as $update) {
                         ++$update_count;
-                        
+
                         //delete old document
                         $doc = $index->find("+docid:{$update->id} +doctype:{$mod->name} +itemtype:{$update->itemtype}");
-                        
-                        //get the record, should only be one
+
+                        // Get the record, should only be one.
                         foreach ($doc as $thisdoc) {
                             mtrace("  Delete: $thisdoc->title (database id = $thisdoc->dbid, index id = $thisdoc->id, moodle instance id = $thisdoc->docid)");
                             $dbcontrol->delDocument($thisdoc);
                             $index->delete($thisdoc->id);
-                        } 
-                        
-                        //add new modified document back into index
-                        if (!$add = $get_document_function($update->id, $update->itemtype)){
-                            // ignore on errors
+                        }
+
+                        // Add new modified document back into index.
+                        if (!$add = $get_document_function($update->id, $update->itemtype)) {
+                            // Ignore on errors.
                             continue;
                         }
-                        
+
                         //object to insert into db
                         $dbid = $dbcontrol->addDocument($add);
-                        
-                        //synchronise db with index
+
+                        // Synchronise db with index.
                         $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
                         mtrace("  Add: $add->title (database id = $add->dbid, moodle instance id = $add->docid)");
                         $index->addDocument($add);
-                    } 
+                    }
                 }
                 else{
                     mtrace("No types to update.\n");
                 }
                 mtrace("Finished $mod->name.\n");
-            } 
-        } 
-    } 
-} 
+            }
+        }
+    }
+}
 
 //commit changes
 $index->commit();
 
 //update index date
-set_config("search_indexer_update_date", $startupdatedate);
+set_config('update_date', $startupdatedate, 'local_search');
 
 mtrace("Finished $update_count updates");
 

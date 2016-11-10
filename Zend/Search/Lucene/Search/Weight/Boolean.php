@@ -21,7 +21,7 @@
 
 
 /** Zend_Search_Lucene_Search_Weight */
-require_once "{$CFG->dirroot}/local/search/Zend/Search/Lucene/Search/Weight.php";
+require_once $CFG->dirroot.'/local/search/Zend/Search/Lucene/Search/Weight.php';
 
 
 /**

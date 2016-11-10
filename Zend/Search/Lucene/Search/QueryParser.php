@@ -59,7 +59,7 @@ require_once "{$CFG->dirroot}/local/search/Zend/Search/Lucene/Search/QueryParser
 
 
 /** Zend_Search_Lucene_FSM */
-require_once "{$CFG->dirroot}/local/search/Zend/Search/Lucene/FSM.php";
+require_once "{$CFG->dirroot}/local/search/Zend/Search/Lucene/FSMAction.php";
 
 /** Zend_Search_Lucene_Exception */
 require_once "{$CFG->dirroot}/local/search/Zend/Search/Lucene/Exception.php";

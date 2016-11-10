@@ -1,9 +1,26 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @subpackage search_engine
+ * @category local
  * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -14,15 +31,11 @@
  * multiple arity to handle multiple document types modules
  */
 
-if (!defined('MOODLE_INTERNAL')) {
-    die('Direct access to this script is forbidden.');    ///  It must be included from the cron script
-}
-
-/// makes inclusions of the Zend Engine more reliable
+// makes inclusions of the Zend Engine more reliable
 ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
 require_once($CFG->dirroot.'/local/search/lib.php');
-require_once($CFG->dirroot.'/local/search/indexlib.php');        
+require_once($CFG->dirroot.'/local/search/indexlib.php');
 
 try {
     $index = new Zend_Search_Lucene(SEARCH_INDEX_PATH);
@@ -31,16 +44,16 @@ try {
     return;
 }
 
+if (!isset($config)) {
+    $config = get_config('local_search');
+}
+
 $dbcontrol = new IndexDBControl();
 $deletion_count = 0;
 $startcleantime = time();
 
 mtrace('Starting clean-up of removed records...');
-mtrace('Index size before: '.$CFG->search_index_size."\n");
-
-if (!isset($config)) {
-    $config = get_config('block_search');
-}
+mtrace('Index size before: '.$config->index_size."\n");
 
 // Check all modules.
 
@@ -59,19 +72,19 @@ if ($mods = search_collect_searchables(false, true)) {
         $delete_function = $mod->name.'_delete';
         $db_names_function = $mod->name.'_db_names';
         $deletions = array();
-        
+
         if (file_exists($class_file)) {
             require_once($class_file);
 
             // If both required functions exist.
-            if (function_exists($delete_function) and function_exists($db_names_function)) {
+            if (function_exists($delete_function) && function_exists($db_names_function)) {
                 mtrace("Checking $mod->name module for deletions.");
                 $valuesArray = $db_names_function();
                 if ($valuesArray) {
-                    foreach($valuesArray as $values) {
+                    foreach ($valuesArray as $values) {
                        $where = (!empty($values[5])) ? 'WHERE '.$values[5] : '';
                        $joinextension = (!empty($values[6])) ? $values[6] : '';
-                       $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " itemtype = '{$values[4]}' AND " : '' ;
+                       $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " itemtype = '{$values[4]}' AND " : '';
                        $sql = "
                             SELECT
                                 {$values[0]} as id,
@@ -83,7 +96,7 @@ if ($mods = search_collect_searchables(false, true)) {
                         ";
                         echo "sql $sql ";
                         $docIds = $DB->get_records_sql($sql);
-                        $docIdList = ($docIds) ? implode("','", array_keys($docIds)) : '' ;
+                        $docIdList = ($docIds) ? implode("','", array_keys($docIds)) : '';
 
                         // Index records
                         $table = SEARCH_DATABASE_TABLE;
@@ -131,14 +144,14 @@ if ($mods = search_collect_searchables(false, true)) {
     }
 }
 
-// commit changes.
+// Commit changes.
 
 $index->commit();
 
-// update index date and index size.
+// Update index date and index size.
 
-set_config('search_indexer_cleanup_date', $startcleantime);
-set_config('search_index_size', (int)$CFG->search_index_size - (int)$deletion_count);
+set_config('cleanup_date', $startcleantime, 'local_search');
+set_config('index_size', (int)$config->index_size - (int)$deletion_count, 'local_search');
 
 mtrace("Finished $deletion_count removals.");
 mtrace('Index size after: '.$index->count());

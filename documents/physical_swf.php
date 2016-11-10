@@ -1,41 +1,55 @@
 <?php
-/**
-* Global Search Engine for Moodle
-*
-* @package local_search
-* @subpackage document_wrappers
-* @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
-* @date 2008/03/31
-* @license http://www.gnu.org/copyleft/gpl.html GNU Public License
-*
-* @note : The Adobe SWF Converters library is not GPL, although it can be of free use in some
-* situations. This file is provided for convenience, but should use having a glance at 
-* {@link http://www.adobe.com/licensing/developer/}
-*
-* this is a format handler for getting text out of a proprietary binary format 
-* so it can be indexed by Lucene search engine
-*/
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
 
 /**
-* @param object $resource
-* @uses $CFG
-*/
+ * Global Search Engine for Moodle
+ *
+ * @package local_search
+ * @category local
+ * @subpackage document_wrappers
+ * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @date 2008/03/31
+ * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ *
+ * @note : The Adobe SWF Converters library is not GPL, although it can be of free use in some
+ * situations. This file is provided for convenience, but should use having a glance at 
+ * {@link http://www.adobe.com/licensing/developer/}
+ *
+ * this is a format handler for getting text out of a proprietary binary format 
+ * so it can be indexed by Lucene search engine
+ */
+
+/**
+ * @param string $physicalfilepath
+ * @return some raw text for indexation
+ */
 function get_text_for_indexing_swf($physicalfilepath){
     global $CFG;
 
-    $config = get_config('block_search');
-
-    // SECURITY : do not allow non admin execute anything on system !!
-    if (!has_capability('moodle/site:doanything', context_system::instance())) {
-        return;
-    }
+    $config = get_config('local_search');
 
     // adds moodle root switch if none was defined
     if (!isset($config->usemoodleroot)) {
-        set_config('usemoodleroot', 1, 'block_search');
+        set_config('usemoodleroot', 1, 'local_search');
+        $config->usemoodleroot = 1;
     }
 
-    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/" : '' ;
+    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/" : '' ;
 
     // just call pdftotext over stdout and capture the output
     if (!empty($config->pdf_to_text_cmd)){

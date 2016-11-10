@@ -1,36 +1,50 @@
 <?php
-/**
-* Global Search Engine for Moodle
-*
-* @package search
-* @category core
-* @subpackage document_wrappers
-* @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
-* @contributor Tatsuva Shirai 20090530
-* @date 2008/03/31
-* @license http://www.gnu.org/copyleft/gpl.html GNU Public License
-*
-* document handling for wiki activity module
-* This file contains the mapping between a wiki page and it's indexable counterpart,
-* e.g. searchdocument->title = wikipage->pagename
-*
-* Functions for iterating and retrieving the necessary records are now also included
-* in this file, rather than mod/wiki/lib.php
-*/
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
 
 /**
-* includes and requires
-*/
-require_once("$CFG->dirroot/local/search/documents/document.php");
-require_once("$CFG->dirroot/mod/wiki/lib.php");
+ * Global Search Engine for Moodle
+ *
+ * @package local_search
+ * @category local
+ * @subpackage document_wrappers
+ * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @contributor Tatsuva Shirai 20090530
+ * @date 2008/03/31
+ * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ *
+ * document handling for wiki activity module
+ * This file contains the mapping between a wiki page and it's indexable counterpart,
+ * e.g. searchdocument->title = wikipage->pagename
+ *
+ * Functions for iterating and retrieving the necessary records are now also included
+ * in this file, rather than mod/wiki/lib.php
+ */
+
+require_once($CFG->dirroot.'/local/search/documents/document.php');
+require_once($CFG->dirroot.'/mod/wiki/lib.php');
 
 /**
-* All the $doc->___ fields are required by the base document class!
-* Each and every module that requires search functionality must correctly
-* map their internal fields to the five $doc fields (id, title, author, contents
-* and url). Any module specific data can be added to the $data object, which is
-* serialised into a binary field in the index.
-*/
+ * All the $doc->___ fields are required by the base document class!
+ * Each and every module that requires search functionality must correctly
+ * map their internal fields to the five $doc fields (id, title, author, contents
+ * and url). Any module specific data can be added to the $data object, which is
+ * serialised into a binary field in the index.
+ */
 class WikiSearchDocument extends SearchDocument {
     public function __construct(&$page, $wiki_id, $course_id, $group_id, $user_id, $context_id) {
         // generic information; required
@@ -46,90 +60,88 @@ class WikiSearchDocument extends SearchDocument {
         $doc->author    = preg_replace('/\(.*?\)/', '', $page['author']);
         $doc->contents  = $page['content'];
         $doc->url       = wiki_make_link($wiki_id, $page['pagename'], $page['version']);
-        
-        // module specific information; optional
+
+        // Module specific information; optional.
         $data =new StdClass;
         $data->version  = $page['version'];
         $data->wiki     = $wiki_id;
-        
-        // construct the parent class
+
+        // Construct the parent class.
         parent::__construct($doc, $data, $course_id, $group_id, $user_id, 'mod/'.SEARCH_TYPE_WIKI);
     } 
 }
 
 /**
-* converts a page name to cope Wiki constraints. Transforms spaces in plus.
-* @param str the name to convert
-* @return the converted name
-*/
+ * converts a page name to cope Wiki constraints. Transforms spaces in plus.
+ * @param str the name to convert
+ * @return the converted name
+ */
 function wiki_name_convert($str) {
     return str_replace(' ', '+', $str);
 }
 
 /**
-* constructs a valid link to a wiki content
-* @param int $wikiId
-* @param string $title
-* @param int $version
-* @uses CFG
-*/
+ * constructs a valid link to a wiki content
+ * @param int $wikiId
+ * @param string $title
+ * @param int $version
+ * @uses CFG
+ */
 function wiki_make_link($wikiId, $title, $version) {
     global $CFG;
 
     return new moodle_url('/mod/wiki/view.php', array('wid' => $wikiId, 'page' => wiki_name_convert($title), 'version' => $version));
-} //wiki_make_link
+}
 
 /**
-* rescued and converted from ewikimoodlelib.php
-* retrieves latest version of a page
-* @param object $entry the wiki object as a reference
-* @param string $pagename the name of the page known by the wiki engine
-* @param int $version
-*/
+ * rescued and converted from ewikimoodlelib.php
+ * retrieves latest version of a page
+ * @param object $entry the wiki object as a reference
+ * @param string $pagename the name of the page known by the wiki engine
+ * @param int $version
+ */
 function wiki_get_latest_page(&$entry, $pagename, $version = 0) {
     global $DB;
-    
-    $pagename = "'".addslashes($pagename)."'";
-    
-    if ($version > 0 and is_int($version)) {
-        $version = "AND (version=$version)";
+
+    if ($version > 0 && is_int($version)) {
+        $version = "AND (version = $version)";
     } else {
         $version = '';
-    } 
-    
-    $select = "(pagename=$pagename) AND wiki=".$entry->id." $version ";
+    }
+
+    $select = "(pagename = ?) AND wiki = ? $version ";
     $sort   = 'version DESC';
     
     //change this to recordset_select, as per http://docs.moodle.org/en/Datalib_Notes
-    if ($result_arr = $DB->get_records_select('wiki_pages', $select, array(), $sort, '*', 0, 1)) {
+    if ($result_arr = $DB->get_records_select('wiki_pages', $select, array($pagename, $entry->id), $sort, '*', 0, 1)) {
         foreach ($result_arr as $obj) {
             $result_obj = $obj;
         } 
     } 
-    
+
     if (isset($result_obj))  {
         $result_obj->meta = @unserialize($result_obj->meta);
         return $result_obj;
     } else {
         return false;
-    } 
+    }
 }
 
 /**
-* fetches all pages, including old versions
-* @param object $entry the wiki object as a reference
-* @return an array of record objects that represents pages of this wiki object
-*/
+ * fetches all pages, including old versions
+ * @param object $entry the wiki object as a reference
+ * @return an array of record objects that represents pages of this wiki object
+ */
 function wiki_get_pages(&$entry) {
     global $DB;
-    
+
     return $DB->get_records('wiki_pages', array('wiki' => $entry->id));
 }
 
 /**
-* fetches all the latest versions of all the pages
-* @param object $entry
-*/
+ * fetches all the latest versions of all the pages
+ * @param object $entry
+ */
 function wiki_get_latest_pages(&$entry) {
     global $DB;
   //== (My)SQL for this
@@ -141,24 +153,24 @@ function wiki_get_latest_pages(&$entry) {
     (wiki_pages.pagename like a.pagename)) */
 
     $pages = array();
-    
+
     //http://moodle.org/bugs/bug.php?op=show&bugid=5877&pos=0
     if ($ids = $DB->get_records('wiki_pages', array('wiki' => $entry->id), '', 'distinct pagename')) {
         if ($pagesets = $DB->get_records('wiki_pages', array('wiki' => $entry->id), '', 'distinct pagename')) {
             foreach ($pagesets as $aPageset) {
                 $pages[] = wiki_get_latest_page($entry, $aPageset->pagename);
-            } 
+            }
         } else {
             return false;
-        } 
+        }
     }
     return $pages;
 }
 
 /**
-* part of search engine API
-*
-*/
+ * part of search engine API
+ *
+ */
 function wiki_iterator() {
     global $DB;
 
@@ -167,44 +179,45 @@ function wiki_iterator() {
 }
 
 /**
-* part of search engine API
-* @param wiki a wiki instance
-* @return an array of searchable deocuments
-*/
+ * part of search engine API
+ * @param wiki a wiki instance
+ * @return an array of searchable deocuments
+ */
 function wiki_get_content_for_index(&$wiki) {
     global $DB;
-    
+
     $documents = array();
     $entries = wiki_get_entries($wiki);
-    if ($entries){
+    if ($entries) {
         $coursemodule = $DB->get_field('modules', 'id', array('name' => 'wiki'));
-        $cm = get_record('course_modules', 'course', $wiki->course, 'module', $coursemodule, 'instance', $wiki->id);
+        $cm = $DB->get_record('course_modules', array('course' => $wiki->course, 'module' => $coursemodule, 'instance' => $wiki->id));
         $context = context_module::instance($cm->id);
         foreach ($entries as $entry) {
-    
+
             //all pages
             //$pages = wiki_get_pages($entry);
-            
+
             //latest pages
             $pages = wiki_get_latest_pages($entry);
             if (is_array($pages)) {
                 foreach($pages as $page) {
                     if (strlen($page->content) > 0) {
-                        $documents[] = new WikiSearchDocument(get_object_vars($page), $entry->wikiid, $entry->course, $entry->groupid, $page->userid, $context->id);
-                    } 
-                } 
-            } 
-        } 
+                        $arr = get_object_vars($page);
+                        $documents[] = new WikiSearchDocument($arr, $entry->wikiid, $entry->course, $entry->groupid, $page->userid, $context->id);
+                    }
+                }
+            }
+        }
     }
     return $documents;
 }
 
 /**
-* returns a single wiki search document based on a wiki_entry id
-* @param id the id of the wiki
-* @param itemtype the type of information (standard)
-* @return a searchable document
-*/
+ * returns a single wiki search document based on a wiki_entry id
+ * @param id the id of the wiki
+ * @param itemtype the type of information (standard)
+ * @return a searchable document
+ */
 function wiki_single_document($id, $itemtype) {
     global $DB;
 
@@ -213,76 +226,79 @@ function wiki_single_document($id, $itemtype) {
     $coursemodule = $DB->get_field('modules', 'id', array('name' => 'wiki'));
     $cm = $DB->get_record('course_modules', array('course' => $entry->course, 'module' => $coursemodule, 'instance' => $entry->wikiid));
     $context = context_module::instance($cm->id);
-    return new WikiSearchDocument(get_object_vars($page), $entry->wikiid, $entry->course, $entry->groupid, $page->userid, $context->id);
+    $arr = get_object_vars($page);
+    return new WikiSearchDocument($arr, $entry->wikiid, $entry->course, $entry->groupid, $page->userid, $context->id);
 }
 
 /**
-* dummy delete function that packs id with itemtype.
-* this was here for a reason, but I can't remember it at the moment.
-*
-*/
+ * dummy delete function that packs id with itemtype.
+ * this was here for a reason, but I can't remember it at the moment.
+ */
 function wiki_delete($info, $itemtype) {
     $object->id = $info;
     $object->itemtype = $itemtype;
     return $object;
 }
 
-//returns the var names needed to build a sql query for addition/deletions
+/**
+ * Returns the var names needed to build a sql query for addition/deletions
+ */
 function wiki_db_names() {
     //[primary id], [table name], [time created field name], [time modified field name]
     return array(array('id', 'wiki_pages', 'timecreated', 'timemodified', 'standard'));
 }
 
 /**
-* this function handles the access policy to contents indexed as searchable documents. If this 
-* function does not exist, the search engine assumes access is allowed.
-* When this point is reached, we already know that : 
-* - user is legitimate in the surrounding context
-* - user may be guest and guest access is allowed to the module
-* - the function may perform local checks within the module information logic
-* @param path the access path to the module script code
-* @param itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
-* @param this_id the item id within the information class denoted by itemtype. In wikies, this id 
-* points out the indexed wiki page.
-* @param user the user record denoting the user who searches
-* @param group_id the current group used by the user when searching
-* @uses CFG
-* @return true if access is allowed, false elsewhere
-*/
-function wiki_check_text_access($path, $itemtype, $this_id, $user, $group_id, $context_id){
+ * This function handles the access policy to contents indexed as searchable documents. If this 
+ * function does not exist, the search engine assumes access is allowed.
+ * When this point is reached, we already know that : 
+ * - user is legitimate in the surrounding context
+ * - user may be guest and guest access is allowed to the module
+ * - the function may perform local checks within the module information logic
+ * @param path the access path to the module script code
+ * @param itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
+ * @param this_id the item id within the information class denoted by itemtype. In wikies, this id 
+ * points out the indexed wiki page.
+ * @param user the user record denoting the user who searches
+ * @param group_id the current group used by the user when searching
+ * @return true if access is allowed, false elsewhere
+ */
+function wiki_check_text_access($path, $itemtype, $this_id, $user, $group_id, $context_id) {
     global $CFG, $DB;
-    
-    // get the wiki object and all related stuff
+
+    // Get the wiki object and all related stuff.
     $page = $DB->get_record('wiki_pages', array('id' => $this_id));
     $wiki = $DB->get_record('wiki', array('id' => $page->wiki));
     $course = $DB->get_record('course', array('id' => $wiki->course));
     $context = $DB->get_record('context', array('id' => $context_id));
     $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));
-    if (empty($cm)) return false; // Shirai 20090530 - MDL19342 - course module might have been delete
+    if (empty($cm)) {
+        return false; // Shirai 20090530 - MDL19342 - course module might have been delete
+    }
 
     if (!$cm->visible and !has_capability('moodle/course:viewhiddenactivities', $context)) {
         if (!empty($CFG->search_access_debug)) echo "search reject : hidden wiki ";
         return false;
     }
-    
-    //group consistency check : checks the following situations about groups
+
+    // Group consistency check : checks the following situations about groups.
     // trap if user is not same group and groups are separated
     if ((groups_get_activity_groupmode($cm) == SEPARATEGROUPS) && !groups_is_member($group_id) && !has_capability('moodle/site:accessallgroups', $context)) {
         if (!empty($CFG->search_access_debug)) echo "search reject : separated group owner wiki ";
         return false;
     }
-        
     return true;
 }
 
 /**
-* this call back is called when displaying the link for some last post processing
-*
-*/
-function wiki_link_post_processing($title){
-    global $CFG;
-    
-    if ($CFG->block_search_utf8dir){
+ * This call back is called when displaying the link for some last post processing
+ * @param string $title
+ */
+function wiki_link_post_processing($title) {
+
+    $config = get_config('local_search');
+
+    if ($config->utf8dir) {
         return mb_convert_encoding($title, 'UTF-8', 'auto');
     }
     return mb_convert_encoding($title, 'auto', 'UTF-8');

@@ -1,9 +1,26 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * Global Search Engine for Moodle
  *
- * @package search
- * @category core
+ * @package local_search
+ * @category local
  * @subpackage document_wrappers
  * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
  * @contributor Tatsuva Shirai 20090530
@@ -11,7 +28,6 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
  * document handling for assignment activity module
- *
  */
 
 require_once("$CFG->dirroot/local/search/documents/document.php");
@@ -53,13 +69,12 @@ class AssignmentSearchDocument extends SearchDocument {
     }
 }
 
-
 /**
  * constructs a valid link to a chat content
  * @param cm_id the chat course module
  * @param start the start time of the session
  * @param end th end time of the session
- * @uses CFG
+ * @uses $CFG
  * @return a well formed link to session display
  */
 function assignment_make_link($cm_id, $itemtype, $owner) {
@@ -101,7 +116,8 @@ function assignment_get_content_for_index(&$assignment) {
 
         $assignment->authors = '';
         $assignment->date = $assignment->timemodified;
-        $documents[] = new AssignmentSearchDocument(get_object_vars($assignment), $cm->id, 'description', $assignment->course, null, $context->id);
+        $arr = get_object_vars($assignment);
+        $documents[] = new AssignmentSearchDocument($arr, $cm->id, 'description', $assignment->course, null, $context->id);
             
         $submissions = assignment_get_all_submissions($assignment);
         if ($submissions) {
@@ -111,8 +127,8 @@ function assignment_get_content_for_index(&$assignment) {
                 $submission->assignmenttype = $assignment->assignmenttype;
                 $submission->date = $submission->timemodified;
                 $submission->name = "submission:";
-                if (file_exists("{$CFG->dirroot}/mod/assignment/type/{$assignment->assignmenttype}/searchlib.php")) {
-                    include_once("{$CFG->dirroot}/mod/assignment/type/{$assignment->assignmenttype}/searchlib.php");
+                if (file_exists($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.'/searchlib.php')) {
+                    include_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.'/searchlib.php');
                     if (function_exists('assignment_get_submission_location')) {
                         $submitted = assignment_get_submission_location($assignment, $submission);
                     }
@@ -124,7 +140,7 @@ function assignment_get_content_for_index(&$assignment) {
                             $submitted->source = 'text';
                             $submitted->data = $submission->data1;
                             break;
-                            
+
                         case 'uploadsingle' : 
                         case 'upload':
                             $submitted->source = 'files';
@@ -139,7 +155,8 @@ function assignment_get_content_for_index(&$assignment) {
                 if ($submitted->source = 'text') {
                     $submission->description = $submitted->data;
                     $submission->description = preg_replace("/<[^>]*>/", '', $submission->description); // stip all tags
-                    $documents[] = new AssignmentSearchDocument(get_object_vars($submission), $cm->id, 'submission', $assignment->course, $submission->userid, $context->id);
+                    $arr = get_object_vars($submission);
+                    $documents[] = new AssignmentSearchDocument($arr, $cm->id, 'submission', $assignment->course, $submission->userid, $context->id);
                     mtrace("finished online submission for {$submission->authors} in assignement {$assignment->name}");
                 } elseif ($submitted->source = 'files') {
                     $SUBMITTED = opendir($submitted->path);
@@ -202,11 +219,13 @@ function assignment_get_physical_file(&$submission, &$assignment, &$cm, $path, $
         
         if (!empty($submission->description)) {
             if ($getsingle) {
-                $single = new AssignmentSearchDocument(get_object_vars($submission), $cm->id, 'submitted', $assignment->course, $submission->userid, $context_id);
+                $arr = get_object_vars($submission);
+                $single = new AssignmentSearchDocument($arr, $cm->id, 'submitted', $assignment->course, $submission->userid, $context_id);
                 mtrace("finished submission file from {$submission->authors}");
                 return $single;
             } else {
-                $documents[] = new AssignmentSearchDocument(get_object_vars($submission), $cm->id, 'submitted', $assignment->course, $submission->userid, $context_id);
+                $arr = get_object_vars($submission);
+                $documents[] = new AssignmentSearchDocument($arr, $cm->id, 'submitted', $assignment->course, $submission->userid, $context_id);
             }
             mtrace("finished submission file from {$submission->authors}");
         }
@@ -245,11 +264,13 @@ function assignment_single_document($id, $itemtype) {
 
         // Should be only one. 
         if ($itemtype == 'description') {
-            $document = new AssignmentSearchDocument(get_object_vars($assignment), $cm->id, 'description', $assignment->course, null, $context->id);
+            $arr = get_object_vars($assignment);
+            $document = new AssignmentSearchDocument($arr, $cm->id, 'description', $assignment->course, null, $context->id);
             return $document;
         }
         if ($itemtype == 'submittted') {
-            $document = new AssignmentSearchDocument(get_object_vars($submission), $cm->id, 'submitted', $assignment->course, null, $context->id);
+            $arr = get_object_vars($submission);
+            $document = new AssignmentSearchDocument($arr, $cm->id, 'submitted', $assignment->course, null, $context->id);
             return $document;
         }
     }

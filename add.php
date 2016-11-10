@@ -1,8 +1,24 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Global Search Engine for Moodle
  *
  * @package local_search
+ * @category local
  * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -13,9 +29,7 @@
  * multiple arity to handle multiple document types modules
  */
 
-if (!defined('MOODLE_INTERNAL')) {
-    die('Direct access to this script is forbidden.');
-}
+defined('MOODLE_INTERNAL') || die();
 
 // Makes inclusions of the Zend Engine more reliable.
 ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
@@ -25,9 +39,9 @@ require_once($CFG->dirroot.'/local/search/indexlib.php');
 
 // Checks global search activation.
 
-// require_login();
+$config = get_config('local_search');
 
-if (empty($CFG->enableglobalsearch)) {
+if (empty($config->enable)) {
     print_error('globalsearchdisabled', 'local_search');
 }
 
@@ -42,14 +56,10 @@ $dbcontrol = new IndexDBControl();
 $addition_count = 0;
 $startindextime = time();
 
-$indexdate = $CFG->search_indexer_run_date;
+$indexdate = $config->rundate;
 
 mtrace('Starting index update (additions)...');
-mtrace('Index size before: '.$CFG->search_index_size."\n");
-
-if (!isset($config)) {
-    $config = get_config('block_search');
-}
+mtrace('Index size before: '.$config->index_size."\n");
 
 // Get all modules.
 if ($mods = search_collect_searchables(false, true)) {
@@ -70,7 +80,7 @@ if ($mods = search_collect_searchables(false, true)) {
         $get_document_function = $mod->name.'_single_document';
         $get_newrecords_function = $mod->name.'_new_records';
         $additions = array();
-        
+
         if (file_exists($class_file)) {
             require_once($class_file);
 
@@ -79,7 +89,7 @@ if ($mods = search_collect_searchables(false, true)) {
                 mtrace("Checking $mod->name module for additions.");
                 $valuesArray = $db_names_function();
                 if ($valuesArray){
-                    foreach($valuesArray as $values){
+                    foreach ($valuesArray as $values) {
                         $where = (!empty($values[5])) ? 'AND ('.$values[5].')' : '';
                         $joinextension = (!empty($values[6])) ? $values[6] : '';
                         $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " AND itemtype = '{$values[4]}' " : '' ;
@@ -90,9 +100,9 @@ if ($mods = search_collect_searchables(false, true)) {
                             SELECT
                                 docid,
                                 itemtype
-                            FROM 
+                            FROM
                                 {{$table}}
-                            WHERE 
+                            WHERE
                                 doctype = '{$values[1]}'
                                 $itemtypes
                         ";
@@ -154,8 +164,8 @@ $index->commit();
 
 // Update index date and size.
 
-set_config("search_indexer_run_date", $startindextime);
-set_config("search_index_size", (int)$CFG->search_index_size + (int)$addition_count);
+set_config('run_date', $startindextime, 'local_search');
+set_config('index_size', (int)$config->index_size + (int)$addition_count, 'local_search');
 
 // Print some additional info.
 

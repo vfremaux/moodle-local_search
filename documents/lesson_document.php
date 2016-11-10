@@ -1,9 +1,26 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
+
 /**
 * Global Search Engine for Moodle
 *
-* @package search
-* @category core
+* @package local_search
+* @category local
 * @subpackage document_wrappers
 * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
 * @contributor Tatsuva Shirai 20090530
@@ -102,7 +119,8 @@ function lesson_get_content_for_index(&$lesson) {
         $cm = $DB->get_record('course_modules', array('course' => $lesson->course, 'module' => $coursemodule, 'instance' => $lesson->id));
         $context = context_module::instance($cm->id);
         foreach($pages as $aPage){
-            $documents[] = new LessonPageSearchDocument(get_object_vars($aPage), $cm->id, $lesson->course, 'page', $context->id);
+            $arr = get_object_vars($aPage);
+            $documents[] = new LessonPageSearchDocument($arr, $cm->id, $lesson->course, 'page', $context->id);
         }
     }
 
@@ -125,7 +143,8 @@ function lesson_single_document($id, $itemtype) {
     if ($cm){
         $context = context_module::instance($cm->id);
         $lesson->groupid = 0;
-        return new LessonPageSearchDocument(get_object_vars($page), $cm->id, $lesson->course, $itemtype, $context->id);
+        $arr = get_object_vars($page);
+        return new LessonPageSearchDocument($arr, $cm->id, $lesson->course, $itemtype, $context->id);
     }
     return null;
 }

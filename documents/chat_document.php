@@ -1,9 +1,26 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * Global Search Engine for Moodle
  *
- * @package search
- * @category core
+ * @package local_search
+ * @category local
  * @subpackage document_wrappers
  * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
  * @contributor Tatsuva Shirai 20090530
@@ -18,8 +35,8 @@
  *
  */
 
-require_once("$CFG->dirroot/local/search/documents/document.php");
-require_once("$CFG->dirroot/mod/chat/lib.php");
+require_once($CFG->dirroot.'/local/search/documents/document.php');
+require_once($CFG->dirroot.'/mod/chat/lib.php');
 
 /**
  * a class for representing searchable information
@@ -86,7 +103,7 @@ function chat_get_session_tracks($chat_id, $fromtime = 0, $totime = 0) {
 
     $chat = $DB->get_record('chat', array('id' => $chat_id));
     $course = $DB->get_record('course', array('id' => $chat->course));
-    $coursemodule = $DB->get_field('modules', array('id' => 'name', 'data'));
+    $coursemodule = $DB->get_field('modules', 'id', array('name' => 'chat'));
     $cm = $DB->get_record('course_modules', array('course' => $course->id, 'module' => $coursemodule, 'instance' => $chat->id));
     if (empty($cm)) { // Shirai 20090530
         mtrace("Missing this chat: Course=".$chat->course."/ ChatID=".$chat_id);
@@ -184,7 +201,8 @@ function chat_get_content_for_index(&$chat) {
                 foreach ($aTrack->sessionusers as $aUserId) {
                     $user = $DB->get_record('user', array('id' => $aUserId));
                     $aTrack->authors = ($user) ? fullname($user) : '' ;
-                    $documents[] = new ChatTrackSearchDocument(get_object_vars($aTrack), $chat->id, $cm->id, $chat->course, $aTrack->groupid, $context->id);
+                    $trackarr = get_object_vars($aTrack);
+                    $documents[] = new ChatTrackSearchDocument($trackarr, $chat->id, $cm->id, $chat->course, $aTrack->groupid, $context->id);
                 }
             }
         }
@@ -217,7 +235,8 @@ function chat_single_document($id, $itemtype) {
         $tracks = chat_get_session_tracks($chat->id, $sessionstart, $sessionstart);
         if ($tracks) {
             $aTrack = $tracks[0];
-            $document = new ChatTrackSearchDocument(get_object_vars($aTrack), $chat_id, $cm->id, $chat->course, $aTrack->groupid, $context->id);
+            $arr = get_object_vars($aTrack);
+            $document = new ChatTrackSearchDocument($arr, $chat_id, $cm->id, $chat->course, $aTrack->groupid, $context->id);
             return $document;
         }
     }

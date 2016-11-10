@@ -1,9 +1,26 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * Global Search Engine for Moodle
  *
- * @package search
- * @category core
+ * @package local_search
+ * @category local
  * @subpackage document_wrappers
  * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
  * @date 2008/03/31
@@ -129,7 +146,7 @@ function glossary_iterator() {
 * @return an array of searchable documents
 */
 function glossary_get_content_for_index(&$glossary) {
-    // global $DB;
+    global $DB;
 
     // get context
     $coursemodule = $DB->get_field('modules', 'id', array('name' => 'glossary'));
@@ -145,7 +162,8 @@ function glossary_get_content_for_index(&$glossary) {
             $concepts[$entry->id] = $entry->concept;
             if (strlen($entry->definition) > 0) {
                 $entryIds[] = $entry->id;
-                $documents[] = new GlossarySearchDocument(get_object_vars($entry), $glossary->course, $context->id);
+                $arr = get_object_vars($entry);
+                $documents[] = new GlossarySearchDocument($arr, $glossary->course, $context->id);
             } 
         } 
     }

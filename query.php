@@ -1,9 +1,23 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @subpackage search_engine
  * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -29,7 +43,6 @@
  *   All articles written by Helen Foster
  *
  */
-
 require('../../config.php');
 require_once($CFG->dirroot.'/local/search/lib.php');
 require_once($CFG->dirroot.'/local/search/querylib.php');
@@ -38,8 +51,6 @@ $page_number  = optional_param('page', -1, PARAM_INT);
 $pages        = ($page_number == -1) ? false : true;
 $advanced     = (optional_param('a', '0', PARAM_INT) == '1') ? true : false;
 $query_string = optional_param('query_string', '', PARAM_CLEAN);
-
-// include "debugging.php";
 
 $url = new moodle_url('/local/search/query.php', array('query_string' => $query_string));
 $PAGE->set_url($url);
@@ -51,7 +62,7 @@ if ($CFG->forcelogin) {
     require_login();
 }
 
-if (empty($CFG->enableglobalsearch)) {
+if (empty($config->enable)) {
     print_error('globalsearchdisabled', 'local_search');
 }
 
@@ -71,7 +82,6 @@ if ($pages && isset($_SESSION['search_advanced_query'])) {
 
     // Otherwise we are dealing with a new advanced query.
     unset($_SESSION['search_advanced_query']);
-    session_unregister('search_advanced_query');
 
     // Chars to strip from strings (whitespace).
     $chars = " \t\n\r\0\x0B,-+";
@@ -138,7 +148,7 @@ if ($advanced) {
 // Normalise page number.
 if ($page_number < 1) {
     $page_number = 1;
-} 
+}
 
 // Run the query against the index ensuring internal coding works in UTF-8.
 Zend_Search_Lucene_Analysis_Analyzer::setDefault(new Zend_Search_Lucene_Analysis_Analyzer_Common_Utf8_CaseInsensitive());
@@ -176,16 +186,17 @@ if (isset($vars)) {
         //$adv->$key = stripslashes(htmlentities($value));
     }
 }
-?>
-<form id="query" method="get" action="query.php">
-<?php 
+
+$url = new moodle_url('/local/sharedresources/query.php');
+echo '<form id="query" method="get" action="'.$url.'">';
+
 if (!$advanced) {
-?>
-    <input type="text" name="query_string" length="50" value="<?php p($query_string) ?>" />
-    &nbsp;<input type="submit" value="<?php print_string('search', 'local_search') ?>" /> &nbsp;
-    <a href="query.php?a=1"><?php print_string('advancedsearch', 'local_search') ?></a> |
-    <a href="stats.php"><?php print_string('statistics', 'local_search') ?></a>
-<?php 
+    echo '<input type="text" name="query_string" length="50" value="'.$query_string.'" />';
+    echo '&nbsp;<input type="submit" value="'.get_string('search', 'local_search').'" /> &nbsp;';
+    $url = new moodle_url('/local/sharedresources/query.php', array('a' => 1));
+    echo '<a href="'.$url.'">'.get_string('advancedsearch', 'local_search').'</a> |';
+    $url = new moodle_url('/local/sharedresources/stats.php');
+    echo '<a href="'.$url.'">'.get_string('statistics', 'local_search').'</a>';
 } else {
     echo $OUTPUT->box_start();
   ?>
@@ -216,9 +227,9 @@ if (!$advanced) {
     foreach ($module_types as $mod) {
         if ($mod == $adv->module) {
             if ($mod != 'all'){
-                print "<option value='$mod' selected=\"selected\">".get_string('modulenameplural', $mod)."</option>\n";
+                print '<option value="'.$mod.'" selected="selected">'.get_string('modulenameplural', $mod).'</option>'."\n";
             } else {
-                print "<option value='$mod' selected=\"selected\">".get_string('all', 'local_search')."</option>\n";
+                print '<option value="'.$mod.'" selected="selected">'.get_string('all', 'local_search').'</option>'."\n";
             }
         } else {
             if ($mod != 'all'){
@@ -271,7 +282,7 @@ print_string('searching', 'local_search').': ';
 
 if ($sq->is_valid_index()) {
     //use cached variable to show up-to-date index size (takes deletions into account)
-    print $CFG->search_index_size;
+    print 0 + @$config->index_size;
 } else {
     print "0";
 } 
@@ -280,8 +291,8 @@ print ' ';
 print_string('documents', 'local_search');
 print '.';
 
-if (!$sq->is_valid_index() and has_capability('moodle/site:config', context_system::instance())) {
-    print '<p>' . get_string('noindexmessage', 'local_search') . '<a href="indexersplash.php">' . get_string('createanindex', 'local_search')."</a></p>\n";
+if (!$sq->is_valid_index() && has_capability('moodle/site:config', context_system::instance())) {
+    print '<p>' . get_string('noindexmessage', 'local_search') . '<a href="indexersplash.php">' . get_string('createanindex', 'local_search').'</a></p>'."\n";
 } 
 
 ?>
@@ -300,7 +311,7 @@ if ($sq->is_valid()) {
     print "<br />";
 
     print $hit_count.' '.get_string('resultsreturnedfor', 'local_search') . " '".s($query_string)."'.";
-    print "<br />";
+    print '<br />';
 
     if ($hit_count > 0) {
         $page_links = $sq->page_numbers();
@@ -329,35 +340,33 @@ if ($sq->is_valid()) {
                 $icon = $OUTPUT->user_picture($user) ;
             } else {
                 $iconpath = $OUTPUT->pix_url($listing->doctype.'/icon');
-                $icon = "<img align=\"top\" src=\"".$iconpath."\" class=\"activityicon\" alt=\"\"/>";
+                $icon = '<img align="top" src="'.$iconpath.'" class="activityicon" alt=""/>';
             }
             $coursename = $DB->get_field('course', 'fullname', array('id' => $listing->courseid));
             $courseword = mb_convert_case(get_string('course', 'moodle'), MB_CASE_LOWER, 'UTF-8');
-            $course = ($listing->doctype != 'user') ? '<strong> ('.$courseword.': \''.$coursename.'\')</strong>' : '' ;
+            $course = ($listing->doctype != 'user') ? '<strong> ('.$courseword.': \''.$coursename.'\')</strong>' : '';
 
             $title_post_processing_function = $listing->doctype.'_link_post_processing';
             $searchable_instance = $searchables[$listing->doctype];
             if ($searchable_instance->location == 'internal') {
-                require_once "{$CFG->dirroot}/local/search/documents/{$listing->doctype}_document.php";
+                require_once $CFG->dirroot.'/local/search/documents/'.$listing->doctype.'_document.php';
             } else {
-                require_once "{$CFG->dirroot}/{$searchable_instance->location}/{$listing->doctype}/search_document.php";
+                require_once $CFG->dirroot.'/'.$searchable_instance->location.'/'.$listing->doctype.'/search_document.php';
             }
             if (function_exists($title_post_processing_function)) {
                 $listing->title = $title_post_processing_function($listing->title);
             }
 
-            echo "<li value='".($listing->number + 1)."'><a href='"
-                .str_replace('DEFAULT_POPUP_SETTINGS', DEFAULT_POPUP_SETTINGS ,$listing->url)
-                ."'>$icon $listing->title</a> $course<br />\n";
-            // print "<li value='".($listing->number+1)."'><a href='".str_replace('DEFAULT_POPUP_SETTINGS', DEFAULT_POPUP_SETTINGS ,$listing->url)."'>$listing->title</a><br />\n"
-            // ."<em>".search_shorten_url($listing->url, 70)."</em><br />\n"
+            echo '<li value="'.($listing->number + 1).'">';
+            $prcoessedurl = str_replace('DEFAULT_POPUP_SETTINGS', DEFAULT_POPUP_SETTINGS, $listing->url);
+            echo '<a href="'.$processedurl.'">'.$icon.' '.$listing->title.'</a> '.$course.'<br />'."\n";
             echo "{$typestr}: " . $listing->doctype . ", {$scorestr}: " . round($listing->score, 3);
             if (!empty($listing->author) && !is_numeric($listing->author)) {
                 echo ", {$authorstr}: ".$listing->author."\n"
-                    ."</li>\n";
+                    .'</li>'."\n";
             }
         }
-        echo "</ol>";
+        echo '</ol>';
         echo $page_links;
     }
     echo $OUTPUT->box_end();

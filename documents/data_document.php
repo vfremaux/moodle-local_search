@@ -1,9 +1,26 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
+
 /**
 * Global Search Engine for Moodle
 *
-* @package search
-* @category core
+* @package local_search
+* @category local
 * @subpackage document_wrappers
 * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
 * @contributor Tatsuva Shirai 20090530
@@ -251,7 +268,8 @@ function data_single_document($id, $itemtype) {
             $recordMetaData = $DB->get_record('data_records', array('id' => $aRecordId));
             $recordMetaData->title = $first;
             $recordMetaData->content = $content;
-            return new DataSearchDocument(get_object_vars($recordMetaData), $record_course, $context->id);
+            $arr = get_object_vars($recordMetaData);
+            return new DataSearchDocument($arr, $record_course, $context->id);
         }
     } elseif($itemtype == 'comment') {
 

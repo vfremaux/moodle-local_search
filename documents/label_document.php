@@ -1,9 +1,26 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
+
 /**
 * Global Search Engine for Moodle
 *
-* @package search
-* @category core
+* @package local_search
+* @category local
 * @subpackage document_wrappers
 * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.9
 * @contributor Tatsuva Shirai 20090530
@@ -84,7 +101,7 @@ function label_iterator() {
 * @return an array of searchable documents
 */
 function label_get_content_for_index(&$label) {
-    global $CFG;
+    global $CFG, $DB;
 
     // starting with Moodle native resources
     $documents = array();
@@ -93,7 +110,8 @@ function label_get_content_for_index(&$label) {
     $cm = $DB->get_record('course_modules', array('course' => $label->course, 'module' => $coursemodule, 'instance' => $label->id));
     $context = context_module::instance($cm->id);
 
-    $documents[] = new LabelSearchDocument(get_object_vars($label), $context->id);
+    $obj = get_object_vars($label);
+    $documents[] = new LabelSearchDocument($obj, $context->id);
 
     mtrace("finished label {$label->id}");
     return $documents;
@@ -114,7 +132,8 @@ function label_single_document($id, $itemtype) {
         $coursemodule = $DB->get_field('modules', 'id', array('name' => 'label'));
         $cm = $DB->get_record('course_modules', array('id' => $label->id));
         $context = context_module::instance($cm->id);
-        return new LabelSearchDocument(get_object_vars($label), $context->id);
+        $arr = get_object_vars($label);
+        return new LabelSearchDocument($arr, $context->id);
     }
     return null;
 }
@@ -151,7 +170,7 @@ function label_db_names() {
 * @return true if access is allowed, false elsewhere
 */
 function label_check_text_access($path, $itemtype, $this_id, $user, $group_id, $context_id){
-    global $CFG;
+    global $CFG, $DB;
 
     // include_once("{$CFG->dirroot}/{$path}/lib.php");
 

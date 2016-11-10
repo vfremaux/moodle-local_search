@@ -1,6 +1,4 @@
 <?php
-
-<?php
 /*
 * Moodle global search engine
 * This is a special externalized code for cron handling in PHP5.
@@ -8,29 +6,67 @@
 */
 define('CLI_SCRIPT', true);
 
-require('../../config.php');
-require_once("$CFG->dirroot/local/search/lib.php");
+$CLI_VMOODLE_PRECHECK = true; // force first config to be minimal
 
-try{
-    // overrides php limits
-    $maxtimelimit = ini_get('max_execution_time');
-    ini_set('max_execution_time', 300);
-    $maxmemoryamount = ini_get('memory_limit');
-    ini_set('memory_limit', '512M');
+require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+require_once($CFG->dirroot.'/lib/clilib.php');
 
+list($options, $unrecognized) = cli_get_params(
+    array('help' => false, 'host' => false),
+    array('h' => 'help', 'H' => 'host')
+);
+
+if ($unrecognized) {
+    $unrecognized = implode("\n  ", $unrecognized);
+    cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
+}
+
+if ($options['help']) {
+    $help =
+"Scheduled cron tasks.
+
+Options:
+-H, --host            Virtual root to run for
+-h, --help            Print out this help
+
+Example:
+
+Master or single Moodle
+\$sudo -u www-data /usr/bin/php local/search/cli/make_index.php
+
+Virtual Moodle
+\$sudo -u www-data /usr/bin/php local/search/cli/make_index.php --host=http://vmoodle1.mydomain.fr
+
+";
+    echo $help;
+    die;
+}
+
+if (!empty($options['host'])) {
+    // Arms the vmoodle switching.
+    echo('Arming for '.$options['host']."\n"); // mtrace not yet available.
+    define('CLI_VMOODLE_OVERRIDE', $options['host']);
+}
+
+// Replay full config whenever. If vmoodle switch is armed, will switch now config.
+
+require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+echo('Config check : playing for '.$CFG->wwwroot."\n");
+require_once($CFG->dirroot.'/lib/cronlib.php');
+require_once($CFG->dirroot.'/local/search/lib.php');
+
+try {
     mtrace("\n--DELETE----");
-    require_once("$CFG->dirroot/search/delete.php");
+    require($CFG->dirroot.'/local/search/delete.php');
     mtrace("--UPDATE----");
-    require_once("$CFG->dirroot/search/update.php");
+    require($CFG->dirroot.'/local/search/update.php');
     mtrace("--ADD-------");
-    require_once("$CFG->dirroot/search/add.php");
+    require($CFG->dirroot.'/local/search/add.php');
     mtrace("------------");
     //mtrace("cron finished.</pre>");
     mtrace('done');
 
     // set back normal values for php limits
-    ini_set('max_execution_time', $maxtimelimit);
-    ini_set('memory_limit', $maxmemoryamount);
 } catch(Exception $ex) {
     mtrace('Fatal exception from Lucene subsystem. Search engine may not have been updated.');
     mtrace($ex);

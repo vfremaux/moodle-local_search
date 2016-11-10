@@ -1,9 +1,25 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @subpackage search_engine
  * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -12,12 +28,8 @@
  *
  * This file must not contain any PHP 5, because it is used to test for PHP 5
  * itself, and needs to be able to be executed on PHP 4 installations.
- *
  */
 
-/**
- * Constants
- */
 define('SEARCH_INDEX_PATH', "{$CFG->dataroot}/search");
 define('SEARCH_DATABASE_TABLE', 'local_search_documents');
 
@@ -66,21 +78,54 @@ function search_collect_searchables($namelist=false, $verbose=false) {
         foreach($blocks as $block){
             $block->dirname = $block->name;
             $block->name = 'block_'.$block->name;
-            if (in_array('SEARCH_TYPE_'.strtoupper($block->name), $searchabletypes)){
+            if (in_array('SEARCH_TYPE_'.strtoupper($block->name), $searchabletypes)) {
                 $mod->location = 'internal';
                 $blocks_searchables[] = $block;
                 $searchables_names[] = $block->name;
             } else {
-                $documentfile = $CFG->dirroot."/blocks/{$block->dirname}/search_document.php";
-                if (file_exists($documentfile)){
+                $documentfile = $CFG->dirroot.'/blocks/'.$block->dirname.'/search_document.php';
+                if (file_exists($documentfile)) {
                     $mod->location = 'blocks';
                     $blocks_searchables[$block->name] = $block;
                     $searchables_names[] = $block->name;
                 }
             }
         }
-        if ($verbose) mtrace(count($blocks_searchables).' blocks to search in / '.count($blocks).' blocks found.');
+
+        if ($verbose) {
+            mtrace(count($blocks_searchables).' blocks to search in / '.count($blocks).' blocks found.');
+        }
+
         $searchables = array_merge($searchables, $blocks_searchables);
+    }
+
+    // Collects indexable information that may be found in local components.
+    if ($locals = glob($CFG->dirroot.'/local/*')) {
+        $local_searchables = array();
+
+        // Prepend the "block_" prefix to discriminate document type plugins.
+        foreach($locals as $localpath) {
+            $component = basename($localpath);
+            $local = new StdClass;
+            $local->dirname = $component;
+            $local->name = 'local_'.$component;
+            if (in_array('SEARCH_TYPE_'.strtoupper($component), $searchabletypes)) {
+                $mod->location = 'internal';
+                $local_searchables[] = $local;
+                $searchables_names[] = $local->name;
+            } else {
+                $documentfile = $CFG->dirroot."/local/{$component}/search_document.php";
+                if (file_exists($documentfile)) {
+                    $local->location = 'local';
+                    $local_searchables[$local->name] = $local;
+                    $searchables_names[] = $local->name;
+                }
+            }
+        }
+        if ($verbose) {
+            mtrace(count($local_searchables).' local to search in / '.count($locals).' plugins found.');
+        }
+        $searchables = array_merge($searchables, $local_searchables);
     }
 
     // Add virtual modules onto the back of the array.
@@ -142,7 +187,7 @@ function search_get_additional_modules() {
  * @param url the url
  * @param length the size limit we want
  */
-function search_shorten_url($url, $length=30) {
+function search_shorten_url($url, $length = 30) {
     return substr($url, 0, $length)."...";
 }
 

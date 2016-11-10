@@ -1,47 +1,56 @@
 <?php
-/**
-* Global Search Engine for Moodle
-*
-* @package local_search
-* @subpackage document_wrappers
-* @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
-* @contributor Tatsuva Shirai 20090530
-* @date 2008/03/31
-* @license http://www.gnu.org/copyleft/gpl.html GNU Public License
-*
-* this is a format handler for getting text out of a proprietary binary format 
-* so it can be indexed by Lucene search engine
-*/
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/*
-* first implementation is a trivial heuristic based on ppt character stream :
-* text sequence always starts with a 00 9F 0F 04 sequence followed by a 15 bytes
-* sequence
-* In this sequence is a A8 0F or A0 0F or AA 0F followed by a little-indian encoding of text buffer size
-* A8 0F denotes for ASCII text (local system monobyte encoding)
-* A0 0F denotes for UTF-16 encoding
-* AA 0F are non textual sequences
-* texts are either in ASCII or UTF-16
-* text ends on a new sequence start, or on a 00 00 NULL UTF-16 end of stream
-*
-* based on these following rules, here is a little empiric texte extractor for PPT
-*/
+defined('MOODLE_INTERNAL') || die();
 
 /**
- * @param string a physical path
- * @uses $CFG
+ * Global Search Engine for Moodle
+ *
+ * @package local_search
+ * @subpackage document_wrappers
+ * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @contributor Tatsuva Shirai 20090530
+ * @date 2008/03/31
+ * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ *
+ * this is a format handler for getting text out of a proprietary binary format 
+ * so it can be indexed by Lucene search engine
+ * first implementation is a trivial heuristic based on ppt character stream :
+ * text sequence always starts with a 00 9F 0F 04 sequence followed by a 15 bytes
+ * sequence
+ * In this sequence is a A8 0F or A0 0F or AA 0F followed by a little-indian encoding of text buffer size
+ *  A8 0F denotes for ASCII text (local system monobyte encoding)
+ *  A0 0F denotes for UTF-16 encoding
+ *  AA 0F are non textual sequences
+ * texts are either in ASCII or UTF-16
+ * text ends on a new sequence start, or on a 00 00 NULL UTF-16 end of stream
+ *
+ * based on these following rules, here is a little empiric texte extractor for PPT
+ */
+
+/**
+ * @param string $physicalfilepath a physical path
+ * @return some raw text for indexation
  */
 function get_text_for_indexing_ppt($physicalfilepath){
     global $CFG;
 
     $indextext = null;
-    
-    $config = get_config('block_search');
 
-    // SECURITY : do not allow non admin execute anything on system !!
-    if (!has_capability('moodle/site:config', context_system::instance())) {
-        return;
-    }
+    $config = get_config('local_search');
 
     $text = implode('', file($physicalfilepath));
 

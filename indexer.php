@@ -1,9 +1,24 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
 * Global Search Engine for Moodle
 *
 * @package local_search
-* @subpackage search_engine
+* @category local
 * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
 * @date 2008/03/31
 * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -37,20 +52,17 @@ $PAGE->set_url($url);
 $context = context_system::instance();
 $PAGE->set_context($context);
 
-//require_once("debugging.php");
-
 ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
-/// only administrators can index the moodle installation, because access to all pages is required
+$config = get_config('local_search');
+
+// Only administrators can index the moodle installation, because access to all pages is required.
 
 require_login();
+require_capability('moodle/site:config', context_system::instance());
 
-if (empty($CFG->enableglobalsearch)) {
-    error(get_string('globalsearchdisabled', 'local_search'));
-}
-
-if (!has_capability('moodle/site:config', context_system::instance())) {
-    error(get_string('beadmin', 'local_search'), "$CFG->wwwroot/login/index.php");
+if (empty($config->enable)) {
+    print_error('globalsearchdisabled', 'local_search');
 }
 
 // confirmation flag to prevent accidental reindexing (indexersplash.php is the correct entry point)
@@ -69,14 +81,14 @@ if ($sure != 'yes') {
 mtrace('<html><head><meta http-equiv="content-type" content="text/html; charset=utf-8" /></head><body>');
 mtrace('<pre>Server Time: '.date('r',time())."\n");
 
-if (isset($CFG->search_indexer_busy) && $CFG->search_indexer_busy == '1') {
+if (!empty($config->indexer_busy)) {
     //means indexing was not finished previously
     mtrace("Warning: Indexing was not successfully completed last time, restarting.\n");
 }
 
 /// turn on busy flag
 
-set_config('search_indexer_busy', '1');
+set_config('indexer_busy', '1', 'local_search');
 
 //paths
 $index_path = SEARCH_INDEX_PATH;
@@ -125,8 +137,6 @@ mtrace("Starting activity modules\n");
 $searchables = search_collect_searchables();
 
 $config = get_config('block_search');
-
-print_object($config);
 
 // Start indexation.
 

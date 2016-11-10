@@ -1,5 +1,4 @@
 <?php
-
 // This file keeps track of upgrades to 
 // the search block
 //
@@ -17,11 +16,22 @@
 // The commands in here will all be database-neutral,
 // using the functions defined in lib/ddllib.php
 
-function xmldb_local_search_upgrade($oldversion=0) {
+defined('MOODLE_INTERNAL') || die();
 
-    global $CFG, $THEME, $db;
+function xmldb_local_search_upgrade($oldversion=0) {
+    global $CFG, $THEME;
 
     $result = true;
+
+    if ($oldversion >= 2016021300) {
+        $blockconfig = get_config('block_search');
+        foreach($blockconfig as $key => $value) {
+            if (!in_array($key, array('text', 'button'))) {
+                set_config($key, $value, 'local_config');
+                set_config($key, null, 'block_config');
+            }
+        }
+    }
 
     return $result;
 }
