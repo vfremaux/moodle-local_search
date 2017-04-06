@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -28,6 +26,7 @@ defined('MOODLE_INTERNAL') || die();
  * this is a format handler for getting text out of a proprietary binary format 
  * so it can be indexed by Lucene search engine
  */
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * @param string $physicalfilepath
@@ -38,13 +37,13 @@ function get_text_for_indexing_xml($physicalfilepath) {
 
     $config = get_config('local_search');
 
-    // just get text
+    // Just get text.
     $text = implode('', file($physicalfilepath));
 
-    // filter out all xml tags
+    // Filter out all xml tags.
     $text = preg_replace("/<[^>]*>/", ' ', $text);
 
-    if (!empty($config->limit_index_body)){
+    if (!empty($config->limit_index_body)) {
         $text = shorten_text($text, $config->limit_index_body);
     }
     return $text;

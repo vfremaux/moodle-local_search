@@ -62,11 +62,13 @@ if ($CFG->forcelogin) {
     require_login();
 }
 
+$config = get_config('local_search');
+
 if (empty($config->enable)) {
     print_error('globalsearchdisabled', 'local_search');
 }
 
-$adv = new Object();
+$adv = new StdClass();
 
 // Discard harmfull searches.
 
@@ -78,7 +80,7 @@ if (preg_match("/^[\*\?]+$/", $query_string)) {
 if ($pages && isset($_SESSION['search_advanced_query'])) {
     // if both are set, then we are busy browsing through the result pages of an advanced query
     $adv = unserialize($_SESSION['search_advanced_query']);
-} elseif ($advanced) {
+} else if ($advanced) {
 
     // Otherwise we are dealing with a new advanced query.
     unset($_SESSION['search_advanced_query']);
@@ -349,9 +351,9 @@ if ($sq->is_valid()) {
             $title_post_processing_function = $listing->doctype.'_link_post_processing';
             $searchable_instance = $searchables[$listing->doctype];
             if ($searchable_instance->location == 'internal') {
-                require_once $CFG->dirroot.'/local/search/documents/'.$listing->doctype.'_document.php';
+                require_once($CFG->dirroot.'/local/search/documents/'.$listing->doctype.'_document.php');
             } else {
-                require_once $CFG->dirroot.'/'.$searchable_instance->location.'/'.$listing->doctype.'/search_document.php';
+                require_once($CFG->dirroot.'/'.$searchable_instance->location.'/'.$listing->doctype.'/search_document.php');
             }
             if (function_exists($title_post_processing_function)) {
                 $listing->title = $title_post_processing_function($listing->title);

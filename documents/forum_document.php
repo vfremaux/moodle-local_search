@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -33,28 +31,29 @@ defined('MOODLE_INTERNAL') || die();
  * in this file, rather than mod/forum/lib.php
  *
  */
+defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/local/search/documents/document.php');
 require_once($CFG->dirroot.'/mod/forum/lib.php');
 
 /**
  * a class for representing searchable information
- * 
+ *
  */
 class ForumSearchDocument extends SearchDocument {
 
     /**
-    * constructor
-    */
-    public function __construct(&$post, $forum_id, $course_id, $itemtype, $context_id) {
+     * constructor
+     */
+    public function __construct(&$post, $forumid, $courseid, $itemtype, $contextid) {
         global $DB;
 
-        // generic information
+        // Generic information.
         $doc = new StdClass;
         $doc->docid        = $post['id'];
         $doc->documenttype = SEARCH_TYPE_FORUM;
         $doc->itemtype     = $itemtype;
-        $doc->contextid    = $context_id;
+        $doc->contextid    = $contextid;
 
         $doc->title        = $post['subject'];
 
@@ -66,23 +65,23 @@ class ForumSearchDocument extends SearchDocument {
 
         // Module specific information.
         $data = new StdClass;
-        $data->forum      = $forum_id;
+        $data->forum      = $forumid;
         $data->discussion = $post['discussion'];
 
-        parent::__construct($doc, $data, $course_id, $post['groupid'], $post['userid'], 'mod/'.SEARCH_TYPE_FORUM);
+        parent::__construct($doc, $data, $courseid, $post['groupid'], $post['userid'], 'mod/'.SEARCH_TYPE_FORUM);
     } 
 }
 
 /**
  * a class for representing searchable information for attachments
- * 
+ *
  */
 class ForumAttachmentSearchDocument extends SearchDocument {
 
     /**
-    * constructor
-    */
-    public function __construct(&$post, $forum_id, $filearea, $itemid, $course_id, $itemtype, $context_id) {
+     * constructor
+     */
+    public function __construct(&$post, $forumid, $filearea, $itemid, $courseid, $itemtype, $contextid) {
         global $DB;
         
         // generic information
@@ -90,7 +89,7 @@ class ForumAttachmentSearchDocument extends SearchDocument {
         $doc->docid        = $post['id'];
         $doc->documenttype = SEARCH_TYPE_FORUM;
         $doc->itemtype     = $itemtype;
-        $doc->contextid    = $context_id;
+        $doc->contextid    = $contextid;
 
         $doc->title        = $post['subject'];
 
@@ -102,12 +101,12 @@ class ForumAttachmentSearchDocument extends SearchDocument {
 
         // Module specific information.
         $data = new StdClass;
-        $data->forum      = $forum_id;
+        $data->forum      = $forumid;
         $data->discussion = $post['discussion'];
         $data->filearea = $filearea;
         $data->itemid = $itemid;
 
-        parent::__construct($doc, $data, $course_id, $post['groupid'], $post['userid'], 'mod/'.SEARCH_TYPE_FORUM);
+        parent::__construct($doc, $data, $courseid, $post['groupid'], $post['userid'], 'mod/'.SEARCH_TYPE_FORUM);
     } 
 }
 
@@ -118,8 +117,6 @@ class ForumAttachmentSearchDocument extends SearchDocument {
  * @return a well formed link to forum message display
  */
 function forum_make_link($discussion_id, $post_id) {
-    global $CFG;
-
     return new moodle_url('/mod/forum/discuss.php', array('id' => $discussion_id));
 }
 
@@ -129,7 +126,7 @@ function forum_make_link($discussion_id, $post_id) {
  */
 function forum_iterator() {
     global $DB;
-    
+
     $forums = $DB->get_records('forum');
     return $forums;
 }
@@ -154,29 +151,30 @@ function forum_get_content_for_index(&$forum) {
     }
 
     $coursemodule = $DB->get_field('modules', 'id', array('name' => 'forum'));
-    $cm = $DB->get_record('course_modules', array('course' => $forum->course, 'module' => $coursemodule, 'instance' => $forum->id));
+    $params = array('course' => $forum->course, 'module' => $coursemodule, 'instance' => $forum->id);
+    $cm = $DB->get_record('course_modules', $params);
     $context = context_module::instance($cm->id);
 
-    foreach ($posts as $aPost) {
-        $aPost->itemtype = 'head';
-        if ($aPost) {
-            if (!empty($aPost->message)) {
+    foreach ($posts as $apost) {
+        $apost->itemtype = 'head';
+        if ($apost) {
+            if (!empty($apost->message)) {
                 echo "*";
-                $vars = get_object_vars($aPost);
+                $vars = get_object_vars($apost);
                 $documents[] = new ForumSearchDocument($vars, $forum->id, $forum->course, 'head', $context->id);
             } 
-            if ($children = forum_get_child_posts_fast($aPost->id, $forum->id)) {
-                foreach($children as $aChild) {
+            if ($children = forum_get_child_posts_fast($apost->id, $forum->id)) {
+                foreach ($children as $achild) {
                     echo ".";
-                    $aChild->itemtype = 'post';
-                    if (strlen($aChild->message) > 0) {
-                        $arr = get_object_vars($aChild);
+                    $achild->itemtype = 'post';
+                    if (strlen($achild->message) > 0) {
+                        $arr = get_object_vars($achild);
                         $documents[] = new ForumSearchDocument($arr, $forum->id, $forum->course, 'post', $context->id);
-                    } 
-                } 
-            } 
-        } 
-    } 
+                    }
+                }
+            }
+        }
+    }
     mtrace("Finished discussion");
     return $documents;
 }
@@ -209,6 +207,7 @@ function forum_single_document($id, $itemtype) {
  *
  */
 function forum_delete($info, $itemtype) {
+    $object = new StdClass;
     $object->id = $info;
     $object->itemtype = $itemtype;
     return $object;
@@ -219,7 +218,9 @@ function forum_delete($info, $itemtype) {
  *
  */
 function forum_db_names() {
-    //[primary id], [table name], [time created field name], [time modified field name]
+    /*
+     * [primary id], [table name], [time created field name], [time modified field name]
+     */
     return array(
         array('id', 'forum_posts', 'created', 'modified', 'head', 'parent = 0'),
         array('id', 'forum_posts', 'created', 'modified', 'post', 'parent != 0')
@@ -227,17 +228,18 @@ function forum_db_names() {
 }
 
 /**
-* reworked faster version from /mod/forum/lib.php
-* @param forum_id a forum identifier
-* @uses CFG, USER
-* @return an array of posts
-*/
-function forum_get_discussions_fast($forum_id) {
+ * reworked faster version from /mod/forum/lib.php
+ * @param forum_id a forum identifier
+ * @uses CFG, USER
+ * @return an array of posts
+ */
+function forum_get_discussions_fast($forumid) {
     global $CFG, $USER, $DB;
 
     $timelimit = '';
     if (!empty($CFG->forum_enabletimedposts)) {
-        $coursecontext = context_course::instance($DB->get_field('forum', 'course', array('id' => $forum_id)));
+        $courseid = $DB->get_field('forum', 'course', array('id' => $forumid));
+        $coursecontext = context_course::instance($courseid);
         $isteacher = has_capability('moodle/course:grade', $coursecontext);
         if (!((has_capability('moodle/site:config', context_system::instance()) && !empty($CFG->admineditalways)) || $isteacher)) {
             $now = time();
@@ -248,36 +250,36 @@ function forum_get_discussions_fast($forum_id) {
             $timelimit .= ')';
         }
     }
-    
-    $query = "
-        SELECT 
-            p.id, 
-            p.subject, 
-            p.discussion, 
+
+    $sql = "
+        SELECT
+            p.id,
+            p.subject,
+            p.discussion,
             p.message,
             p.created,
             d.groupid,
-            p.userid, 
-            u.firstname, 
+            p.userid,
+            u.firstname,
             u.lastname
-        FROM 
+        FROM
             {forum_discussions} d
-        JOIN 
+        JOIN
             {forum_posts} p 
-        ON 
+        ON
             p.discussion = d.id
-        JOIN 
+        JOIN
             {user} u 
-        ON 
+        ON
             p.userid = u.id
-        WHERE 
-            d.forum = ? AND 
+        WHERE
+            d.forum = ? AND
             p.parent = 0
             $timelimit
-        ORDER BY 
+        ORDER BY
             d.timemodified DESC
     ";
-    return $DB->get_records_sql($query, array($forum_id));
+    return $DB->get_records_sql($sql, array($forumid));
 }
 
 /**
@@ -287,93 +289,105 @@ function forum_get_discussions_fast($forum_id) {
  * @uses CFG
  * @return an array of posts
  */
-function forum_get_child_posts_fast($parent, $forum_id) {
+function forum_get_child_posts_fast($parent, $forumid) {
     global $CFG, $DB;
 
-    $query = "
-        SELECT 
-            p.id, 
-            p.subject, 
-            p.discussion, 
-            p.message, 
-            p.created, 
-            {$forum_id} AS forum,
+    $sql = "
+        SELECT
+            p.id,
+            p.subject,
+            p.discussion,
+            p.message,
+            p.created,
+            {$forumid} AS forum,
             p.userid,
             d.groupid,
             u.firstname, 
             u.lastname
-        FROM 
+        FROM
             {forum_discussions} d
-        JOIN 
-            {forum_posts} p 
-        ON 
+        JOIN
+            {forum_posts} p
+        ON
             p.discussion = d.id
-        JOIN 
-            {user} u 
-        ON 
+        JOIN
+            {user} u
+        ON
             p.userid = u.id
-        WHERE 
+        WHERE
             p.parent = ?
-        ORDER BY 
+        ORDER BY
             p.created ASC
     ";
-    return $DB->get_records_sql($query, array($parent));
+    return $DB->get_records_sql($sql, array($parent));
 }
 
 /**
- * this function handles the access policy to contents indexed as searchable documents. If this 
+ * this function handles the access policy to contents indexed as searchable documents. If this
  * function does not exist, the search engine assumes access is allowed.
- * When this point is reached, we already know that : 
+ * When this point is reached, we already know that :
  * - user is legitimate in the surrounding context
  * - user may be guest and guest access is allowed to the module
  * - the function may perform local checks within the module information logic
  * @param path the access path to the module script code
  * @param itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
- * @param this_id the item id within the information class denoted by itemtype. In forums, this id 
+ * @param this_id the item id within the information class denoted by itemtype. In forums, this id
  * points out the individual post.
  * @param user the user record denoting the user who searches
  * @param group_id the current group used by the user when searching
  * @uses CFG, USER
  * @return true if access is allowed, false elsewhere
  */
-function forum_check_text_access($path, $itemtype, $this_id, $user, $group_id, $context_id){
+function forum_check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid){
     global $CFG, $USER, $DB;
 
     include_once("{$CFG->dirroot}/{$path}/lib.php");
 
-    // get the forum post and all related stuff
-    $post = $DB->get_record('forum_posts', array('id' => $this_id));
+    // Get the forum post and all related stuff.
+    $post = $DB->get_record('forum_posts', array('id' => $thisid));
     $discussion = $DB->get_record('forum_discussions', array('id' => $post->discussion));
-    $context = $DB->get_record('context', array('id' => $context_id));
+    $context = $DB->get_record('context', array('id' => $contextid));
     $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));
-    if (empty($cm)) return false; // Shirai 20093005 - MDL19342 - course module might have been delete
+    if (empty($cm)) {
+        return false; // Shirai 20093005 - MDL19342 - course module might have been delete.
+    }
 
-    if (!$cm->visible and !has_capability('moodle/course:viewhiddenactivities', $context)){
+    if (!$cm->visible and !has_capability('moodle/course:viewhiddenactivities', $context)) {
         if (!empty($CFG->search_access_debug)) echo "search reject : hidden forum resource ";
         return false;
     }
 
-    // approval check : entries should be approved for being viewed, or belongs to the user 
-    if (($post->userid != $USER->id) && !$post->mailed && !has_capability('mod/forum:viewhiddentimeposts', $context)){
-        if (!empty($CFG->search_access_debug)) echo "search reject : time hidden forum item";
+    // Approval check : entries should be approved for being viewed, or belongs to the user.
+    if (($post->userid != $USER->id) &&
+            !$post->mailed &&
+                    !has_capability('mod/forum:viewhiddentimeposts', $context)) {
+        if (!empty($CFG->search_access_debug)) {
+            echo "search reject : time hidden forum item";
+        }
         return false;
     }
 
-    // group check : entries should be in accessible groups
+    // Group check : entries should be in accessible groups.
     $course = $DB->get_record('course', array('id' => $discussion->course));
-    if ($group_id >= 0 && (groups_get_activity_groupmode($cm)  == SEPARATEGROUPS) && (groups_is_member($group_id)) && !has_capability('mod/forum:viewdiscussionsfromallgroups', $context)){
-        if (!empty($CFG->search_access_debug)) echo "search reject : separated grouped forum item";
+    if ($groupid >= 0 &&
+            (groups_get_activity_groupmode($cm)  == SEPARATEGROUPS) &&
+                    (groups_is_member($groupid)) &&
+                            !has_capability('mod/forum:viewdiscussionsfromallgroups', $context)) {
+        if (!empty($CFG->search_access_debug)) {
+            echo "search reject : separated grouped forum item";
+        }
         return false;
     }
-    
+
     return true;
 }
 
 /**
-* post processes the url for cleaner output.
-* @param string $title
-*/
-function forum_link_post_processing($title){
+ * TODO : check if deprectaed.
+ * post processes the url for cleaner output.
+ * @param string $title
+ */
+function forum_link_post_processing($title) {
     global $CFG;
 
     return mb_convert_encoding($title, 'auto', 'UTF-8');

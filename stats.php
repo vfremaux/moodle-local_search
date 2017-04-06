@@ -36,7 +36,7 @@ $PAGE->set_url($url);
 $context = context_system::instance();
 $PAGE->set_context($context);
 
-/// checks global search is enabled
+// Checks global search is enabled.
 
 if ($CFG->forcelogin) {
     require_login();
@@ -46,7 +46,7 @@ if (empty($config->enable)) {
     pring_error('globalsearchdisabled', 'local_search');
 }
 
-/// check for php5, but don't die yet
+// Check for php5, but don't die yet.
 
 require_once($CFG->dirroot.'/local/search/indexlib.php');
 
@@ -110,8 +110,7 @@ if (has_capability('moodle/site:config', context_system::instance())) {
 
     if ($indexinfo->time > 0) {
         $admin_table->data[] = array(get_string('createdon', 'local_search'), date('r', $indexinfo->time));
-    }
-    else {
+    } else {
         $admin_table->data[] = array(get_string('createdon', 'local_search'), '-');
     }
 
@@ -140,9 +139,9 @@ if (has_capability('moodle/site:config', context_system::instance())) {
     $admin_table->data[] = array($runindexerstr, '<a href="'.$url.'" target="_blank">indexersplash.php</a>');
 
     echo html_writer::table($admin_table);
-} 
+}
 
-// this is the standard summary table for normal users, shows document counts
+// This is the standard summary table for normal users, shows document counts.
 
 $table = new html_table;
 $table->tablealign = 'center';
@@ -154,14 +153,17 @@ $table->width = '500';
 
 $table->data[] = array("<strong>{$databasestr}</strong>", "<em><strong>{$CFG->prefix}".SEARCH_DATABASE_TABLE.'</strong></em>');
 
-// add extra fields if we're admin
+// Add extra fields if we're admin.
 
 if (has_capability('moodle/site:config', context_system::instance())) {
-    //don't want to confuse users if the two totals don't match (hint: they should)
+
+    // Don't want to confuse users if the two totals don't match (hint: they should).
     $table->data[] = array($documentsinindexstr, $indexinfo->indexcount);
 
-    //*cough* they should match if deletions were actually removed from the index,
-    //as it turns out, they're only marked as deleted and not returned in search results
+    /*
+     * *cough* they should match if deletions were actually removed from the index,
+     * as it turns out, they're only marked as deleted and not returned in search results
+     */
     $table->data[] = array($deletionsinindexstr, (int)$indexinfo->indexcount - (int)$indexinfo->dbcount);
 } 
 

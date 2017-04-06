@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -28,6 +26,7 @@ defined('MOODLE_INTERNAL') || die();
  * this is a format handler for getting text out of a proprietary binary format 
  * so it can be indexed by Lucene search engine
  */
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * @param string $physicalfilepath
@@ -46,12 +45,12 @@ function get_text_for_indexing_pdf($physicalfilepath) {
 
     $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/" : '';
 
-    // just call pdftotext over stdout and capture the output
+    // Just call pdftotext over stdout and capture the output.
     if (!empty($config->pdf_to_text_cmd)) {
-        // we need to remove any line command options...
+        // We need to remove any line command options...
         preg_match("/^\S+/", $config->pdf_to_text_cmd, $matches);
         if (!file_exists("{$moodleroot}{$matches[0]}")) {
-            mtrace('Error with pdf to text converter command : executable not found at '.$moodleroot.$matches[0]);
+            mtrace('Error with pdf to text converter : executable not found at '.$moodleroot.$matches[0]);
         } else {
             $file = escapeshellarg($physicalfilepath);
             $command = trim($config->pdf_to_text_cmd);
@@ -63,12 +62,14 @@ function get_text_for_indexing_pdf($physicalfilepath) {
                 }
                 return $result;
             } else {
-                mtrace('Error with pdf to text converter command : execution failed for '.$text_converter_cmd.'. Check for execution permission on pdf converter executable.');
+                $message = 'Error with pdf to text converter command : execution failed for '.$text_converter_cmd;
+                $message .= '. Check for execution permission on pdf converter executable.';
+                mtrace($message);
                 return '';
             }
         }
     } else {
-        mtrace('Error with pdf to text converter command : command not set up. Execute once search block configuration.');
+        mtrace('Error with pdf to text converter : command not set up. Execute once search block configuration.');
         return '';
     }
 }

@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -33,6 +31,7 @@ defined('MOODLE_INTERNAL') || die();
  * Functions for iterating and retrieving the necessary records are now also included
  * in this file, rather than mod/resource/lib.php
  */
+defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/local/search/documents/document.php');
 require_once($CFG->dirroot.'/mod/resource/lib.php');
@@ -41,14 +40,14 @@ require_once($CFG->dirroot.'/mod/resource/lib.php');
  * a class for representing searchable information
  */
 class ResourceSearchDocument extends SearchDocument {
-    public function __construct(&$resource, $context_id) {
+    public function __construct(&$resource, $contextid) {
 
         // Generic information; required.
         $doc = new StdClass;
         $doc->docid     = $resource['trueid'];
         $doc->documenttype = SEARCH_TYPE_RESOURCE;
         $doc->itemtype     = 'file';
-        $doc->contextid    = $context_id;
+        $doc->contextid    = $contextid;
 
         $doc->title     = strip_tags($resource['name']);
         $doc->date      = $resource['timemodified'];
@@ -70,10 +69,8 @@ class ResourceSearchDocument extends SearchDocument {
  * @param resourceId the of the resource 
  * @return a full featured link element as a string
  */
-function resource_make_link($resource_id) {
-    global $CFG;
-
-    return new moodle_url('/mod/resource/view.php', array('id' => $resource_id));
+function resource_make_link($resourceid) {
+    return new moodle_url('/mod/resource/view.php', array('id' => $resourceid));
 }
 
 /**
@@ -89,8 +86,7 @@ function resource_iterator() {
 
 /**
  * Part of standard API
- * this function does not need a content iterator, returns all the info
- * itself;
+ * this function does not need a content iterator, returns all the info itself;
  * @param notneeded to comply API, remember to fake the iterator array though
  * @uses CFG
  * @return an array of searchable documents
@@ -102,34 +98,35 @@ function resource_get_content_for_index(&$notneeded) {
 
     // Starting with Moodle native resources.
     $documents = array();
-    $query = "
-        SELECT 
+    $sql = "
+        SELECT
             id as trueid,
             r.*
-        FROM 
+        FROM
             {resource} r
     ";
-    if ($resources = $DB->get_records_sql($query)) {
-        foreach ($resources as $aResource) {
+    if ($resources = $DB->get_records_sql($sql)) {
+        foreach ($resources as $aresource) {
             $coursemodule = $DB->get_field('modules', 'id', array('name' => 'resource'));
-            if ($cm = $DB->get_record('course_modules', array('course' => $aResource->course, 'module' => $coursemodule, 'instance' => $aResource->id))) {
+            $params = array('course' => $aresource->course, 'module' => $coursemodule, 'instance' => $aresource->id);
+            if ($cm = $DB->get_record('course_modules', $params)) {
                 $context = context_module::instance($cm->id);
-                $aResource->id = $cm->id;
-                $aResource->alltext = '';
+                $aresource->id = $cm->id;
+                $aresource->alltext = '';
 
                 $fs = get_file_storage();
                 $hasdocument = !$fs->is_area_empty($context->id, 'mod_resource', 'content', 0, true);
 
                 if (empty($config->enable_file_indexing) || !$hasdocument) {
-                    // make a simple document only with DB data
-                    $vars = get_object_vars($aResource);
+                    // Make a simple document only with DB data.
+                    $vars = get_object_vars($aresource);
                     $documents[] = new ResourceSearchDocument($vars, $context->id);
-                    mtrace("finished $aResource->name");
+                    mtrace("finished $aresource->name");
                 } else {
                     $files = $fs->get_area_files($context->id, 'mod_resource', 'content', 0, true);
                     $file = array_shift($files);
-                    search_get_physical_file($documents, $file, $aResource, $context->id, 'ResourceSearchDocument');
-                    mtrace("finished physical $aResource->name");
+                    search_get_physical_file($documents, $file, $aresource, $context->id, 'ResourceSearchDocument');
+                    mtrace("finished physical $aresource->name");
                 }
             }
         }
@@ -149,26 +146,26 @@ function resource_single_document($id, $itemtype) {
     $config = get_config('local_search');
 
     // Rewriting with legacy moodle databse API.
-    $query = "
-        SELECT 
+    $sql = "
+        SELECT
            r.id as trueid,
            cm.id as id,
            r.course as course,
            r.name as name,
            r.intro as intro,
            r.timemodified as timemodified
-        FROM 
+        FROM
             {resource} r,
             {course_modules} cm,
             {modules} m
-        WHERE 
+        WHERE
             cm.instance = r.id AND
             cm.course = r.course AND
             cm.module = m.id AND
             m.name = 'resource' AND
             r.id = ?
     ";
-    $resource = $DB->get_record_sql($query, array($id));
+    $resource = $DB->get_record_sql($sql, array($id));
 
     if ($resource) {
         $coursemodule = $DB->get_field('modules', 'id', array('name' => 'resource'));
@@ -178,7 +175,7 @@ function resource_single_document($id, $itemtype) {
         $fs = get_file_storage();
 
         $hasdocument = !$fs->is_area_empty($context->id, 'mod_resource', 'content', 0, true);
-        $documents = array(); // foo array
+        $documents = array(); // Foo array.
 
         if ($hasdocument && @$config->enable_file_indexing) {
             $files = $fs->get_area_files($context->id, 'mod_resource', 'content', 0, true);
@@ -203,6 +200,7 @@ function resource_single_document($id, $itemtype) {
  *
  */
 function resource_delete($info, $itemtype) {
+    $object = new StdClass;
     $object->id = $info;
     $object->itemtype = $itemtype;
     return $object;
@@ -213,47 +211,51 @@ function resource_delete($info, $itemtype) {
  *
  */
 function resource_db_names() {
-    //[primary id], [table name], [time created field name], [time modified field name], [additional where conditions for sql]
+    /*
+     * [primary id], [table name], [time created field name], [time modified field name],
+     * [additional where conditions for sql]
+     */
     return array(array('id', 'resource', 'timemodified', 'timemodified', ''));
 }
 
 /**
- * this function handles the access policy to contents indexed as searchable documents. If this 
+ * this function handles the access policy to contents indexed as searchable documents. If this
  * function does not exist, the search engine assumes access is allowed.
  * @param path the access path to the module script code
  * @param itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
- * @param this_id the item id within the information class denoted by itemtype. In resources, this id 
+ * @param this_id the item id within the information class denoted by itemtype. In resources, this id
  * points to the resource record and not to the module that shows it.
  * @param user the user record denoting the user who searches
  * @param group_id the current group used by the user when searching
  * @return true if access is allowed, false elsewhere
  */
-function resource_check_text_access($path, $itemtype, $this_id, $user, $group_id, $context_id) {
+function resource_check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid) {
     global $CFG;
 
     include_once("{$CFG->dirroot}/{$path}/lib.php");
 
-    $r = $DB->get_record('resource', array('id' => $this_id));
-    $module_context = $DB->get_record('context', array('id' => $context_id));
-    $cm = $DB->get_record('course_modules', array('id' => $module_context->instanceid));
+    $r = $DB->get_record('resource', array('id' => $thisid));
+    $modulecontext = $DB->get_record('context', array('id' => $contextid));
+    $cm = $DB->get_record('course_modules', array('id' => $modulecontext->instanceid));
     if (empty($cm)) {
-        return false; // Shirai 20090530 - MDL19342 - course module might have been delete
+        return false; // Shirai 20090530 - MDL19342 - course module might have been delete.
     }
-    $course_context = context_course::instance($r->course);
+    $coursecontext = context_course::instance($r->course);
     $course = $DB->get_record('course', array('id' => $r->course));
 
     // Check if course is visible.
-    if (!$course->visible && !has_capability('moodle/course:viewhiddencourses', $course_context)) {
+    if (!$course->visible && !has_capability('moodle/course:viewhiddencourses', $coursecontext)) {
         return false;
     }
 
     // Check if user is registered in course or course is open to guests.
-    if (!$course->guest && !has_capability('moodle/course:view', $course_context)) {
+    if (!$course->guest && !has_capability('moodle/course:view', $coursecontext)) {
         return false;
     }
 
     // Check if found course module is visible.
-    if (!$cm->visible && !has_capability('moodle/course:viewhiddenactivities', $module_context)){
+    if (!$cm->visible &&
+            !has_capability('moodle/course:viewhiddenactivities', $modulecontext)) {
         return false;
     }
 
@@ -261,22 +263,12 @@ function resource_check_text_access($path, $itemtype, $this_id, $user, $group_id
 }
 
 /**
+ * TODO : Check is deprecated.
  * post processes the url for cleaner output.
  * @param string $title
  */
 function resource_link_post_processing($title) {
     global $CFG;
-    
-    return $title;
 
-    /*
-    $conf = get_config('local_search');
-    
-    if (!$conf->utf8dir) return $title;
-    
-    if ($conf->utf8dir > 0) {
-        return mb_convert_encoding($title, 'UTF-8', 'auto');
-    }
-    return mb_convert_encoding($title, 'auto', 'UTF-8');
-    */
+    return $title;
 }

@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -34,6 +32,7 @@ defined('MOODLE_INTERNAL') || die();
  * in this file, rather than mod/chat/lib.php
  *
  */
+defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/local/search/documents/document.php');
 require_once($CFG->dirroot.'/mod/chat/lib.php');
@@ -47,30 +46,33 @@ class ChatTrackSearchDocument extends SearchDocument {
     /**
     * constructor
     */
-    public function __construct(&$chatsession, $chat_id, $chat_module_id, $course_id, $group_id, $context_id) {
-        // generic information; required
+    public function __construct(&$chatsession, $chatid, $chatmoduleid, $courseid, $groupid, $contextid) {
+
+        // Generic information; required.
         $doc = new StdClass;
-        $doc->docid         = $chat_id.'-'.$chatsession['sessionstart'].'-'.$chatsession['sessionend'];
+        $doc->docid         = $chatid.'-'.$chatsession['sessionstart'].'-'.$chatsession['sessionend'];
         $doc->documenttype  = SEARCH_TYPE_CHAT;
         $doc->itemtype      = 'session';
-        $doc->contextid     = $context_id;
+        $doc->contextid     = $contextid;
 
         $duration           = $chatsession['sessionend'] - $chatsession['sessionstart'];
-        // we cannot call userdate with relevant locale at indexing time.
-        $doc->title         = get_string('chatreport', 'chat').' '.get_string('openedon', 'search').' TT_'.$chatsession['sessionstart'].'_TT ('.get_string('duration', 'search').' : '.get_string('numseconds', '', $duration).')';
+        // We cannot call userdate with relevant locale at indexing time.
+        $doc->title         = get_string('chatreport', 'chat').' '.get_string('openedon', 'search');
+        $doc->title         .= ' TT_'.$chatsession['sessionstart'].'_TT ('.get_string('duration', 'search');
+        $doc->title         .= ' : '.get_string('numseconds', '', $duration).')';
         $doc->date          = $chatsession['sessionend'];
-        
-        //remove '(ip.ip.ip.ip)' from chat author list
+
+        // Remove '(ip.ip.ip.ip)' from chat author list.
         $doc->author        = preg_replace('/\(.*?\)/', '', $chatsession['authors']);
         $doc->contents      = $chatsession['content'];
-        $doc->url           = chat_make_link($chat_module_id, $chatsession['sessionstart'], $chatsession['sessionend']);
-        
-        // module specific information; optional
+        $doc->url           = chat_make_link($chatmoduleid, $chatsession['sessionstart'], $chatsession['sessionend']);
+
+        // Module specific information; optional.
         $data = new StdClass;
-        $data->chat         = $chat_id;
+        $data->chat         = $chatid;
 
         // Construct the parent class.
-        parent::__construct($doc, $data, $course_id, $group_id, 0, 'mod/'.SEARCH_TYPE_CHAT);
+        parent::__construct($doc, $data, $courseid, $groupid, 0, 'mod/'.SEARCH_TYPE_CHAT);
     } 
 }
 
@@ -92,31 +94,33 @@ function chat_make_link($cm_id, $start, $end) {
  * fetches all the records for a given session and assemble them as a unique track
  * we revamped here the code of report.php for making sessions, but without any output.
  * note that we should collect sessions "by groups" if groupmode() is SEPARATEGROUPS.
- * @param int $chat_id the database
+ * @param int $chatid the database
  * @param int $fromtime
  * @param int $totime
  * @uses CFG
  * @return an array of objects representing the chat sessions.
  */
-function chat_get_session_tracks($chat_id, $fromtime = 0, $totime = 0) {
+function chat_get_session_tracks($chatid, $fromtime = 0, $totime = 0) {
     global $CFG, $DB;
 
-    $chat = $DB->get_record('chat', array('id' => $chat_id));
+    $chat = $DB->get_record('chat', array('id' => $chatid));
     $course = $DB->get_record('course', array('id' => $chat->course));
     $coursemodule = $DB->get_field('modules', 'id', array('name' => 'chat'));
     $cm = $DB->get_record('course_modules', array('course' => $course->id, 'module' => $coursemodule, 'instance' => $chat->id));
-    if (empty($cm)) { // Shirai 20090530
-        mtrace("Missing this chat: Course=".$chat->course."/ ChatID=".$chat_id);
+    if (empty($cm)) {
+        // Shirai 20090530
+        mtrace("Missing this chat: Course=".$chat->course."/ ChatID=".$chatid);
         return array();
     }
-    $groupmode = groupmode($course, $cm);
+    $groupmode = groups_get_activity_groupmode($cm, $course);
 
-    $fromtimeclause = ($fromtime) ? "AND timestamp >= {$fromtime}" : ''; 
-    $totimeclause = ($totime) ? "AND timestamp <= {$totime}" : ''; 
+    $fromtimeclause = ($fromtime) ? "AND timestamp >= {$fromtime}" : '';
+    $totimeclause = ($totime) ? "AND timestamp <= {$totime}" : '';
     $tracks = array();
-    $messages = $DB->get_records_select('chat_messages', "chatid = ? $fromtimeclause $totimeclause", array($chat_id), "timestamp DESC");
+    $select = " chatid = ? $fromtimeclause $totimeclause ";
+    $messages = $DB->get_records_select('chat_messages', $select, array($chatid), "timestamp DESC");
     if ($messages){
-        // splits discussions against groups
+        // Splits discussions against groups.
         $groupedMessages = array();
         if ($groupmode != SEPARATEGROUPS) {
             foreach ($messages as $aMessage) {
@@ -125,47 +129,47 @@ function chat_get_session_tracks($chat_id, $fromtime = 0, $totime = 0) {
         } else {
             $groupedMessages[-1] = &$messages;
         }
-        $sessiongap = 5 * 60;    // 5 minutes silence means a new session
+        $sessiongap = 5 * 60;    // 5 minutes silence means a new session.
         $sessionend = 0;
         $sessionstart = 0;
         $sessionusers = array();
         $lasttime = time();
 
-        foreach ($groupedMessages as $groupId => $messages) {  // We are walking BACKWARDS through the messages
+        foreach ($groupedMessages as $groupId => $messages) {  // We are walking BACKWARDS through the messages.
             $messagesleft = count($messages);
-            foreach ($messages as $message) {  // We are walking BACKWARDS through the messages
-                $messagesleft --;              // Countdown
+            foreach ($messages as $message) {  // We are walking BACKWARDS through the messages.
+                $messagesleft --;              // Countdown.
 
                 if ($message->system) {
                     continue;
                 }
 
                 // We are within a session track.
-                if ((($lasttime - $message->timestamp) < $sessiongap) and $messagesleft) {  // Same session
+                if ((($lasttime - $message->timestamp) < $sessiongap) and $messagesleft) {  // Same session.
                     if (count($tracks) > 0){
-                        if ($message->userid) {       // Remember user and count messages
+                        if ($message->userid) {       // Remember user and count messages.
                             $tracks[count($tracks) - 1]->sessionusers[$message->userid] = $message->userid;
-                            // update last track (if exists) record appending content (remember : we go backwards)
+                            // Update last track (if exists) record appending content (remember : we go backwards).
                         }
                         $tracks[count($tracks) - 1]->content .= ' '.$message->message;
                         $tracks[count($tracks) - 1]->sessionstart = $message->timestamp;
                     }
                 } else {
                     // We initiate a new session track (backwards).
-                    $track = new Object();
+                    $track = new StdClass();
                     $track->sessionend = $message->timestamp;
                     $track->sessionstart = $message->timestamp;
                     $track->content = $message->message;
-                    // reset the accumulator of users
+                    // Reset the accumulator of users.
                     $track->sessionusers = array();
                     $track->sessionusers[$message->userid] = $message->userid;
                     $track->groupid = $groupId;
                     $tracks[] = $track;
                 } 
                 $lasttime = $message->timestamp;
-            } 
-        } 
-    } 
+            }
+        }
+    }
     return $tracks;
 }
 
@@ -190,19 +194,20 @@ function chat_get_content_for_index(&$chat) {
     $documents = array();
     $course = $DB->get_record('course', array('id' => $chat->course));
     $coursemodule = $DB->get_field('modules', 'id', array('name' => 'chat'));
-    $cm = $DB->get_record('course_modules', array('course' => $chat->course, 'module' => $coursemodule, 'instance' => $chat->id));
+    $params = array('course' => $chat->course, 'module' => $coursemodule, 'instance' => $chat->id);
+    $cm = $DB->get_record('course_modules', $params);
     if ($cm) {
         $context = context_module::instance($cm->id);
 
-        // getting records for indexing
-        $sessionTracks = chat_get_session_tracks($chat->id);
-        if ($sessionTracks) {
-            foreach ($sessionTracks as $aTrackId => $aTrack) {
-                foreach ($aTrack->sessionusers as $aUserId) {
-                    $user = $DB->get_record('user', array('id' => $aUserId));
-                    $aTrack->authors = ($user) ? fullname($user) : '' ;
-                    $trackarr = get_object_vars($aTrack);
-                    $documents[] = new ChatTrackSearchDocument($trackarr, $chat->id, $cm->id, $chat->course, $aTrack->groupid, $context->id);
+        // Getting records for indexing.
+        $sessiontracks = chat_get_session_tracks($chat->id);
+        if ($sessiontracks) {
+            foreach ($sessiontracks as $atrackId => $atrack) {
+                foreach ($atrack->sessionusers as $auserid) {
+                    $user = $DB->get_record('user', array('id' => $auserid));
+                    $atrack->authors = ($user) ? fullname($user) : '';
+                    $trackarr = get_object_vars($atrack);
+                    $documents[] = new ChatTrackSearchDocument($trackarr, $chat->id, $cm->id, $chat->course, $atrack->groupid, $context->id);
                 }
             }
         }
@@ -223,20 +228,20 @@ function chat_get_content_for_index(&$chat) {
 function chat_single_document($id, $itemtype) {
     global $DB;
 
-    list($chat_id, $sessionstart, $sessionend) = split('-', $id);
-    $chat = $DB->get_record('chat', array('id' => $chat_id));
+    list($chatid, $sessionstart, $sessionend) = split('-', $id);
+    $chat = $DB->get_record('chat', array('id' => $chatid));
     $course = $DB->get_record('course', array('id' => $chat->course));
     $coursemodule = $DB->get_field('modules', 'id', array('name' => 'chat'));
     $cm = $DB->get_record('course_modules', array('course' => $course->id, 'module' => $coursemodule, 'instance' => $chat->id));
     if ($cm) {
         $context = context_module::instance($cm->id);
-    
-        // should be only one
+
+        // Should be only one.
         $tracks = chat_get_session_tracks($chat->id, $sessionstart, $sessionstart);
         if ($tracks) {
-            $aTrack = $tracks[0];
-            $arr = get_object_vars($aTrack);
-            $document = new ChatTrackSearchDocument($arr, $chat_id, $cm->id, $chat->course, $aTrack->groupid, $context->id);
+            $atrack = $tracks[0];
+            $arr = get_object_vars($atrack);
+            $document = new ChatTrackSearchDocument($arr, $chatid, $cm->id, $chat->course, $atrack->groupid, $context->id);
             return $document;
         }
     }
@@ -249,6 +254,7 @@ function chat_single_document($id, $itemtype) {
  *
  */
 function chat_delete($info, $itemtype) {
+    $object = new StdClass;
     $object->id = $info;
     $object->itemtype = $itemtype;
     return $object;
@@ -279,34 +285,43 @@ function chat_db_names() {
  * @uses CFG
  * @return true if access is allowed, false elsewhere
  */
-function chat_check_text_access($path, $itemtype, $this_id, $user, $group_id, $context_id) {
+function chat_check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid) {
     global $CFG, $DB;
 
     include_once("{$CFG->dirroot}/{$path}/lib.php");
 
-    list($chat_id, $sessionstart, $sessionend) = split('-', $this_id);
-    // get the chat session and all related stuff
-    $chat = $DB->get_record('chat', array('id' => $chat_id));
-    $context = $DB->get_record('context', array('id' => $context_id));
+    list($chatid, $sessionstart, $sessionend) = split('-', $thisid);
+    // Get the chat session and all related stuff.
+    $chat = $DB->get_record('chat', array('id' => $chatid));
+    $context = $DB->get_record('context', array('id' => $contextid));
     $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));
-    if (empty($cm)) return false; // Shirai 20090530 - MDL19342 - course module might have been delete
+    if (empty($cm)) {
+        return false; // Shirai 20090530 - MDL19342 - course module might have been delete.
+    }
 
-    if (!$cm->visible and !has_capability('moodle/course:viewhiddenactivities', $context)){
-        if (!empty($CFG->search_access_debug)) echo "search reject : hidden chat ";
+    if (!$cm->visible && !has_capability('moodle/course:viewhiddenactivities', $context)) {
+        if (!empty($CFG->search_access_debug)) {
+            echo "search reject : hidden chat ";
+        }
         return false;
     }
     
     //group consistency check : checks the following situations about groups
     // trap if user is not same group and groups are separated
     $course = $DB->get_record('course', array('id' => $chat->course));
-    if ((groupmode($course, $cm) == SEPARATEGROUPS) && !ismember($group_id) && !has_capability('moodle/site:accessallgroups', $context)){ 
-        if (!empty($CFG->search_access_debug)) echo "search reject : chat element is in separated group ";
+    if ((groups_get_activity_groupmode($cm, $course) == SEPARATEGROUPS) &&
+            !ismember($groupid) && !has_capability('moodle/site:accessallgroups', $context)) {
+        if (!empty($CFG->search_access_debug)) {
+            echo "search reject : chat element is in separated group ";
+        }
         return false;
     }
 
-    //ownership check : checks the following situations about user
-    // trap if user is not owner and has cannot see other's entries
-    // TODO : typically may be stored into indexing cache
+    /*
+     * ownership check : checks the following situations about user
+     * trap if user is not owner and has cannot see other's entries
+     */
+    // TODO : typically may be stored into indexing cache.
     if (!has_capability('mod/chat:readlog', $context)) {
         if (!empty($CFG->search_access_debug)) {
             echo "search reject : cannot read past sessions ";

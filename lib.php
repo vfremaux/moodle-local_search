@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -29,6 +27,7 @@ defined('MOODLE_INTERNAL') || die();
  * This file must not contain any PHP 5, because it is used to test for PHP 5
  * itself, and needs to be able to be executed on PHP 4 installations.
  */
+defined('MOODLE_INTERNAL') || die();
 
 define('SEARCH_INDEX_PATH', "{$CFG->dataroot}/search");
 define('SEARCH_DATABASE_TABLE', 'local_search_documents');
@@ -318,11 +317,11 @@ function search_get_physical_file(&$documents, &$file, &$object, $contextid, $ob
  * @uses CFG
  * @return an array of objects representing the data record comments.
  */
-function data_get_comments($pluginname, $instanceid) {
+function search_get_comments($pluginname, $instanceid) {
     global $CFG, $DB;
 
     $cm = get_coursemodule_from_instance($pluginname, $instanceid);
-    $context = context_instance::module($cm->id);
+    $context = context_module::instance($cm->id);
 
     $sql = "
        SELECT

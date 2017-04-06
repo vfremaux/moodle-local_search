@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -30,8 +28,9 @@ defined('MOODLE_INTERNAL') || die();
  * Major chages in this review is passing the xxxx_db_names return to
  * multiple arity to handle multiple document types modules
  */
+defined('MOODLE_INTERNAL') || die();
 
-// makes inclusions of the Zend Engine more reliable
+// Makes inclusions of the Zend Engine more reliable.
 ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
 require_once($CFG->dirroot.'/local/search/lib.php');
@@ -39,8 +38,10 @@ require_once($CFG->dirroot.'/local/search/indexlib.php');
 
 try {
     $index = new Zend_Search_Lucene(SEARCH_INDEX_PATH);
-} catch(LuceneException $e) {
-    mtrace("Could not construct a valid index. Maybe the first indexation was never made, or files might be corrupted. Run complete indexation again.");
+} catch (LuceneException $e) {
+    $message = 'Could not construct a valid index. Maybe the first indexation was never made, ';
+    $meesage .= 'or files might be corrupted. Run complete indexation again.';
+    mtrace($message);
     return;
 }
 
@@ -68,20 +69,20 @@ if ($mods = search_collect_searchables(false, true)) {
         }
 
         // Build function names.
-        $class_file = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
-        $delete_function = $mod->name.'_delete';
-        $db_names_function = $mod->name.'_db_names';
+        $classfile = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
+        $deletefunction = $mod->name.'_delete';
+        $dbnamesfunction = $mod->name.'_db_names';
         $deletions = array();
 
-        if (file_exists($class_file)) {
-            require_once($class_file);
+        if (file_exists($classfile)) {
+            require_once($classfile);
 
             // If both required functions exist.
-            if (function_exists($delete_function) && function_exists($db_names_function)) {
+            if (function_exists($deletefunction) && function_exists($dbnamesfunction)) {
                 mtrace("Checking $mod->name module for deletions.");
-                $valuesArray = $db_names_function();
-                if ($valuesArray) {
-                    foreach ($valuesArray as $values) {
+                $valuesarr = $dbnamesfunction();
+                if ($valuesarr) {
+                    foreach ($valuesarr as $values) {
                        $where = (!empty($values[5])) ? 'WHERE '.$values[5] : '';
                        $joinextension = (!empty($values[6])) ? $values[6] : '';
                        $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " itemtype = '{$values[4]}' AND " : '';
@@ -89,16 +90,15 @@ if ($mods = search_collect_searchables(false, true)) {
                             SELECT
                                 {$values[0]} as id,
                                 {$values[0]} as docid
-                            FROM 
+                            FROM
                                 {{$values[1]}}
                                 $joinextension
                                 $where
                         ";
-                        echo "sql $sql ";
-                        $docIds = $DB->get_records_sql($sql);
-                        $docIdList = ($docIds) ? implode("','", array_keys($docIds)) : '';
+                        $docids = $DB->get_records_sql($sql);
+                        $docidlist = ($docids) ? implode("','", array_keys($docids)) : '';
 
-                        // Index records
+                        // Index records.
                         $table = SEARCH_DATABASE_TABLE;
                         $sql = "
                             SELECT
@@ -109,26 +109,28 @@ if ($mods = search_collect_searchables(false, true)) {
                             WHERE
                                 doctype = '{$mod->name}' AND
                                 $itemtypes
-                                docid not in ('{$docIdList}')
+                                docid not in ('{$docidlist}')
                         ";
                         $records = $DB->get_records_sql($sql);
 
                         // Build an array of all the deleted records.
                         if (is_array($records)) {
                             foreach ($records as $record) {
-                                $deletions[] = $delete_function($record->docid, $values[4]);
+                                $deletions[] = $deletefunction($record->docid, $values[4]);
                             }
                         }
                     }
 
                     foreach ($deletions as $delete) {
-                        // find the specific document in the index, using it's docid and doctype as keys
+                        // Find the specific document in the index, using it's docid and doctype as keys.
                         $doc = $index->find("+docid:{$delete->id} +doctype:$mod->name +itemtype:{$delete->itemtype}");
 
                         // Get the record, should only be one.
                         foreach ($doc as $thisdoc) {
                             ++$deletion_count;
-                            mtrace("  Delete: $thisdoc->title (database id = $thisdoc->dbid, index id = $thisdoc->id, moodle instance id = $thisdoc->docid)");
+                            $message = "  Delete: $thisdoc->title (database id = $thisdoc->dbid, ";
+                            $message .= "index id = $thisdoc->id, moodle instance id = $thisdoc->docid)";
+                            mtrace($message);
 
                             // Remove it from index and database table.
                             $dbcontrol->delDocument($thisdoc);

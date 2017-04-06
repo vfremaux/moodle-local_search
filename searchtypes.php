@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -28,9 +26,10 @@ defined('MOODLE_INTERNAL') || die();
  * Searcheable types
  * to disable a type, just comment the two declaration lines for that type
  */
+defined('MOODLE_INTERNAL') || die();
 
-//document types that can be searched
-//define('SEARCH_TYPE_NONE', 'none');
+// Document types that can be searched.
+
 define('SEARCH_TYPE_ASSIGNMENT', 'assignment');
 define('SEARCH_TYPE_BOOK', 'book');
 define('SEARCH_TYPE_CHAT', 'chat');
