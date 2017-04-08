@@ -31,10 +31,18 @@
  * Functions for iterating and retrieving the necessary records are now also included
  * in this file, rather than mod/resource/lib.php
  */
+namespace local_search;
+
+use \StdClass;
+use \moodle_url;
+use \context_module;
+use \context_course;
+
 defined('MOODLE_INTERNAL') || die();
 
-require_once("$CFG->dirroot/local/search/documents/document.php");
-require_once("$CFG->dirroot/mod/resource/lib.php");
+require_once($CFG->dirroot.'/local/search/documents/document.php');
+require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
+require_once($CFG->dirroot.'/mod/resource/lib.php');
 
 /**
  * a class for representing searchable information
@@ -55,7 +63,7 @@ class LabelSearchDocument extends SearchDocument {
         $doc->date      = $label['timemodified'];
         $doc->author    = '';
         $doc->contents  = strip_tags($label['name']);
-        $doc->url       = label_make_link($label['course']);
+        $doc->url       = label_document_wrapper::make_link($label['course']);
 
         // Module specific information; optional.
         $data = new StdClass;
@@ -66,144 +74,122 @@ class LabelSearchDocument extends SearchDocument {
     }
 }
 
-/**
- * constructs valid access links to information
- * @param resourceId the of the resource
- * @return a full featured link element as a string
- */
-function label_make_link($course_id) {
-    return new moodle_url('/course/view.php', array('id' => $course_id));
-}
+class label_document_wrapper extends document_wrapper {
 
-/**
- * part of standard API
- *
- */
-function label_iterator() {
-    global $DB;
-
-    /* Trick to leave search indexer functionality intact, but allow
-     * this document to only use the below function to return info
-     * to be searched
+    /**
+     * constructs valid access links to information
+     * @param resourceId the of the resource
+     * @return a full featured link element as a string
      */
-    $labels = $DB->get_records('label');
-    return $labels;
-}
+    public static function make_link($instanceid) {
+        return new moodle_url('/course/view.php', array('id' => $instanceid));
+    }
 
-/**
- * part of standard API
- * this function does not need a content iterator, returns all the info itself;
- * @param notneeded to comply API, remember to fake the iterator array though
- * @uses CFG
- * @return an array of searchable documents
- */
-function label_get_content_for_index(&$label) {
-    global $CFG, $DB;
+    /**
+     * part of standard API
+     *
+     */
+    public static function get_iterator() {
+        global $DB;
 
-    // Starting with Moodle native resources.
-    $documents = array();
+        /* Trick to leave search indexer functionality intact, but allow
+         * this document to only use the below function to return info
+         * to be searched
+         */
+        $labels = $DB->get_records('label');
+        return $labels;
+    }
 
-    $coursemodule = $DB->get_field('modules', 'id', array('name' => 'label'));
-    $params = array('course' => $label->course, 'module' => $coursemodule, 'instance' => $label->id);
-    $cm = $DB->get_record('course_modules', $params);
-    $context = context_module::instance($cm->id);
+    /**
+     * part of standard API
+     * this function does not need a content iterator, returns all the info itself;
+     * @param notneeded to comply API, remember to fake the iterator array though
+     * @uses CFG
+     * @return an array of searchable documents
+     */
+    public static function get_content_for_index(&$label) {
+        global $CFG, $DB;
 
-    $obj = get_object_vars($label);
-    $documents[] = new LabelSearchDocument($obj, $context->id);
+        // Starting with Moodle native resources.
+        $documents = array();
 
-    mtrace("finished label {$label->id}");
-    return $documents;
-}
-
-/**
- * part of standard API.
- * returns a single resource search document based on a label id
- * @param id the id of the accessible document
- * @return a searchable object or null if failure
- */
-function label_single_document($id, $itemtype) {
-    global $DB;
-
-    $label = $DB->get_record('label', array('id' => $id));
-
-    if ($label) {
         $coursemodule = $DB->get_field('modules', 'id', array('name' => 'label'));
-        $cm = $DB->get_record('course_modules', array('id' => $label->id));
+        $params = array('course' => $label->course, 'module' => $coursemodule, 'instance' => $label->id);
+        $cm = $DB->get_record('course_modules', $params);
         $context = context_module::instance($cm->id);
-        $arr = get_object_vars($label);
-        return new LabelSearchDocument($arr, $context->id);
+
+        $obj = get_object_vars($label);
+        $documents[] = new LabelSearchDocument($obj, $context->id);
+
+        mtrace("finished label {$label->id}");
+        return $documents;
     }
-    return null;
-}
 
-/**
-* dummy delete function that aggregates id with itemtype.
-* this was here for a reason, but I can't remember it at the moment.
-*/
-function label_delete($info, $itemtype) {
-    $object = new StdClass;
-    $object->id = $info;
-    $object->itemtype = $itemtype;
-    return $object;
-}
-
-/**
- * returns the var names needed to build a sql query for addition/deletions
- */
-function label_db_names() {
-    /*
-     * [primary id], [table name], [time created field name], [time modified field name], [docsubtype],
-     * [additional where conditions for sql]
+    /**
+     * part of standard API.
+     * returns a single resource search document based on a label id
+     * @param id the id of the accessible document
+     * @return a searchable object or null if failure
      */
-    return array(array('id', 'label', 'timemodified', 'timemodified', 'label', ''));
-}
+    public static function single_document($id, $itemtype) {
+        global $DB;
 
-/**
- * this function handles the access policy to contents indexed as searchable documents. If this
- * function does not exist, the search engine assumes access is allowed.
- * @param path the access path to the module script code
- * @param itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
- * @param this_id the item id within the information class denoted by itemtype. In resources, this id
- * points to the resource record and not to the module that shows it.
- * @param user the user record denoting the user who searches
- * @param group_id the current group used by the user when searching
- * @return true if access is allowed, false elsewhere
- */
-function label_check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid) {
-    global $CFG, $DB;
+        $label = $DB->get_record('label', array('id' => $id));
 
-    $r = $DB->get_record('label', array('id' => $thisid));
-    $modulecontext = $DB->get_record('context', array('id' => $contextid));
-    $cm = $DB->get_record('course_modules', 'id', $modulecontext->instanceid);
-    if (empty($cm)) {
-        return false; // Shirai 20093005 - MDL19342 - course module might have been delete.
+        if ($label) {
+            $coursemodule = $DB->get_field('modules', 'id', array('name' => 'label'));
+            $cm = $DB->get_record('course_modules', array('id' => $label->id));
+            $context = context_module::instance($cm->id);
+            $arr = get_object_vars($label);
+            return new LabelSearchDocument($arr, $context->id);
+        }
+        return null;
     }
 
-    $coursecontext = context_course::instance($r->course);
-
-    // Check if englobing course is visible.
-    if (!has_capability('moodle/course:view', $coursecontext)) {
-        return false;
+    /**
+     * returns the var names needed to build a sql query for addition/deletions
+     */
+    public static function db_names() {
+        /*
+         * [primary id], [table name], [time created field name], [time modified field name], [docsubtype],
+         * [additional where conditions for sql]
+         */
+        return array(array('id', 'label', 'timemodified', 'timemodified', 'label', ''));
     }
 
-    // Check if found course module is visible.
-    if (!$cm->visible && !has_capability('moodle/course:viewhiddenactivities', $modulecontext)) {
-        return false;
-    }
-    
-    return true;
-}
+    /**
+     * this function handles the access policy to contents indexed as searchable documents. If this
+     * function does not exist, the search engine assumes access is allowed.
+     * @param path the access path to the module script code
+     * @param itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
+     * @param this_id the item id within the information class denoted by itemtype. In resources, this id
+     * points to the resource record and not to the module that shows it.
+     * @param user the user record denoting the user who searches
+     * @param group_id the current group used by the user when searching
+     * @return true if access is allowed, false elsewhere
+     */
+    public static function check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid) {
+        global $CFG, $DB;
 
-/**
- * TODO : check if deprecated.
- * post processes the url for cleaner output.
- * @param string $title
- */
-function label_link_post_processing($title) {
-    global $CFG;
+        $r = $DB->get_record('label', array('id' => $thisid));
+        $modulecontext = $DB->get_record('context', array('id' => $contextid));
+        $cm = $DB->get_record('course_modules', 'id', $modulecontext->instanceid);
+        if (empty($cm)) {
+            return false; // Shirai 20093005 - MDL19342 - course module might have been delete.
+        }
 
-    if ($CFG->block_search_utf8dir){
-        return mb_convert_encoding("(".shorten_text(clean_text($title), 60)."...) ", 'UTF-8', 'auto');
+        $coursecontext = context_course::instance($r->course);
+
+        // Check if englobing course is visible.
+        if (!has_capability('moodle/course:view', $coursecontext)) {
+            return false;
+        }
+
+        // Check if found course module is visible.
+        if (!$cm->visible && !has_capability('moodle/course:viewhiddenactivities', $modulecontext)) {
+            return false;
+        }
+
+        return true;
     }
-    return mb_convert_encoding("(".shorten_text(clean_text($title), 60)."...) ", 'auto', 'UTF-8');
 }

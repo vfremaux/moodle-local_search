@@ -38,12 +38,14 @@ $PAGE->set_context($context);
 
 // Checks global search is enabled.
 
+$config = get_config('local_search');
+
 if ($CFG->forcelogin) {
     require_login();
 }
 
 if (empty($config->enable)) {
-    pring_error('globalsearchdisabled', 'local_search');
+    print_error('globalsearchdisabled', 'local_search');
 }
 
 // Check for php5, but don't die yet.
@@ -135,7 +137,7 @@ if (has_capability('moodle/site:config', context_system::instance())) {
 
     $url = new moodle_url('/local/search/tests/index.php');
     $admin_table->data[] = array($runindexerteststr, '<a href="'.$url.'" target="_blank">tests/index.php</a>');
-    $url = new moodle_url('/local/search/indexsplash.php');
+    $url = new moodle_url('/local/search/indexersplash.php');
     $admin_table->data[] = array($runindexerstr, '<a href="'.$url.'" target="_blank">indexersplash.php</a>');
 
     echo html_writer::table($admin_table);

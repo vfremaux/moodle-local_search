@@ -32,13 +32,13 @@ defined('MOODLE_INTERNAL') || die();
 
 /**
  * MS Word extractor
- * @param object $resource 
+ * @param object $resource
  * @uses $CFG
  */
 function get_text_for_indexing_doc($physicalfilepath) {
     global $CFG;
 
-    $config = get_config('block_search');
+    $config = get_config('local_search');
 
     // Adds moodle root switch if none was defined.
     if (!isset($config->usemoodleroot)) {
@@ -57,12 +57,12 @@ function get_text_for_indexing_doc($physicalfilepath) {
         } else {
 
             $command = trim($config->word_to_text_cmd);
-            $text_converter_cmd = "{$moodleroot}{$command} -m UTF-8.txt $physicalfilepath";
+            $textconvertercmd = "{$moodleroot}{$command} -m UTF-8.txt $physicalfilepath";
             if ($config->word_to_text_env) {
                 putenv($config->word_to_text_env);
             }
-            mtrace("Executing : $text_converter_cmd");
-            $result = shell_exec($text_converter_cmd);
+            mtrace("Executing : $textconvertercmd");
+            $result = shell_exec($textconvertercmd);
             if ($result) {
                 if (!empty($config->limit_index_body)) {
                     $result = shorten_text($result, $config->limit_index_body);

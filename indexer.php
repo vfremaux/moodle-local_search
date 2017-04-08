@@ -129,8 +129,6 @@ mtrace("Starting activity modules\n");
 
 $searchables = search_collect_searchables();
 
-$config = get_config('block_search');
-
 // Start indexation.
 
 if ($searchables) {
@@ -154,41 +152,37 @@ if ($searchables) {
 
             include_once($classfile);
 
-            // Build function names.
-            $iterfunction = $mod->name.'_iterator';
-            $indexfunction = $mod->name.'_get_content_for_index';
+            $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
 
             $counter = 0;
-            if (function_exists($indexfunction) && function_exists($iterfunction)) {
-                mtrace(" Processing module function $indexfunction ...");
-                $sources = $iterfunction();
-                if ($sources) {
-                    foreach ($sources as $i) {
-                        $documents = $indexfunction($i);
+            mtrace(" Processing module ...");
+            $sources = $wrapperclass::get_iterator();
+            if ($sources) {
+                foreach ($sources as $i) {
+                    $documents = $wrapperclass::get_content_for_index($i);
 
-                        // Begin transaction.
-                        if ($documents) {
-                            foreach ($documents as $document) {
-                                $counter++;
+                    // Begin transaction.
+                    if ($documents) {
+                        foreach ($documents as $document) {
+                            $counter++;
 
-                                // Object to insert into db.
-                                $dbid = $dbcontrol->addDocument($document);
+                            // Object to insert into db.
+                            $dbid = $dbcontrol->addDocument($document);
 
-                                // Synchronise db with index.
-                                $document->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
+                            // Synchronise db with index.
+                            $document->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
 
-                                // Add document to index.
-                                $index->addDocument($document);
+                            // Add document to index.
+                            $index->addDocument($document);
 
-                                // Commit every x new documents, and print a status message.
-                                if (($counter % 2000) == 0) {
-                                    $index->commit();
-                                    mtrace(".. $counter");
-                                }
+                            // Commit every x new documents, and print a status message.
+                            if (($counter % 2000) == 0) {
+                                $index->commit();
+                                mtrace(".. $counter");
                             }
                         }
-                        // End transaction.
                     }
+                    // End transaction.
                 }
 
                 // Commit left over documents, and finish up.
@@ -213,13 +207,13 @@ mtrace('</pre>');
 
 // Finished, turn busy flag off.
 
-set_config('search_indexer_busy', '0');
+set_config('indexer_busy', '0', 'local_search');
 
 // Mark the time we last updated.
 
-set_config('search_indexer_run_date', time());
+set_config('indexer_run_date', time(), 'local_search');
 
 // And the index size.
 
-set_config('search_index_size', (int)$index->count());
+set_config('index_size', (int)$index->count(), 'local_search');
 

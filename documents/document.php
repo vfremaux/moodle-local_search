@@ -15,19 +15,24 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
-* Global Search Engine for Moodle
-*
-* @package local_search
-* @category local
-* @subpackage document_wrappers
-* @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
-* @contributor Tatsuva Shirai on UTF-8 multibyte fixing
-* @date 2008/03/31
-* @license http://www.gnu.org/copyleft/gpl.html GNU Public License
-*
-* Base search document from which other module/block types can
-* extend.
-*/
+ * Global Search Engine for Moodle
+ *
+ * @package local_search
+ * @category local
+ * @subpackage document_wrappers
+ * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @contributor Tatsuva Shirai on UTF-8 multibyte fixing
+ * @date 2008/03/31
+ * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ *
+ * Base search document from which other module/block types can
+ * extend.
+ */
+namespace local_search;
+
+use \Zend_Search_Lucene_Document;
+use \Zend_Search_Lucene_field;
+
 defined('MOODLE_INTERNAL') || die();
 
 abstract class SearchDocument extends Zend_Search_Lucene_Document {

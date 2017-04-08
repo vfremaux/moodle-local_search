@@ -246,21 +246,22 @@ function search_pexit($str = '') {
 }
 
 /**
- * get text from a physical file 
- * @param array $documents an eventual document array to feed
- * @param object $file the moodle file record to index
- * @param object $object the initial object the document is linked to
+ * get text from a physical file
+ * @param arrayref &$documents an eventual document array to feed with resulting pseudo_documents
+ * @param objectref &$file the moodle file record to index
+ * @param objectref &$object the initial object the document is linked to
  * @param string $objectdocumentclass the document class name that must be instanciated
+ * @param string $getsingle if true, returns the single pseudo_document. If false, will add the document to the document array.
  * @return a search document when unique or false if failure.
  */
 function search_get_physical_file(&$documents, &$file, &$object, $contextid, $objectdocumentclass, $getsingle = false) {
     global $CFG;
 
-    $config = get_config('block_search');
+    $config = get_config('local_search');
 
     // Cannot index missing file.
     if ($file->is_directory()) {
-        continue;
+        return;
     }
 
     $contenthash = $file->get_contenthash();
@@ -268,7 +269,7 @@ function search_get_physical_file(&$documents, &$file, &$object, $contextid, $ob
     $l2 = $contenthash[2].$contenthash[3];
     $physicalfilepath = $CFG->dataroot.'/filedir/'.$l1.'/'.$l2.'/'.$contenthash;
 
-    if (!file_exists($physicalfilepath)){
+    if (!file_exists($physicalfilepath)) {
         mtrace("Missing file at $physicalfilepath : will not be indexed.");
         return false;
     }
@@ -282,14 +283,14 @@ function search_get_physical_file(&$documents, &$file, &$object, $contextid, $ob
 
     // Cannot index unallowed or unhandled types.
     if (!preg_match("/\b$ext\b/i", $config->filetypes)) {
-        mtrace($ext . ' is not an allowed extension for indexing');
+        mtrace($ext.' is not an allowed extension for indexing');
         return false;
     }
 
-    if (file_exists($CFG->dirroot.'/local/search/documents/physical_'.$ext.'.php')){
+    if (file_exists($CFG->dirroot.'/local/search/documents/physical_'.$ext.'.php')) {
         include_once($CFG->dirroot.'/local/search/documents/physical_'.$ext.'.php');
-        $function_name = 'get_text_for_indexing_'.$ext;
-        $object->alltext = $function_name($physicalfilepath);
+        $functionname = 'get_text_for_indexing_'.$ext;
+        $object->alltext = $functionname($physicalfilepath);
 
         if (!empty($object->alltext)) {
             if ($getsingle) {

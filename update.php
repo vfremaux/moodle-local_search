@@ -69,95 +69,92 @@ if ($mods = search_collect_searchables(false, true)) {
         }
 
         $classfile = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
-        $getdocumentfunction = $mod->name.'_single_document';
-        $deletefunction = $mod->name.'_delete';
-        $dbnamesfunction = $mod->name.'_db_names';
         $updates = array();
 
         if (file_exists($classfile)) {
             require_once($classfile);
 
+            $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
+
             // If both required functions exist.
-            if (function_exists($deletefunction) && function_exists($dbnamesfunction) && function_exists($getdocumentfunction)) {
-                mtrace("Checking $mod->name module for updates.");
-                $valuesarray = $dbnamesfunction();
-                if ($valuesarray){
-                    foreach ($valuesarray as $values) {
+            mtrace("Checking $mod->name module for updates.");
+            $valuesarray = $wrapperclass::db_names();
+            if ($valuesarray){
+                foreach ($valuesarray as $values) {
 
-                        $where = (!empty($values[5])) ? 'AND ('.$values[5].')' : '';
-                        $joinextension = (!empty($values[6])) ? $values[6] : '';
-                        $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " AND itemtype = '{$values[4]}' " : '';
+                    $where = (!empty($values[5])) ? 'AND ('.$values[5].')' : '';
+                    $joinextension = (!empty($values[6])) ? $values[6] : '';
+                    $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " AND itemtype = '{$values[4]}' " : '';
 
-                        // TODO: check 'in' syntax with other RDBMS' (add and update.php as well).
-                        $table = SEARCH_DATABASE_TABLE;
-                        $query = "
-                            SELECT
-                                docid,
-                                itemtype
-                            FROM
-                                {{$table}}
-                            WHERE
-                                doctype = '{$values[1]}'
-                                $itemtypes
-                        ";
-                        $docids = $DB->get_records_sql_menu($query, array($mod->name));
-                        $docidlist = ($docids) ? implode("','", array_keys($docids)) : '';
+                    // TODO: check 'in' syntax with other RDBMS' (add and update.php as well).
+                    $table = SEARCH_DATABASE_TABLE;
+                    $query = "
+                        SELECT
+                            docid,
+                            itemtype
+                        FROM
+                            {{$table}}
+                        WHERE
+                            doctype = '{$values[1]}'
+                            $itemtypes
+                    ";
+                    $docids = $DB->get_records_sql_menu($query, array($mod->name));
+                    $docidlist = ($docids) ? implode("','", array_keys($docids)) : '';
 
-                        $sql = "
-                            SELECT
-                                {$values[0]} as id,
-                                {$values[0]} as docid
-                            FROM
-                                {{$values[1]}}
-                                $joinextension
-                            WHERE
-                                {$values[3]} > {$indexdate} AND
-                                {$values[0]} IN ('{$docidlist}')
-                                $where
-                        ";
-                        echo $sql;
-                        $records = $DB->get_records_sql($sql);
-                        if (is_array($records)) {
-                            foreach ($records as $record) {
-                                $updates[] = $deletefunction($record->docid, $docids[$record->docid]);
-                            }
+                    $sql = "
+                        SELECT
+                            {$values[0]} as id,
+                            {$values[0]} as docid
+                        FROM
+                            {{$values[1]}}
+                            $joinextension
+                        WHERE
+                            {$values[3]} > {$indexdate} AND
+                            {$values[0]} IN ('{$docidlist}')
+                            $where
+                    ";
+                    echo $sql;
+                    $records = $DB->get_records_sql($sql);
+                    if (is_array($records)) {
+                        foreach ($records as $record) {
+                            $updates[] = $wrapperclass::delete($record->docid, $docids[$record->docid]);
                         }
                     }
-
-                    foreach ($updates as $update) {
-                        ++$update_count;
-
-                        // Delete old document.
-                        $doc = $index->find("+docid:{$update->id} +doctype:{$mod->name} +itemtype:{$update->itemtype}");
-
-                        // Get the record, should only be one.
-                        foreach ($doc as $thisdoc) {
-                            $message = " Delete: $thisdoc->title (database id = $thisdoc->dbid, index id = $thisdoc->id, ";
-                            $message .= " moodle instance id = $thisdoc->docid)";
-                            mtrace($message);
-                            $dbcontrol->delDocument($thisdoc);
-                            $index->delete($thisdoc->id);
-                        }
-
-                        // Add new modified document back into index.
-                        if (!$add = $getdocumentfunction($update->id, $update->itemtype)) {
-                            // Ignore on errors.
-                            continue;
-                        }
-
-                        // Object to insert into db.
-                        $dbid = $dbcontrol->addDocument($add);
-
-                        // Synchronise db with index.
-                        $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
-                        mtrace("  Add: $add->title (database id = $add->dbid, moodle instance id = $add->docid)");
-                        $index->addDocument($add);
-                    }
-                } else {
-                    mtrace("No types to update.\n");
                 }
-                mtrace("Finished $mod->name.\n");
+
+                foreach ($updates as $update) {
+                    ++$update_count;
+
+                    // Delete old document.
+                    $doc = $index->find("+docid:{$update->id} +doctype:{$mod->name} +itemtype:{$update->itemtype}");
+
+                    // Get the record, should only be one.
+                    foreach ($doc as $thisdoc) {
+                        $message = " Delete: $thisdoc->title (database id = $thisdoc->dbid, index id = $thisdoc->id, ";
+                        $message .= " moodle instance id = $thisdoc->docid)";
+                        mtrace($message);
+                        $dbcontrol->delDocument($thisdoc);
+                        $index->delete($thisdoc->id);
+                    }
+
+                    // Add new modified document back into index.
+                    if (!$add = $wrapperclass::single_document($update->id, $update->itemtype)) {
+                        // Ignore on errors.
+                        continue;
+                    }
+
+                    // Object to insert into db.
+                    $dbid = $dbcontrol->addDocument($add);
+
+                    // Synchronise db with index.
+                    $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
+                    mtrace("  Add: $add->title (database id = $add->dbid, moodle instance id = $add->docid)");
+                    $index->addDocument($add);
+                }
+            } else {
+                mtrace("No types to update.\n");
             }
+            mtrace("Finished $mod->name.\n");
         }
     }
 }

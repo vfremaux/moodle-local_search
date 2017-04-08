@@ -70,17 +70,17 @@ if ($mods = search_collect_searchables(false, true)) {
 
         // Build function names.
         $classfile = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
-        $deletefunction = $mod->name.'_delete';
-        $dbnamesfunction = $mod->name.'_db_names';
         $deletions = array();
 
         if (file_exists($classfile)) {
             require_once($classfile);
 
+            $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
+
             // If both required functions exist.
             if (function_exists($deletefunction) && function_exists($dbnamesfunction)) {
                 mtrace("Checking $mod->name module for deletions.");
-                $valuesarr = $dbnamesfunction();
+                $valuesarr = $wrapperclass::db_names();
                 if ($valuesarr) {
                     foreach ($valuesarr as $values) {
                        $where = (!empty($values[5])) ? 'WHERE '.$values[5] : '';
@@ -116,7 +116,7 @@ if ($mods = search_collect_searchables(false, true)) {
                         // Build an array of all the deleted records.
                         if (is_array($records)) {
                             foreach ($records as $record) {
-                                $deletions[] = $deletefunction($record->docid, $values[4]);
+                                $deletions[] = $wrapperclass::delete($record->docid, $values[4]);
                             }
                         }
                     }

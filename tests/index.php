@@ -112,28 +112,27 @@ foreach ($searchables as $mod) {
     }
 
     if ($mod->location == 'internal') {
-        $class_file = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
+        $classfile = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
     } else {
-        $class_file = $CFG->dirroot.'/'.$mod->location.'/'.$mod->name.'/search_document.php';
+        $classfile = $CFG->dirroot.'/'.$mod->location.'/'.$mod->name.'/search_document.php';
     }
 
-    if (file_exists($class_file)) {
-        include_once($class_file);
+    if (file_exists($classfile)) {
+        include_once($classfile);
+
+        $wrapperclass = $mod->name.'_document_wrapper';
 
         if ($mod->location != 'internal' && !defined('X_SEARCH_TYPE_'.strtoupper($mod->name))) {
             mtrace("ERROR: Constant 'X_SEARCH_TYPE_".strtoupper($mod->name)."' is not defined in search/searchtypes.php or in module");
             continue;
         }
 
-        $iter_function = $mod->name.'_iterator';
-        $index_function = $mod->name.'_get_content_for_index';
-
         if (function_exists($index_function) && function_exists($iter_function)) {
-            $entries = $iter_function();
+            $entries = $wrapperclass->get_iterator();
             if (!empty($entries)) {
                 $entry = array_pop($entries);
-                $documents = $index_function($entry);
-        
+                $documents = $wrapperclass->get_content_for_index($entry);
+
                 if (is_array($documents)) {
                     mtrace("Success: '$mod->name' module seems to be ready for indexing.");
                 } else {
@@ -143,10 +142,10 @@ foreach ($searchables as $mod) {
                 mtrace("Success : '$mod->name' has nothing to index.");
             } 
         } else {
-            mtrace("ERROR: $iter_function() and/or $index_function() does not exist in $class_file");
+            mtrace("ERROR: $iter_function() and/or $index_function() does not exist in $classfile");
         } 
     } else {
-        mtrace("Notice: $class_file does not exist, this module will not be indexed.");
+        mtrace("Notice: $classfile does not exist, this module will not be indexed.");
     } 
 } 
 
