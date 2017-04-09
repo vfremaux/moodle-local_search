@@ -33,7 +33,8 @@ defined('MOODLE_INTERNAL') || die();
 
 // Makes inclusions of the Zend Engine more reliable.
 
-ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
+$dirsep = DIRECTORY_SEPARATOR;
+ini_set('include_path', $CFG->dirroot.$dirsep.'local'.$dirsep.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
 require_once($CFG->dirroot.'/local/search/lib.php');
 require_once($CFG->dirroot.'/local/search/indexlib.php');
@@ -133,7 +134,7 @@ if ($mods = search_collect_searchables(false, true)) {
                         $message = " Delete: $thisdoc->title (database id = $thisdoc->dbid, index id = $thisdoc->id, ";
                         $message .= " moodle instance id = $thisdoc->docid)";
                         mtrace($message);
-                        $dbcontrol->delDocument($thisdoc);
+                        $dbcontrol->delete_document($thisdoc);
                         $index->delete($thisdoc->id);
                     }
 
@@ -144,7 +145,7 @@ if ($mods = search_collect_searchables(false, true)) {
                     }
 
                     // Object to insert into db.
-                    $dbid = $dbcontrol->addDocument($add);
+                    $dbid = $dbcontrol->add_document($add);
 
                     // Synchronise db with index.
                     $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));

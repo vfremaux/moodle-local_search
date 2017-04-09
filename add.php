@@ -142,7 +142,7 @@ if ($mods = search_collect_searchables(false, true)) {
                     ++$additioncount;
 
                     // Object to insert into db.
-                    $dbid = $dbcontrol->addDocument($add);
+                    $dbid = $dbcontrol->add_document($add);
 
                     // Synchronise db with index.
                     $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));

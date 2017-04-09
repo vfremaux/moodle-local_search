@@ -14,4 +14,18 @@
     <version></version>
     <licenseversion></licenseversion>
   </library>
+  <library>
+    <location>extra</location>
+    <name>Special unchecked funtions</name>
+    <license>GPL</license>
+    <version></version>
+    <licenseversion></licenseversion>
+  </library>
+  <library>
+    <location>lib</location>
+    <name>Document converters</name>
+    <license></license>
+    <version></version>
+    <licenseversion></licenseversion>
+  </library>
 </libraries>

@@ -253,7 +253,7 @@ class user_document_wrapper extends document_wrapper {
                 return new UserSearchDocument($userhash, $user->id, 'user', null);
             }
         } else if ($itemtype == 'post') {
-            if ($post = $DB->get_records('post', array('id' => $id))){
+            if ($post = $DB->get_records('post', array('id' => $id))) {
                 $texts = array();
                 $texts[] = $post->subject;
                 $texts[] = $post->summary;

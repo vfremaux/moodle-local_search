@@ -76,7 +76,7 @@ class resource_document_wrapper extends document_wrapper {
 
     /**
      * constructs valid access links to information
-     * @param resourceId the of the resource 
+     * @param resourceId the of the resource
      * @return a full featured link element as a string
      */
     public static function make_link($instanceid) {

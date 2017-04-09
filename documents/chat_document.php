@@ -180,7 +180,7 @@ class chat_document_wrapper extends document_wrapper {
                         $track->sessionusers[$message->userid] = $message->userid;
                         $track->groupid = $groupid;
                         $tracks[] = $track;
-                    } 
+                    }
                     $lasttime = $message->timestamp;
                 }
             }
@@ -213,7 +213,7 @@ class chat_document_wrapper extends document_wrapper {
         $cm = $DB->get_record('course_modules', $params);
         if ($cm) {
             $context = context_module::instance($cm->id);
-    
+
             // Getting records for indexing.
             $sessiontracks = self::get_session_tracks($instance->id);
             if ($sessiontracks) {
@@ -295,7 +295,7 @@ class chat_document_wrapper extends document_wrapper {
         include_once("{$CFG->dirroot}/{$path}/lib.php");
         $config = get_config('local_search');
 
-        list($chatid, $sessionstart, $sessionend) = split('-', $thisid);
+        list($chatid, $sessionstart, $sessionend) = explode('-', $thisid);
         // Get the chat session and all related stuff.
         $chat = $DB->get_record('chat', array('id' => $chatid));
         $context = $DB->get_record('context', array('id' => $contextid));

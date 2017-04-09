@@ -128,7 +128,7 @@ $string['configtypetotxtcmd_desc'] = 'Ligne de commande système du convertisese
 
 $string['configtypetotxtenv_desc'] = 'Une définition d\'environnement si nécessaire.';
 
-$string['configusingsoftlock_desc'] = 'Bascule l\'interblocage des fichiers d\'index en mode "logiciel". Doit être utilisé dans 
+$string['configusingsoftlock_desc'] = 'Bascule l\'interblocage des fichiers d\'index en mode "logiciel". Doit être utilisé dans
  cas où l\'indexation continue des ressources est réalisée par plusieurs clusters différents sur un montage NFS partagé.
  L\'interblocage logiciel est moins rigoureux que l\'interblocage physique, mais est le seul moyen de fonctionner sur un
  système clusterisé.';

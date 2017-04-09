@@ -134,7 +134,7 @@ if ($mods = search_collect_searchables(false, true)) {
                             mtrace($message);
 
                             // Remove it from index and database table.
-                            $dbcontrol->delDocument($thisdoc);
+                            $dbcontrol->delete_document($thisdoc);
                             $index->delete($thisdoc->id);
                         }
                     }

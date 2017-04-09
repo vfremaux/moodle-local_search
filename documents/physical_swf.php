@@ -25,10 +25,10 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
  * @note : The Adobe SWF Converters library is not GPL, although it can be of free use in some
- * situations. This file is provided for convenience, but should use having a glance at 
+ * situations. This file is provided for convenience, but should use having a glance at
  * {@link http://www.adobe.com/licensing/developer/}
  *
- * this is a format handler for getting text out of a proprietary binary format 
+ * this is a format handler for getting text out of a proprietary binary format
  * so it can be indexed by Lucene search engine
  */
 defined('MOODLE_INTERNAL') || die();
@@ -57,8 +57,8 @@ function get_text_for_indexing_swf($physicalfilepath) {
             mtrace('Error with swf to text converter command : executable not found as '.$moodleroot.$command);
         } else {
             $file = escapeshellarg($physicalfilepath);
-            $text_converter_cmd = "{$moodleroot}{$command} -t $file";
-            $result = shell_exec($text_converter_cmd);
+            $textconvertercmd = "{$moodleroot}{$command} -t $file";
+            $result = shell_exec($textconvertercmd);
 
             // Result is in html. We must strip it off.
             $result = preg_replace("/<[^>]*>/", '', $result);
@@ -72,7 +72,7 @@ function get_text_for_indexing_swf($physicalfilepath) {
                 }
                 return $result;
             } else {
-                $message = 'Error with swf to text converter command : execution failed for '.$text_converter_cmd;
+                $message = 'Error with swf to text converter command : execution failed for '.$textconvertercmd;
                 $message .= '. Check for execution permission on swf converter executable.';
                 mtrace($message);
                 return '';

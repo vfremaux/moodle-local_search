@@ -154,7 +154,7 @@ class data_document_wrapper extends document_wrapper {
                 {data_records} as r
             WHERE
                 c.recordid = r.id AND
-                r.dataid = ? 
+                r.dataid = ?
                 $uniquerecordclause
             ORDER BY
                 c.fieldid
@@ -364,8 +364,8 @@ class data_document_wrapper extends document_wrapper {
             $comment = $DB->get_record('comments', array('id' => $thisid));
             $record = $DB->get_record('data_records', array('id' => $comment->recordid));
         } else {
-          // We do not know what type of information is required.
-          return false;
+            // We do not know what type of information is required.
+            return false;
         }
         $data = $DB->get_record('data', array('id' => $record->dataid));
         $context = $DB->get_record('context', array('id' => $contextid));
