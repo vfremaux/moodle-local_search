@@ -7,4 +7,11 @@
     <version></version>
     <licenseversion></licenseversion>
   </library>
+  <library>
+    <location>cli</location>
+    <name>Console scripts</name>
+    <license>GPL</license>
+    <version></version>
+    <licenseversion></licenseversion>
+  </library>
 </libraries>

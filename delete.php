@@ -31,7 +31,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 // Makes inclusions of the Zend Engine more reliable.
-ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
+$dirsep = DIRECTORY_SEPARATOR;
+ini_set('include_path', $CFG->dirroot.$dirsep.'local'.$dirsep.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
 require_once($CFG->dirroot.'/local/search/lib.php');
 require_once($CFG->dirroot.'/local/search/indexlib.php');
@@ -50,7 +51,7 @@ if (!isset($config)) {
 }
 
 $dbcontrol = new IndexDBControl();
-$deletion_count = 0;
+$deletioncount = 0;
 $startcleantime = time();
 
 mtrace('Starting clean-up of removed records...');
@@ -83,10 +84,10 @@ if ($mods = search_collect_searchables(false, true)) {
                 $valuesarr = $wrapperclass::db_names();
                 if ($valuesarr) {
                     foreach ($valuesarr as $values) {
-                       $where = (!empty($values[5])) ? 'WHERE '.$values[5] : '';
-                       $joinextension = (!empty($values[6])) ? $values[6] : '';
-                       $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " itemtype = '{$values[4]}' AND " : '';
-                       $sql = "
+                        $where = (!empty($values[5])) ? 'WHERE '.$values[5] : '';
+                        $joinextension = (!empty($values[6])) ? $values[6] : '';
+                        $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " itemtype = '{$values[4]}' AND " : '';
+                        $sql = "
                             SELECT
                                 {$values[0]} as id,
                                 {$values[0]} as docid
@@ -127,7 +128,7 @@ if ($mods = search_collect_searchables(false, true)) {
 
                         // Get the record, should only be one.
                         foreach ($doc as $thisdoc) {
-                            ++$deletion_count;
+                            ++$deletioncount;
                             $message = "  Delete: $thisdoc->title (database id = $thisdoc->dbid, ";
                             $message .= "index id = $thisdoc->id, moodle instance id = $thisdoc->docid)";
                             mtrace($message);
@@ -153,7 +154,7 @@ $index->commit();
 // Update index date and index size.
 
 set_config('cleanup_date', $startcleantime, 'local_search');
-set_config('index_size', (int)$config->index_size - (int)$deletion_count, 'local_search');
+set_config('index_size', (int)$config->index_size - (int)$deletioncount, 'local_search');
 
-mtrace("Finished $deletion_count removals.");
+mtrace("Finished $deletioncount removals.");
 mtrace('Index size after: '.$index->count());

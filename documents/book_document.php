@@ -94,13 +94,15 @@ class book_document_wrapper extends document_wrapper {
         array_shift($extravars);
         $entryid = array_shift($extravars);
 
-        // TOO LONG URL
-        // Suggestion : bounce on popup within the glossarie's showentry page
-        // preserve glossary pop-up, be careful where you place your ' and "s
-        //this function is meant to return a url that is placed between href='[url here]'
+        /*
+         * TOO LONG URL
+         * Suggestion : bounce on popup within the glossarie's showentry page
+         * preserve glossary pop-up, be careful where you place your ' and "s
+         * this function is meant to return a url that is placed between href='[url here]'
+         */
         return new moodle_url('/mod/book/showentry.php', array('chapterid' => $entryid, 'bid' => $instanceid));
     }
-    
+
     /**
      * part of search engine API
      *
@@ -111,7 +113,7 @@ class book_document_wrapper extends document_wrapper {
         $books = $DB->get_records('book');
         return $books;
     }
-    
+
     /**
      * part of search engine API
      * @book a glossary instance
@@ -136,8 +138,8 @@ class book_document_wrapper extends document_wrapper {
                 if (strlen($entry->content) > 0) {
                     $arr = get_object_vars($entry);
                     $documents[] = new BookPageSearchDocument($arr, $instance->course, $context->id);
-                } 
-            } 
+                }
+            }
         }
 
         return $documents;
@@ -153,13 +155,13 @@ class book_document_wrapper extends document_wrapper {
         global $DB;
 
         $entry = $DB->get_record('book_chapter', array('id' => $id));
-        $book_course = $DB->get_field('book', 'course', array('id' => $entry->bookid));
+        $bookcourse = $DB->get_field('book', 'course', array('id' => $entry->bookid));
         $coursemodule = $DB->get_field('modules', 'id', array('name' => 'book'));
-        $params = array('course' => $book_course, 'module' => $coursemodule, 'instance' => $entry->bookid);
+        $params = array('course' => $bookcourse, 'module' => $coursemodule, 'instance' => $entry->bookid);
         $cm = $DB->get_record('course_modules', $params);
         $context = context_module::instance($cm->id);
         $vars = get_object_vars($entry);
-        return new BookPageSearchDocument($vars, $book_course, $context->id);
+        return new BookPageSearchDocument($vars, $bookcourse, $context->id);
     }
 
     /**
@@ -174,15 +176,15 @@ class book_document_wrapper extends document_wrapper {
     }
 
     /**
-     * this function handles the access policy to contents indexed as searchable documents. If this 
+     * this function handles the access policy to contents indexed as searchable documents. If this
      * function does not exist, the search engine assumes access is allowed.
-     * When this point is reached, we already know that : 
+     * When this point is reached, we already know that :
      * - user is legitimate in the surrounding context
      * - user may be guest and guest access is allowed to the module
      * - the function may perform local checks within the module information logic
      * @param string $path the access path to the module script code
      * @param string $itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
-     * @param int $thisid the item id within the information class denoted by itemtype. In glossaries, this id 
+     * @param int $thisid the item id within the information class denoted by itemtype. In glossaries, this id
      * points out the indexed glossary item.
      * @param object $user the user record denoting the user who searches
      * @param int $groupid the current group used by the user when searching
@@ -197,7 +199,7 @@ class book_document_wrapper extends document_wrapper {
         $glossary = $DB->get_record('glossary', array('id' => $entry->bookid));
         $context = $DB->get_record('context', array('id' => $contextid));
         $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));
-    
+
         if (!$cm->visible && !has_capability('moodle/course:viewhiddenactivities', $context)) {
             return false;
         }

@@ -41,9 +41,6 @@ use \moodle_url;
 
 defined('MOODLE_INTERNAL') || die();
 
-/**
- * includes and requires
- */
 require_once($CFG->dirroot.'/local/search/documents/document.php');
 require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
 require_once($CFG->dirroot.'/mod/data/lib.php');
@@ -66,7 +63,7 @@ class DataSearchDocument extends SearchDocument {
         $doc->documenttype  = SEARCH_TYPE_DATA;
         $doc->itemtype      = 'record';
         $doc->contextid     = $contextid;
-        
+
         $doc->title     = $record['title'];
         $doc->date      = $record['timemodified'];
         // Remove '(ip.ip.ip.ip)' from data record author field.
@@ -83,7 +80,7 @@ class DataSearchDocument extends SearchDocument {
 
         // Construct the parent class.
         parent::__construct($doc, $data, $courseid, $record['groupid'], $record['userid'], 'mod/'.SEARCH_TYPE_DATA);
-    } 
+    }
 }
 
 /**
@@ -126,11 +123,9 @@ class data_document_wrapper extends document_wrapper {
      * constructs a valid link to a data record content
      * @param database_id the database reference
      * @param record_id the record reference
-     * @uses CFG
      * @return a valid url top access the information as a string
      */
     public static function make_link($instanceid) {
-        global $CFG;
 
         // Get an additional subentity id dynamically.
         $extravars = func_get_args();
@@ -144,25 +139,24 @@ class data_document_wrapper extends document_wrapper {
      * fetches all the records for a given database
      * @param database_id the database
      * @param typematch a comma separated list of types that should be considered for searching or *
-     * @uses CFG
      * @return an array of objects representing the data records.
      */
     public static function get_data_records($databaseid, $typematch = '*', $recordid = 0) {
-        global $CFG, $DB;
+        global $DB;
 
         $fieldset = $DB->get_records('data_fields', array('dataid' => $databaseid));
         $uniquerecordclause = ($recordid > 0) ? " AND c.recordid = $recordid " : '';
         $query = "
             SELECT
                c.*
-            FROM 
+            FROM
                 {data_content} as c,
                 {data_records} as r
             WHERE
                 c.recordid = r.id AND
                 r.dataid = ? 
                 $uniquerecordclause
-            ORDER BY 
+            ORDER BY
                 c.fieldid
         ";
         $data = $DB->get_records_sql($query, array($databaseid));
@@ -176,7 +170,8 @@ class data_document_wrapper extends document_wrapper {
                         $records[$adatum->recordid]['_first'] .= ' '.$adatum->content3.' '.$adatum->content4.' ';
                     } else {
                         $records[$adatum->recordid][$fieldset[$adatum->fieldid]->name] = $adatum->content.' '.$adatum->content1;
-                        $records[$adatum->recordid][$fieldset[$adatum->fieldid]->name] .= ' '.$adatum->content2.' '.$adatum->content3;
+                        $records[$adatum->recordid][$fieldset[$adatum->fieldid]->name] .= ' '.$adatum->content2;
+                        $records[$adatum->recordid][$fieldset[$adatum->fieldid]->name] .= ' '.$adatum->content3;
                         $records[$adatum->recordid][$fieldset[$adatum->fieldid]->name] .= ' '.$adatum->content4.' ';
                     }
                 }
@@ -263,9 +258,9 @@ class data_document_wrapper extends document_wrapper {
             $recordmetadata = $DB->get_record('data_records', array('id' => $id));
 
             // Get context.
-            $record_course = $DB->get_field('data', 'course', array('id' => $recordmetadata->dataid));
+            $recordcourse = $DB->get_field('data', 'course', array('id' => $recordmetadata->dataid));
             $coursemodule = $DB->get_field('modules', 'id', array('name' => 'data'));
-            $params = array('course' => $record_course, 'module' => $coursemodule, 'instance' => $recordmetadata->dataid);
+            $params = array('course' => $recordcourse, 'module' => $coursemodule, 'instance' => $recordmetadata->dataid);
             $cm = $DB->get_record('course_modules', $params);
             $context = context_module::instance($cm->id);
 
@@ -290,7 +285,7 @@ class data_document_wrapper extends document_wrapper {
                 $recordmetadata->title = $first;
                 $recordmetadata->content = $content;
                 $arr = get_object_vars($recordmetadata);
-                return new DataSearchDocument($arr, $record_course, $context->id);
+                return new DataSearchDocument($arr, $recordcourse, $context->id);
             }
         } else if ($itemtype == 'comment') {
 
@@ -299,9 +294,9 @@ class data_document_wrapper extends document_wrapper {
             $record = $DB->get_record('data_records', array('id' => $comment->itemid));
 
             // Get context.
-            $record_course = $DB->get_field('data', 'course', array('id' => $record->dataid));
+            $recordcourse = $DB->get_field('data', 'course', array('id' => $record->dataid));
             $coursemodule = $DB->get_field('modules', 'id', array('name' => 'data'));
-            $params = array('course' => $record_course, 'module' => $coursemodule, 'instance' => $recordmetadata->dataid);
+            $params = array('course' => $recordcourse, 'module' => $coursemodule, 'instance' => $recordmetadata->dataid);
             $cm = $DB->get_record('course_modules', $params);
             $context = context_module::instance($cm->id);
 
@@ -315,10 +310,10 @@ class data_document_wrapper extends document_wrapper {
 
             // Make document.
             $vars = get_object_vars($comment);
-            return new DataCommentSearchDocument($vars, $record_course, $context->id);
+            return new DataCommentSearchDocument($vars, $recordcourse, $context->id);
         } else {
-           mtrace('Error : bad or missing item type');
-           return null;
+            mtrace('Error : bad or missing item type');
+            return null;
         }
     }
 
@@ -351,18 +346,19 @@ class data_document_wrapper extends document_wrapper {
      * - the function may perform local checks within the module information logic
      * @param path the access path to the module script code
      * @param itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
-     * @param this_id the item id within the information class denoted by itemtype. In databases, this id 
+     * @param this_id the item id within the information class denoted by itemtype. In databases, this id
      * points out an indexed data record page.
      * @param user the user record denoting the user who searches
      * @param group_id the current group used by the user when searching
-     * @uses CFG
      * @return true if access is allowed, false elsewhere
      */
     public static function check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid) {
-        global $CFG, $DB;
+        global $DB;
+
+        $config = get_config('local_search');
 
         // Get the database object and all related stuff.
-        if ($itemtype == 'record'){
+        if ($itemtype == 'record') {
             $record = get_record('data_records', array('id' => $thisid));
         } else if ($itemtype == 'comment') {
             $comment = $DB->get_record('comments', array('id' => $thisid));
@@ -379,7 +375,7 @@ class data_document_wrapper extends document_wrapper {
         }
 
         if (!$cm->visible and !has_capability('moodle/course:viewhiddenactivities', $context)) {
-            if (!empty($CFG->search_access_debug)) {
+            if (!empty($config->access_debug)) {
                 echo "search reject : hidden database ";
             }
             return false;
@@ -389,11 +385,11 @@ class data_document_wrapper extends document_wrapper {
          * Group consistency check : checks the following situations about groups
          * trap if user is not same group and groups are separated
          */
-        $course = $DB->get_record('course', array('id' =>$data->course));
+        $course = $DB->get_record('course', array('id' => $data->course));
         if ((groups_get_activity_groupmode($cm) == SEPARATEGROUPS) &&
                 !groups_is_member($groupid) &&
                         !has_capability('moodle/site:accessallgroups', $context)) {
-            if (!empty($CFG->search_access_debug)) {
+            if (!empty($config->access_debug)) {
                 echo "search reject : separated group owned resource ";
             }
             return false;
@@ -407,7 +403,7 @@ class data_document_wrapper extends document_wrapper {
             if ($user->id != $record->userid &&
                     !has_capability('mod/data:viewentry', $context) &&
                             !has_capability('mod/data:manageentries', $context)) {
-                if (!empty($CFG->search_access_debug)) {
+                if (!empty($config->access_debug)) {
                     echo "search reject : not owned resource ";
                 }
                 return false;
@@ -416,10 +412,10 @@ class data_document_wrapper extends document_wrapper {
 
         // Approval check.
         // Trap if unapproved and has not approval capabilities.
-        // TODO : report a potential capability lack of : mod/data:approve
+        // TODO : report a potential capability lack of : mod/data:approve.
         $approval = $DB->get_field('data_records', 'approved', array('id' => $record->id));
         if (!$approval && !has_capability('mod/data:manageentries', $context)) {
-            if (!empty($CFG->search_access_debug)) {
+            if (!empty($config->access_debug)) {
                 echo "search reject : unapproved resource ";
             }
             return false;
@@ -430,7 +426,7 @@ class data_document_wrapper extends document_wrapper {
         // TODO : report a potential capability lack of : mod/data:viewhiddenentries.
         $recordsamount = $DB->count_records('data_records', array('dataid' => $data->id));
         if ($data->requiredentriestoview > $recordsamount && !has_capability('mod/data:manageentries', $context)) {
-            if (!empty($CFG->search_access_debug)) {
+            if (!empty($config->access_debug)) {
                 echo "search reject : not enough records to view ";
             }
             return false;
@@ -438,11 +434,11 @@ class data_document_wrapper extends document_wrapper {
 
         // Opening periods check.
         // Trap if user has not capability to see hidden records and date is out of opening range.
-        // TODO : report a potential capability lack of : mod/data:viewhiddenentries
+        // TODO : report a potential capability lack of : mod/data:viewhiddenentries.
         $now = usertime(time());
         if ($data->timeviewfrom > 0) {
             if ($now < $data->timeviewfrom && !has_capability('mod/data:manageentries', $context)) {
-                if (!empty($CFG->search_access_debug)) {
+                if (!empty($config->access_debug)) {
                     echo "search reject : still not open activity ";
                 }
                 return false;
@@ -450,7 +446,7 @@ class data_document_wrapper extends document_wrapper {
         }
         if ($data->timeviewto > 0) {
             if ($now > $data->timeviewto && !has_capability('mod/data:manageentries', $context)) {
-                if (!empty($CFG->search_access_debug)) {
+                if (!empty($config->access_debug)) {
                     echo "search reject : closed activity ";
                 }
                 return false;

@@ -72,7 +72,7 @@ class AssignmentSearchDocument extends SearchDocument {
         $data->assignment         = $assignmentmoduleid;
         $data->assignmenttype     = $assignment['assignmenttype'];
 
-        // Construct the parent class
+        // Construct the parent class.
         parent::__construct($doc, $data, $courseid, 0, 0, 'mod/'.SEARCH_TYPE_ASSIGNMENT);
     }
 }
@@ -109,7 +109,7 @@ class AssignmentSubmissionSearchDocument extends SearchDocument {
         $data->assignment         = $submission['cmid'];
         $data->submission         = $submission['id'];
 
-        // Construct the parent class
+        // Construct the parent class.
         parent::__construct($doc, $data, $courseid, 0, 0, 'mod/'.SEARCH_TYPE_ASSIGNMENT);
     }
 }
@@ -123,7 +123,6 @@ class assignment_document_wrapper extends document_wrapper {
      * @param cm_id the chat course module
      * @param start the start time of the session
      * @param end th end time of the session
-     * @uses $CFG
      * @return a well formed link to session display
      */
     public static function make_link($instanceid) {
@@ -230,7 +229,9 @@ class assignment_document_wrapper extends document_wrapper {
                                 $submission->fileid = $file->id; // Registers unique id in index.
                                 search_get_physical_file($documents, $file, $submission, $context->id,
                                                          'AssignmentSubmissionSearchDocument', false);
-                                mtrace("finished submission {$submission->id} by {$submission->authors} in assignement {$assignment->name}");
+                                $message = "finished submission {$submission->id} by {$submission->authors}";
+                                $message .= " in assignement {$assignment->name}";
+                                mtrace($message);
                             }
                         }
                         closedir($submission->path);
@@ -281,7 +282,8 @@ class assignment_document_wrapper extends document_wrapper {
             if ($itemtype == 'submission') {
                 $file = $fs->get_file_by_id($id);
                 $void = array();
-                return search_get_physical_file($void, $file, $submission, $context->id, 'AssignmentSubmissionSearchDocument', true);
+                return search_get_physical_file($void, $file, $submission, $context->id,
+                                                'AssignmentSubmissionSearchDocument', true);
             }
         }
         return null;
@@ -347,7 +349,9 @@ class assignment_document_wrapper extends document_wrapper {
          * trap if user is not same group and groups are separated
         $current_group = get_current_group($course->id);
         $course = get_record('course', 'id', $assignment->course);
-        if ((groupmode($course, $cm) == SEPARATEGROUPS) && !ismember($groupid) && !has_capability('moodle/site:accessallgroups', $context)){ 
+        if ((groupmode($course, $cm) == SEPARATEGROUPS) &&
+                !ismember($groupid) &&
+                        !has_capability('moodle/site:accessallgroups', $context)){
             if (!empty($CFG->search_access_debug)) {
                 echo "search reject : assignment element is in separated group ";
             }
@@ -390,24 +394,15 @@ class assignment_document_wrapper extends document_wrapper {
      *
      */
     public static function link_post_processing($title) {
-        global $CFG;
-         if (!function_exists('search_assignment_getstring')) {
-             function search_assignment_getstring($matches) {
-                return get_string($matches[1], 'assignment');
-             }
-         }
+
+        if (!function_exists('search_assignment_getstring')) {
+            function search_assignment_getstring($matches) {
+               return get_string($matches[1], 'assignment');
+            }
+        }
 
         $title = preg_replace_callback('/^(description|submitted)/', 'search_assignment_getstring', $title);
 
-        $config = get_config('local_search');
-
-        if (!$config->utf8dir) {
-            return $title;
-        }
-
-        if ($config->utf8dir > 0) {
-            return mb_convert_encoding($title, 'UTF-8', 'auto');
-        }
-        return mb_convert_encoding($title, 'auto', 'UTF-8');
+        return parent::link_post_processing($title);
     }
 }
