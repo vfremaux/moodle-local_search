@@ -19,7 +19,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 function xmldb_local_search_upgrade($oldversion=0) {
-    global $CFG, $THEME;
+
+    global $CFG, $THEME, $db;
 
     $result = true;
 

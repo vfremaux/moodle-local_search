@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -40,12 +38,13 @@ defined('MOODLE_INTERNAL') || die();
  *
  * based on these following rules, here is a little empiric texte extractor for PPT
  */
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * @param string $physicalfilepath a physical path
  * @return some raw text for indexation
  */
-function get_text_for_indexing_ppt($physicalfilepath){
+function get_text_for_indexing_ppt($physicalfilepath) {
     global $CFG;
 
     $indextext = null;
@@ -60,42 +59,34 @@ function get_text_for_indexing_ppt($physicalfilepath){
         $unpacked = unpack("ncode/Llength", $matches[1]);
         $sequencecode = $unpacked['code'];
         $length = $unpacked['length'];
-        // print "length : ".$length." ; segment type : ".sprintf("%x", $sequencecode)."<br/>";
         $followup = $matches[2];
-        // local system encoding sequence
+        // Local system encoding sequence.
         if ($sequencecode == 0xA80F) {
-            $aFragment = substr($followup, 0, $length);
+            $afragment = substr($followup, 0, $length);
             $remains = substr($followup, $length);
-            $fragments[] = $aFragment; 
-        }
-        // denotes unicode encoded sequence
-        elseif ($sequencecode == 0xA00F) {
-            $aFragment = substr($followup, 0, $length);
-            // $aFragment = mb_convert_encoding($aFragment, 'UTF-16', 'UTF-8');
-            $aFragment = preg_replace('/\xA0\x00\x19\x20/s', "'", $aFragment); // some quotes
-            $aFragment = preg_replace('/\x00/s', "", $aFragment);
+            $fragments[] = $afragment; 
+        } else if ($sequencecode == 0xA00F) {
+            // Denotes unicode encoded sequence.
+            $afragment = substr($followup, 0, $length);
+            $afragment = preg_replace('/\xA0\x00\x19\x20/s', "'", $afragment); // Some quotes.
+            $afragment = preg_replace('/\x00/s', "", $afragment);
             $remains = substr($followup, $length);
-            $fragments[] = $aFragment; 
+            $fragments[] = $afragment; 
         } else {
             $remains = $followup;
         }
     }
     $indextext = implode(' ', $fragments);
-    $indextext = preg_replace('/\x19\x20/', "'", $indextext); // some quotes
-    $indextext = preg_replace('/\x09/', '', $indextext); // some extra chars
-    $indextext = preg_replace('/\x0D/', "\n", $indextext); // some quotes
-    $indextext = preg_replace('/\x0A/', "\n", $indextext); // some quotes
+    $indextext = preg_replace('/\x19\x20/', "'", $indextext); // Some quotes.
+    $indextext = preg_replace('/\x09/', '', $indextext); // Some extra chars.
+    $indextext = preg_replace('/\x0D/', "\n", $indextext); // Some quotes.
+    $indextext = preg_replace('/\x0A/', "\n", $indextext); // Some quotes.
     $indextextprint = implode('<hr/>', $fragments);
-
-    // debug code
-    // $logppt = fopen("C:/php5/logs/pptlog", "w");
-    // fwrite($logppt, $indextext);
-    // fclose($logppt);
     
     if (!empty($config->limit_index_body)) {
         $indextext = shorten_text($text, $config->limit_index_body);
     }
 
-    $indextext = mb_convert_encoding($indextext, 'UTF-8', 'auto'); // Shirai 20090530 - MDL19342
+    $indextext = mb_convert_encoding($indextext, 'UTF-8', 'auto'); // Shirai 20090530 - MDL19342.
     return $indextext;
 }
