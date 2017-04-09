@@ -54,7 +54,6 @@ class BookPageSearchDocument extends SearchDocument {
      *
      */
     public function __construct(&$entry, $courseid, $contextid) {
-        global $DB;
 
         // Generic information; required.
         $doc = new StdClass;
@@ -87,7 +86,6 @@ class book_document_wrapper extends document_wrapper {
      * @return a full featured link element as a string
      */
     public static function make_link($instanceid) {
-        global $CFG;
 
         // Get an additional subentity id dynamically.
         $extravars = func_get_args();
@@ -192,7 +190,7 @@ class book_document_wrapper extends document_wrapper {
      * @return true if access is allowed, false elsewhere
      */
     public static function check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid) {
-        global $CFG, $DB;
+        global $DB;
 
         // Get the glossary object and all related stuff.
         $entry = $DB->get_record('glossary_entries', array('id' => $thisid));

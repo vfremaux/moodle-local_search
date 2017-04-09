@@ -101,7 +101,7 @@ class page_document_wrapper extends document_wrapper {
      * @return an array of searchable documents
      */
     public static function get_content_for_index(&$iterator) {
-        global $CFG, $DB;
+        global $DB;
 
         // Starting with Moodle native pages.
         $documents = array();
@@ -137,7 +137,7 @@ class page_document_wrapper extends document_wrapper {
      * @return a searchable object or null if failure
      */
     public static function single_document($id, $itemtype) {
-        global $CFG, $DB;
+        global $DB;
 
         // Rewriting with legacy moodle databse API.
         $sql = "

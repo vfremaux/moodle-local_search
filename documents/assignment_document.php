@@ -49,6 +49,7 @@ class AssignmentSearchDocument extends SearchDocument {
      * constructor
      */
     public function __construct(&$assignment, $assignmentmoduleid, $itemtype, $courseid, $ownerid, $contextid) {
+        global $DB;
 
         // Generic information; required.
         $doc = new StdClass;
@@ -110,7 +111,7 @@ class AssignmentSubmissionSearchDocument extends SearchDocument {
         $data->submission         = $submission['id'];
 
         // Construct the parent class.
-        parent::__construct($doc, $data, $courseid, 0, 0, 'mod/'.SEARCH_TYPE_ASSIGNMENT);
+        parent::__construct($doc, $data, $submission['courseid'], 0, 0, 'mod/'.SEARCH_TYPE_ASSIGNMENT);
     }
 }
 
@@ -227,6 +228,7 @@ class assignment_document_wrapper extends document_wrapper {
                                                          'filepath,filename', true)) {
                             foreach ($files as $file) {
                                 $submission->fileid = $file->id; // Registers unique id in index.
+                                $submission->courseid = $instance->course;
                                 search_get_physical_file($documents, $file, $submission, $context->id,
                                                          'AssignmentSubmissionSearchDocument', false);
                                 $message = "finished submission {$submission->id} by {$submission->authors}";
@@ -282,6 +284,7 @@ class assignment_document_wrapper extends document_wrapper {
             if ($itemtype == 'submission') {
                 $file = $fs->get_file_by_id($id);
                 $void = array();
+                $submission->courseid = $assigment->course;
                 return search_get_physical_file($void, $file, $submission, $context->id,
                                                 'AssignmentSubmissionSearchDocument', true);
             }

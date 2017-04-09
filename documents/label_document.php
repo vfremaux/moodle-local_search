@@ -104,11 +104,10 @@ class label_document_wrapper extends document_wrapper {
      * part of standard API
      * this function does not need a content iterator, returns all the info itself;
      * @param notneeded to comply API, remember to fake the iterator array though
-     * @uses CFG
      * @return an array of searchable documents
      */
     public static function get_content_for_index(&$label) {
-        global $CFG, $DB;
+        global $DB;
 
         // Starting with Moodle native resources.
         $documents = array();
@@ -169,7 +168,7 @@ class label_document_wrapper extends document_wrapper {
      * @return true if access is allowed, false elsewhere
      */
     public static function check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid) {
-        global $CFG, $DB;
+        global $DB;
 
         $r = $DB->get_record('label', array('id' => $thisid));
         $modulecontext = $DB->get_record('context', array('id' => $contextid));
