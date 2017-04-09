@@ -343,9 +343,9 @@ if ($sq->is_valid()) {
 
             $searchableinstance = $searchables[$listing->doctype];
             if ($searchableinstance->location == 'internal') {
-                require_once($CFG->dirroot.'/local/search/documents/'.$listing->doctype.'_document.php');
+                include_once($CFG->dirroot.'/local/search/documents/'.$listing->doctype.'_document.php');
             } else {
-                require_once($CFG->dirroot.'/'.$searchableinstance->location.'/'.$listing->doctype.'/search_document.php');
+                include_once($CFG->dirroot.'/'.$searchableinstance->location.'/'.$listing->doctype.'/search_document.php');
             }
             $wrapperclass = $listing->doctype.'_document_wrapper';
             $listing->title = $wrapperclass->link_post_processing($listing->title);
