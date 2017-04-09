@@ -263,7 +263,7 @@ if ($sq->is_valid()) {
             if ($listing->doctype == 'user') {
                 // A special handle for users.
                 $user = $DB->get_record('user', array('id' => $listing->userid));
-                $listing->icon = $OUTPUT->user_picture($user) ;
+                $listing->icon = $OUTPUT->user_picture($user);
             } else {
                 $iconpath = $OUTPUT->pix_url('icon', $listing->doctype);
                 $listing->icon = '<img align="top" src="'.$iconpath.'" class="activityicon" alt=""/>';
