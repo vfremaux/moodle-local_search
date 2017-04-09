@@ -91,7 +91,7 @@ abstract class document_wrapper implements indexable {
      * @return a full featured link element as a string
      */
     public static function make_link($instanceid) {
-        if (!empty($modname)) {
+        if (!empty($this->modname)) {
             return new moodle_url('/mod/'.self::modname.'/view.php', array('id' => $instanceid));
         }
     }

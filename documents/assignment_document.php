@@ -163,8 +163,8 @@ class assignment_document_wrapper extends document_wrapper {
         global $CFG, $DB;
 
         $documents = array();
+        $fs = get_file_storage();
 
-        $course = $DB->get_record('course', array('id' => $instance->course));
         $coursemodule = $DB->get_field('modules', 'id', array('name' => 'assignment'));
         $params = array('course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id);
         $cm = $DB->get_record('course_modules', $params);
@@ -284,7 +284,7 @@ class assignment_document_wrapper extends document_wrapper {
             if ($itemtype == 'submission') {
                 $file = $fs->get_file_by_id($id);
                 $void = array();
-                $submission->courseid = $assigment->course;
+                $submission->courseid = $assignment->course;
                 return search_get_physical_file($void, $file, $submission, $context->id,
                                                 'AssignmentSubmissionSearchDocument', true);
             }

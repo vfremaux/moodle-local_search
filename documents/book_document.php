@@ -127,7 +127,6 @@ class book_document_wrapper extends document_wrapper {
         $context = context_module::instance($cm->id);
 
         $documents = array();
-        $entryids = array();
 
         // Index entries.
         $entries = $DB->get_records('book_chapters', array('bookid' => $instance->id));
@@ -194,7 +193,6 @@ class book_document_wrapper extends document_wrapper {
 
         // Get the glossary object and all related stuff.
         $entry = $DB->get_record('glossary_entries', array('id' => $thisid));
-        $glossary = $DB->get_record('glossary', array('id' => $entry->bookid));
         $context = $DB->get_record('context', array('id' => $contextid));
         $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));
 
