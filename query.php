@@ -197,77 +197,8 @@ if (!$advanced) {
     echo $renderer->simple_form($querystring);
 } else {
     echo $OUTPUT->box_start();
-?>
-    <input type="hidden" name="a" value="<?php p($advanced); ?>"/>
 
-    <table border="0" cellpadding="3" cellspacing="3">
-
-    <tr>
-      <td width="240"><?php print_string('thesewordsmustappear', 'local_search') ?>:</td>
-      <td><input type="text" name="mustappear" length="50" value="<?php p($adv->mustappear); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('thesewordsmustnotappear', 'local_search') ?>:</td>
-      <td><input type="text" name="notappear" length="50" value="<?php p($adv->notappear); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('thesewordshelpimproverank', 'local_search') ?>:</td>
-      <td><input type="text" name="canappear" length="50" value="<?php p($adv->canappear); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('whichmodulestosearch', 'local_search') ?>:</td>
-      <td>
-        <select name="module">
-<?php
-    foreach ($moduletypes as $mod) {
-        if ($mod == $adv->module) {
-            if ($mod != 'all'){
-                print '<option value="'.$mod.'" selected="selected">'.get_string('modulenameplural', $mod).'</option>'."\n";
-            } else {
-                print '<option value="'.$mod.'" selected="selected">'.get_string('all', 'local_search').'</option>'."\n";
-            }
-        } else {
-            if ($mod != 'all'){
-                print "<option value='$mod'>".get_string('modulenameplural', $mod)."</option>\n";
-            } else {
-                print "<option value='$mod'>".get_string('all', 'local_search')."</option>\n";
-            }
-        }
-    }
-?>
-        </select>
-      </td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('wordsintitle', 'local_search') ?>:</td>
-      <td><input type="text" name="title" length="50" value="<?php p($adv->title); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('authorname', 'local_search') ?>:</td>
-      <td><input type="text" name="author" length="50" value="<?php p($adv->author); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td colspan="3" align="center"><br /><input type="submit" value="<?php p(get_string('search', 'local_search')) ?>" /></td>
-    </tr>
-
-    <tr>
-      <td colspan="3" align="center">
-        <table border="0" cellpadding="0" cellspacing="0">
-          <tr>
-            <td><a href="query.php"><?php print_string('normalsearch', 'local_search') ?></a> |</td>
-            <td>&nbsp;<a href="stats.php"><?php print_string('statistics', 'local_search') ?></a></td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    </table>
-<?php
+    echo $renderer->advanced_form($adv);
     echo $OUTPUT->box_end();
 }
 

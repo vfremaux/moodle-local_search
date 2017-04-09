@@ -73,7 +73,7 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_heading('head1', get_string('pdfhandling', 'local_search'), ''));
 
     if ($CFG->ostype == 'WINDOWS') {
-        $default= "xpdf/win32/pdftotext.exe -eol dos -enc UTF-8 -q";
+        $default = "xpdf/win32/pdftotext.exe -eol dos -enc UTF-8 -q";
     } else {
         $default = "xpdf/linux/bin64/pdftotext -enc UTF-8 -eol unix -q";
     }
