@@ -24,7 +24,7 @@
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
- * this is a format handler for getting text out of a proprietary binary format 
+ * this is a format handler for getting text out of a proprietary binary format
  * so it can be indexed by Lucene search engine
  * first implementation is a trivial heuristic based on ppt character stream :
  * text sequence always starts with a 00 9F 0F 04 sequence followed by a 15 bytes
@@ -45,7 +45,6 @@ defined('MOODLE_INTERNAL') || die();
  * @return some raw text for indexation
  */
 function get_text_for_indexing_ppt($physicalfilepath) {
-    global $CFG;
 
     $indextext = null;
 
@@ -64,14 +63,14 @@ function get_text_for_indexing_ppt($physicalfilepath) {
         if ($sequencecode == 0xA80F) {
             $afragment = substr($followup, 0, $length);
             $remains = substr($followup, $length);
-            $fragments[] = $afragment; 
+            $fragments[] = $afragment;
         } else if ($sequencecode == 0xA00F) {
             // Denotes unicode encoded sequence.
             $afragment = substr($followup, 0, $length);
             $afragment = preg_replace('/\xA0\x00\x19\x20/s', "'", $afragment); // Some quotes.
             $afragment = preg_replace('/\x00/s', "", $afragment);
             $remains = substr($followup, $length);
-            $fragments[] = $afragment; 
+            $fragments[] = $afragment;
         } else {
             $remains = $followup;
         }
@@ -81,8 +80,7 @@ function get_text_for_indexing_ppt($physicalfilepath) {
     $indextext = preg_replace('/\x09/', '', $indextext); // Some extra chars.
     $indextext = preg_replace('/\x0D/', "\n", $indextext); // Some quotes.
     $indextext = preg_replace('/\x0A/', "\n", $indextext); // Some quotes.
-    $indextextprint = implode('<hr/>', $fragments);
-    
+
     if (!empty($config->limit_index_body)) {
         $indextext = shorten_text($text, $config->limit_index_body);
     }

@@ -70,7 +70,7 @@ class WikiSearchDocument extends SearchDocument {
         $doc->url       = wiki_document_wrapper::make_link($wikiid, $page['pagename'], $page['version']);
 
         // Module specific information; optional.
-        $data =new StdClass;
+        $data = new StdClass;
         $data->version  = $page['version'];
         $data->wiki     = $wikiid;
 
@@ -131,11 +131,11 @@ class wiki_document_wrapper extends document_wrapper {
         if ($resultarr = $DB->get_records_select('wiki_pages', $select, array($pagename, $entry->id), $sort, '*', 0, 1)) {
             foreach ($resultarr as $obj) {
                 $resultobj = $obj;
-            } 
-        } 
+            }
+        }
 
-        if (isset($resultobj))  {
-            $result_obj->meta = @unserialize($resultobj->meta);
+        if (isset($resultobj)) {
+            $resultobj->meta = @unserialize($resultobj->meta);
             return $resultobj;
         } else {
             return false;
@@ -152,7 +152,7 @@ class wiki_document_wrapper extends document_wrapper {
 
         return $DB->get_records('wiki_pages', array('wiki' => $entry->id));
     }
-    
+
     /**
      * fetches all the latest versions of all the pages
      * @param object $entry

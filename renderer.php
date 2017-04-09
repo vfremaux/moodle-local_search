@@ -74,4 +74,73 @@ class local_search_renderer extends plugin_renderer_base {
 
         return $str;
     }
+
+    public function advanced_form($adv) {
+        $str = '';
+
+        $str .= '<input type="hidden" name="a" value="1"/>';
+
+        $str .= '<table border="0" cellpadding="3" cellspacing="3">';
+
+        $str .= '<tr>';
+        $str .= '<td width="240">'.get_string('thesewordsmustappear', 'local_search').':</td>';
+        $str .= '<td><input type="text" name="mustappear" length="50" value="'.$adv->mustappear.'" /></td>';
+        $str .= '</tr>';
+
+        $str .= '<tr>';
+        $str .= '  <td>'.get_string('thesewordsmustnotappear', 'local_search').':</td>';
+        $str .= '  <td><input type="text" name="notappear" length="50" value="'.$adv->notappear.'" /></td>';
+        $str .= '</tr>';
+
+        $str .= '<tr>';
+        $str .= '  <td>'.get_string('thesewordshelpimproverank', 'local_search').':</td>';
+        $str .= '  <td><input type="text" name="canappear" length="50" value="'.$adv->canappear.'" /></td>';
+        $str .= '</tr>';
+
+        $str .= '<tr>';
+        $str .= '  <td>'.get_string('whichmodulestosearch', 'local_search').':</td>';
+        $str .= '  <td>';
+        foreach ($moduletypes as $mod) {
+            if ($mod != 'all') {
+                $optionsmenu[$mod] = get_string('modulenameplural', $mod);
+            } else {
+                $optionsmenu[$mod] = get_string('all', 'local_search');
+            }
+        }
+        $str .= html_writer::select($optionsmenu, 'module', $adv->module);
+        $str .= '  </td>';
+        $str .= '</tr>';
+
+        $str .= '<tr>';
+        $str .= '  <td>'.get_string('wordsintitle', 'local_search').':</td>';
+        $str .= '  <td><input type="text" name="title" length="50" value="'.$adv->title.'" /></td>';
+        $str .= '</tr>';
+
+        $str .= '<tr>';
+        $str .= '  <td>'.get_string('authorname', 'local_search').':</td>';
+        $str .= '  <td><input type="text" name="author" length="50" value="'.$adv->author.'" /></td>';
+        $str .= '</tr>';
+
+        $str .= '<tr>';
+        $str .= '  <td colspan="3" align="center"><br />';
+        $str .= '<input type="submit" value="'.get_string('search', 'local_search').'" />';
+        $str .= '</td>';
+        $str .= '</tr>';
+
+        $str .= '<tr>';
+        $str .= '<td colspan="3" align="center">';
+        $str .= '<table border="0" cellpadding="0" cellspacing="0">';
+        $str .= '<tr>';
+        $qurl = new moodle_url('/local/search/query.php');
+        $str .= '<td><a href="'.$qurl.'">'.get_string('normalsearch', 'local_search').'</a> |</td>';
+        $surl = new moodle_url('/local/search/stats.php');
+        $str .= '<td>&nbsp;<a href="'.$surl.'">'.get_string('statistics', 'local_search').'</a></td>';
+        $str .= '</tr>';
+        $str .= '</table>';
+        $str .= '  </td>';
+        $str .= '</tr>';
+        $str .= '</table>';
+
+        return $str;
+    }
 }

@@ -74,11 +74,11 @@ $adv = new StdClass();
 
 if (preg_match("/^[\*\?]+$/", $querystring)) {
     $querystring = '';
-    $error = get_string('fullwildcardquery','local_search');
+    $error = get_string('fullwildcardquery', 'local_search');
 }
 
 if ($pages && isset($_SESSION['search_advanced_query'])) {
-    // if both are set, then we are busy browsing through the result pages of an advanced query
+    // If both are set, then we are busy browsing through the result pages of an advanced query.
     $adv = unserialize($_SESSION['search_advanced_query']);
 } else if ($advanced) {
 
@@ -98,8 +98,8 @@ if ($pages && isset($_SESSION['search_advanced_query'])) {
 }
 
 if ($advanced) {
-    //parse the advanced variables into a query string
-    //TODO: move out to external query class (QueryParse?)
+    // Parse the advanced variables into a query string.
+    // TODO: move out to external query class (QueryParse?).
 
     $querystring = '';
 
@@ -185,9 +185,8 @@ $vars = get_object_vars($adv);
 
 if (isset($vars)) {
     foreach ($vars as $key => $value) {
-        // htmlentities breaks non-ascii chars
+        // Htmlentities breaks non-ascii chars.
         $adv->key = stripslashes($value);
-        //$adv->$key = stripslashes(htmlentities($value));
     }
 }
 
@@ -198,83 +197,13 @@ if (!$advanced) {
     echo $renderer->simple_form($querystring);
 } else {
     echo $OUTPUT->box_start();
-  ?>
-    <input type="hidden" name="a" value="<?php p($advanced); ?>"/>
 
-    <table border="0" cellpadding="3" cellspacing="3">
-
-    <tr>
-      <td width="240"><?php print_string('thesewordsmustappear', 'local_search') ?>:</td>
-      <td><input type="text" name="mustappear" length="50" value="<?php p($adv->mustappear); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('thesewordsmustnotappear', 'local_search') ?>:</td>
-      <td><input type="text" name="notappear" length="50" value="<?php p($adv->notappear); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('thesewordshelpimproverank', 'local_search') ?>:</td>
-      <td><input type="text" name="canappear" length="50" value="<?php p($adv->canappear); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('whichmodulestosearch', 'local_search') ?>:</td>
-      <td>
-        <select name="module">
-<?php 
-    foreach ($moduletypes as $mod) {
-        if ($mod == $adv->module) {
-            if ($mod != 'all'){
-                print '<option value="'.$mod.'" selected="selected">'.get_string('modulenameplural', $mod).'</option>'."\n";
-            } else {
-                print '<option value="'.$mod.'" selected="selected">'.get_string('all', 'local_search').'</option>'."\n";
-            }
-        } else {
-            if ($mod != 'all'){
-                print "<option value='$mod'>".get_string('modulenameplural', $mod)."</option>\n";
-            } else {
-                print "<option value='$mod'>".get_string('all', 'local_search')."</option>\n";
-            }
-        }
-    }
-?>
-        </select>
-      </td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('wordsintitle', 'local_search') ?>:</td>
-      <td><input type="text" name="title" length="50" value="<?php p($adv->title); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('authorname', 'local_search') ?>:</td>
-      <td><input type="text" name="author" length="50" value="<?php p($adv->author); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td colspan="3" align="center"><br /><input type="submit" value="<?php p(get_string('search', 'local_search')) ?>" /></td>
-    </tr>
-
-    <tr>
-      <td colspan="3" align="center">
-        <table border="0" cellpadding="0" cellspacing="0">
-          <tr>
-            <td><a href="query.php"><?php print_string('normalsearch', 'local_search') ?></a> |</td>
-            <td>&nbsp;<a href="stats.php"><?php print_string('statistics', 'local_search') ?></a></td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    </table>
-<?php
+    echo $renderer->advanced_form($adv);
     echo $OUTPUT->box_end();
 }
-?>
-</form>
-<br/>
-<?php
+
+echo '</form>';
+echo '<br/>';
 
 echo '<div align="center">';
 print_string('searching', 'local_search').': ';
@@ -293,7 +222,7 @@ echo '.';
 if (!$sq->is_valid_index() && has_capability('moodle/site:config', context_system::instance())) {
     echo '<p>'.get_string('noindexmessage', 'local_search').'<a href="indexersplash.php"> ';
     echo get_string('createanindex', 'local_search').'</a></p>'."\n";
-} 
+}
 
 echo '</div>';
 
@@ -305,22 +234,24 @@ if ($sq->is_valid()) {
     echo $OUTPUT->box_start();
 
     search_stopwatch();
-    $hit_count = $sq->count();
+    $hitcount = $sq->count();
 
-    print "<br />";
+    echo "<br />";
 
-    print $hit_count.' '.get_string('resultsreturnedfor', 'local_search') . " '".s($querystring)."'.";
-    print '<br />';
+    echo $hitcount.' '.get_string('resultsreturnedfor', 'local_search') . " '".s($querystring)."'.";
+    echo '<br />';
 
-    if ($hit_count > 0) {
-        $page_links = $sq->page_numbers();
+    if ($hitcount > 0) {
+        $pagelinks = $sq->page_numbers();
         $hits = $sq->results();
 
         if ($advanced) {
-            // if in advanced mode, search options are saved in the session, so
-            // we can remove the query string var from the page links, and replace
-            // it with a=1 (Advanced = on) instead
-            $page_links = preg_replace("/query_string=[^&]+/", 'a=1', $page_links);
+            /*
+             * if in advanced mode, search options are saved in the session, so
+             * we can remove the query string var from the page links, and replace
+             * it with a=1 (Advanced = on) instead
+             */
+            $pagelinks = preg_replace("/query_string=[^&]+/", 'a=1', $pagelinks);
         }
 
         echo '<ol>';
@@ -332,7 +263,7 @@ if ($sq->is_valid()) {
             if ($listing->doctype == 'user') {
                 // A special handle for users.
                 $user = $DB->get_record('user', array('id' => $listing->userid));
-                $listing->icon = $OUTPUT->user_picture($user) ;
+                $listing->icon = $OUTPUT->user_picture($user);
             } else {
                 $iconpath = $OUTPUT->pix_url('icon', $listing->doctype);
                 $listing->icon = '<img align="top" src="'.$iconpath.'" class="activityicon" alt=""/>';
@@ -343,9 +274,9 @@ if ($sq->is_valid()) {
 
             $searchableinstance = $searchables[$listing->doctype];
             if ($searchableinstance->location == 'internal') {
-                require_once($CFG->dirroot.'/local/search/documents/'.$listing->doctype.'_document.php');
+                include_once($CFG->dirroot.'/local/search/documents/'.$listing->doctype.'_document.php');
             } else {
-                require_once($CFG->dirroot.'/'.$searchableinstance->location.'/'.$listing->doctype.'/search_document.php');
+                include_once($CFG->dirroot.'/'.$searchableinstance->location.'/'.$listing->doctype.'/search_document.php');
             }
             $wrapperclass = $listing->doctype.'_document_wrapper';
             $listing->title = $wrapperclass->link_post_processing($listing->title);
@@ -353,14 +284,14 @@ if ($sq->is_valid()) {
             echo $renderer->search_result($listing);
         }
         echo '</ol>';
-        echo $page_links;
+        echo $pagelinks;
     }
     echo $OUTPUT->box_end();
 
     echo '<div align="center">';
 
     print_string('ittook', 'local_search');
-    search_stopwatch(); 
+    search_stopwatch();
     print_string('tofetchtheseresults', 'local_search');
     echo '.';
     echo '</div>';

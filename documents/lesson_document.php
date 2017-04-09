@@ -100,7 +100,7 @@ class lesson_document_wrapper extends document_wrapper {
         }
         return new moodle_url('/mod/lesson/view.php', array('id' => $instanceid));
     }
-    
+
     /**
      * search standard API
      *
@@ -124,7 +124,7 @@ class lesson_document_wrapper extends document_wrapper {
         global $DB;
 
         $documents = array();
-        if (!$lesson) {
+        if (!$instance) {
             return $documents;
         }
 
@@ -177,7 +177,7 @@ class lesson_document_wrapper extends document_wrapper {
          */
         return array(array('id', 'lesson_pages', 'timecreated', 'timemodified', 'page'));
     }
-    
+
     /**
      * this function handles the access policy to contents indexed as searchable documents. If this
      * function does not exist, the search engine assumes access is allowed.
@@ -187,7 +187,7 @@ class lesson_document_wrapper extends document_wrapper {
      * - the function may perform local checks within the module information logic
      * @param string $path the access path to the module script code
      * @param string $itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
-     * @param int $thisid the item id within the information class denoted by itemtype. In lessons, this id 
+     * @param int $thisid the item id within the information class denoted by itemtype. In lessons, this id
      * points out the individual page.
      * @param object $user the user record denoting the user who searches
      * @param int $groupid the current group used by the user when searching

@@ -72,8 +72,8 @@ if ($hassiteconfig) {
 
     $settings->add(new admin_setting_heading('head1', get_string('pdfhandling', 'local_search'), ''));
 
-    if ($CFG->ostype == 'WINDOWS'){
-        $default= "xpdf/win32/pdftotext.exe -eol dos -enc UTF-8 -q";
+    if ($CFG->ostype == 'WINDOWS') {
+        $default = "xpdf/win32/pdftotext.exe -eol dos -enc UTF-8 -q";
     } else {
         $default = "xpdf/linux/bin64/pdftotext -enc UTF-8 -eol unix -q";
     }
@@ -143,9 +143,9 @@ if ($hassiteconfig) {
     }
 
     $searchnames = search_collect_searchables(true);
-    $searchable_list = implode("','", $searchnames);
+    $searchablelist = implode("','", $searchnames);
 
-    $html = '<pre>'.$searchable_list.'</pre>';
+    $html = '<pre>'.$searchablelist.'</pre>';
     $settings->add(new admin_setting_heading('head3', get_string('searchdiscovery', 'local_search'), $html));
 
     $settings->add(new admin_setting_heading('head4', get_string('coresearchswitches', 'local_search'), ''));
@@ -158,30 +158,30 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_heading('head5', get_string('modulessearchswitches', 'local_search'), ''));
 
     $i = 0;
-    $found_searchable_modules = 0;
-    if ($modules = $DB->get_records_select('modules', " name IN ('{$searchable_list}') ", array(), 'name', 'id,name')) {
+    $foundsearchablemodules = 0;
+    if ($modules = $DB->get_records_select('modules', " name IN ('{$searchablelist}') ", array(), 'name', 'id,name')) {
         foreach ($modules as $module) {
             $i++;
             $key = "local_search/search_in_{$module->name}";
             $label = get_string('pluginname', $module->name);
             $desc = get_string('pluginname', $module->name);
             $settings->add(new admin_setting_configcheckbox($key, $label, $desc, 1));
-            $found_searchable_modules = 1;
+            $foundsearchablemodules = 1;
         }
     }
 
     $settings->add(new admin_setting_heading('head6', get_string('blockssearchswitches', 'local_search'), ''));
 
     $i = 0;
-    $found_searchable_blocks = 0;
-    if ($blocks = $DB->get_records_select('block', " name IN ('{$searchable_list}') ", array(), 'name', 'id,name')) {
+    $foundsearchableblocks = 0;
+    if ($blocks = $DB->get_records_select('block', " name IN ('{$searchablelist}') ", array(), 'name', 'id,name')) {
         foreach ($blocks as $block) {
             $i++;
             $key = "local_search/search_in_{$block->name}";
             $label = get_string('pluginname', $block->name);
             $desc = get_string('pluginname', $block->name);
             $settings->add(new admin_setting_configcheckbox($key, $label, $desc, 1));
-            $found_searchable_modules = 1;
+            $foundsearchablemodules = 1;
         }
     }
 

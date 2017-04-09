@@ -32,8 +32,10 @@ defined('MOODLE_INTERNAL') || die();
 define('SEARCH_INDEX_PATH', "{$CFG->dataroot}/search");
 define('SEARCH_DATABASE_TABLE', 'local_search_documents');
 
+require_once($CFG->dirroot.'/local/search/extra/lib.php');
+
 // Get document types.
-include "{$CFG->dirroot}/local/search/searchtypes.php";
+require_once($CFG->dirroot.'/local/search/searchtypes.php');
 
 /**
  * collects all searchable items identities
@@ -41,11 +43,11 @@ include "{$CFG->dirroot}/local/search/searchtypes.php";
  * @param boolean $verbose if true, prints a discovering status
  * @return an array of names or an array of type descriptors
  */
-function search_collect_searchables($namelist=false, $verbose=false) {
+function search_collect_searchables($namelist = false, $verbose = false) {
     global $CFG, $DB;
 
     $searchables = array();
-    $searchables_names = array();
+    $searchablesnames = array();
 
     // Get all installed modules.
     if ($mods = $DB->get_records('modules', array(), 'name', 'id,name')) {
@@ -56,87 +58,91 @@ function search_collect_searchables($namelist=false, $verbose=false) {
             if (in_array($mod->name, $searchabletypes)) {
                 $mod->location = 'internal';
                 $searchables[$mod->name] = $mod;
-                $searchables_names[] = $mod->name;
+                $searchablesnames[] = $mod->name;
             } else {
                 $documentfile = $CFG->dirroot."/mod/{$mod->name}/search_document.php";
                 $mod->location = 'mod';
-                if (file_exists($documentfile)){
+                if (file_exists($documentfile)) {
                     $searchables[$mod->name] = $mod;
-                    $searchables_names[] = $mod->name;
+                    $searchablesnames[] = $mod->name;
                 }
             }
         }
-        if ($verbose) mtrace(count($searchables).' modules to search in / '.count($mods).' modules found.');
+        if ($verbose) {
+            mtrace(count($searchables).' modules to search in / '.count($mods).' modules found.');
+        }
     }
 
     // Collects blocks as indexable information may be found in blocks either.
     if ($blocks = $DB->get_records('block', array(), 'name', 'id,name')) {
-        $blocks_searchables = array();
+        $blockssearchables = array();
 
         // Prepend the "block_" prefix to discriminate document type plugins.
-        foreach($blocks as $block){
+        foreach ($blocks as $block) {
             $block->dirname = $block->name;
             $block->name = 'block_'.$block->name;
             if (in_array('SEARCH_TYPE_'.strtoupper($block->name), $searchabletypes)) {
                 $mod->location = 'internal';
-                $blocks_searchables[] = $block;
-                $searchables_names[] = $block->name;
+                $blockssearchables[] = $block;
+                $searchablesnames[] = $block->name;
             } else {
                 $documentfile = $CFG->dirroot.'/blocks/'.$block->dirname.'/search_document.php';
                 if (file_exists($documentfile)) {
                     $mod->location = 'blocks';
-                    $blocks_searchables[$block->name] = $block;
-                    $searchables_names[] = $block->name;
+                    $blockssearchables[$block->name] = $block;
+                    $searchablesnames[] = $block->name;
                 }
             }
         }
 
         if ($verbose) {
-            mtrace(count($blocks_searchables).' blocks to search in / '.count($blocks).' blocks found.');
+            mtrace(count($blockssearchables).' blocks to search in / '.count($blocks).' blocks found.');
         }
 
-        $searchables = array_merge($searchables, $blocks_searchables);
+        $searchables = array_merge($searchables, $blockssearchables);
     }
 
     // Collects indexable information that may be found in local components.
     if ($locals = glob($CFG->dirroot.'/local/*')) {
-        $local_searchables = array();
+        $localsearchables = array();
 
         // Prepend the "block_" prefix to discriminate document type plugins.
-        foreach($locals as $localpath) {
+        foreach ($locals as $localpath) {
             $component = basename($localpath);
             $local = new StdClass;
             $local->dirname = $component;
             $local->name = 'local_'.$component;
             if (in_array('SEARCH_TYPE_'.strtoupper($component), $searchabletypes)) {
                 $mod->location = 'internal';
-                $local_searchables[] = $local;
-                $searchables_names[] = $local->name;
+                $localsearchables[] = $local;
+                $searchablesnames[] = $local->name;
             } else {
                 $documentfile = $CFG->dirroot."/local/{$component}/search_document.php";
                 if (file_exists($documentfile)) {
                     $local->location = 'local';
-                    $local_searchables[$local->name] = $local;
-                    $searchables_names[] = $local->name;
+                    $localsearchables[$local->name] = $local;
+                    $searchablesnames[] = $local->name;
                 }
             }
         }
         if ($verbose) {
-            mtrace(count($local_searchables).' local to search in / '.count($locals).' plugins found.');
+            mtrace(count($localsearchables).' local to search in / '.count($locals).' plugins found.');
         }
-        $searchables = array_merge($searchables, $local_searchables);
+        $searchables = array_merge($searchables, $localsearchables);
     }
 
     // Add virtual modules onto the back of the array.
 
     $additional = search_get_additional_modules();
     if (!empty($additional)) {
-        if ($verbose) mtrace(count($additional).' additional to search in.');
+        if ($verbose) {
+            mtrace(count($additional).' additional to search in.');
+        }
         $searchables = array_merge($searchables, $additional);
     }
 
     if ($namelist) {
-        return $searchables_names;
+        return $searchablesnames;
     }
     return $searchables;
 }
@@ -187,7 +193,7 @@ function search_get_additional_modules() {
  * @param length the size limit we want
  */
 function search_shorten_url($url, $length = 30) {
-    return substr($url, 0, $length)."...";
+    return substr($url, 0, $length).'...';
 }
 
 /**
@@ -199,12 +205,15 @@ function search_escape_string($str) {
     global $CFG;
 
     switch ($CFG->dbfamily) {
-        case 'mysql':
+        case 'mysql': {
             $s = mysql_real_escape_string($str);
             break;
-        case 'postgres':
+        }
+        case 'postgres': {
             $s = pg_escape_string($str);
             break;
+        }
+
         default:
             $s = addslashes($str);
     }
@@ -217,32 +226,20 @@ function search_escape_string($str) {
  * @return void
  */
 function search_stopwatch($cli = false) {
-    if (!empty($GLOBALS['search_script_start_time'])) {
+    static $searchscriptstarttime = null;
+
+    if (!is_null($searchscriptstarttime)) {
         if (!$cli) {
             print '<em>';
         }
-        print round(microtime(true) - $GLOBALS['search_script_start_time'], 6).' '.get_string('seconds', 'local_search');
+        echo round(microtime(true) - $searchscriptstarttime, 6).' '.get_string('seconds', 'local_search');
         if (!$cli) {
             print '</em>';
         }
-        unset($GLOBALS['search_script_start_time']);
+        unset($searchscriptstarttime);
     } else {
-        $GLOBALS['search_script_start_time'] = microtime(true);
+        $searchscriptstarttime = microtime(true);
     }
-}
-
-/**
- * print and exit (for debugging)
- * @param str a variable to explore
- * @return void
- */
-function search_pexit($str = '') {
-    if (is_array($str) or is_object($str)) {
-        print_r($str);
-    } elseif ($str) {
-        print $str."<br/>";
-    }
-    exit(0);
 }
 
 /**

@@ -19,16 +19,16 @@
  * is expected to exist, along with the db schema files and the search data
  * directory.
  */
+require_once('../../../config.php');
+require_once($CFG->dirroot.'/local/search/lib.php');
 
 @set_time_limit(0);
 @ob_implicit_flush(true);
 @ob_end_flush();
 
-require_once('../../../config.php');
-require_once($CFG->dirroot.'/local/search/lib.php');
-
 // Makes inclusions of the Zend Engine more reliable.
-ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
+$dirsep = DIRECTORY_SEPARATOR;
+ini_set('include_path', $CFG->dirroot.$dirsep.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
 $config = get_config('local_search');
 $context = context_system::instance();
@@ -37,7 +37,7 @@ require_login();
 require_capability('moodle/site:config', $context);
 
 if (empty($config->enable)) {
-   print_error('globalsearchdisabled', 'local_search');
+    print_error('globalsearchdisabled', 'local_search');
 }
 
 $url = new moodle_url('/local/search/tests/index.php');
@@ -52,7 +52,7 @@ require_once($CFG->dirroot.'/local/search/Zend/Search/Lucene.php');
 
 echo $OUTPUT->header();
 
-mtrace('<pre>Server Time: '.date('r',time()));
+mtrace('<pre>Server Time: '.date('r', time()));
 mtrace("Testing global search capabilities:\n");
 mtrace("Checking activity modules:\n");
 
@@ -85,24 +85,24 @@ if ($mods = $DB->get_records('modules', array(), 'name', 'id,name')) {
 
 // Collects blocks as indexable information may be found in blocks either.
 if ($blocks = $DB->get_records('block', array(), 'name', 'id,name')) {
-    $blocks_searchables = array();
+    $blockssearchables = array();
     // Prepend the "block_" prefix to discriminate document type plugins.
     foreach ($blocks as $block) {
         $block->dirname = $block->name;
         $block->name = 'block_'.$block->name;
         if (in_array('SEARCH_TYPE_'.strtoupper($block->name), $searchabletypes)) {
             $mod->location = 'internal';
-            $blocks_searchables[] = $block;
+            $blockssearchables[] = $block;
         } else {
             $documentfile = $CFG->dirroot."/blocks/{$block->dirname}/search_document.php";
             if (file_exists($documentfile)) {
                 $mod->location = 'blocks';
-                $blocks_searchables[] = $block;
+                $blockssearchables[] = $block;
             }
         }
     }
-    mtrace(count($blocks_searchables).' blocks to search in / '.count($blocks).' blocks found.');
-    $searchables = array_merge($searchables, $blocks_searchables);
+    mtrace(count($blockssearchables).' blocks to search in / '.count($blocks).' blocks found.');
+    $searchables = array_merge($searchables, $blockssearchables);
 }
 
 // Add virtual modules onto the back of the array.
@@ -131,7 +131,9 @@ foreach ($searchables as $mod) {
         $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
 
         if ($mod->location != 'internal' && !defined('X_SEARCH_TYPE_'.strtoupper($mod->name))) {
-            mtrace("ERROR: Constant 'X_SEARCH_TYPE_".strtoupper($mod->name)."' is not defined in search/searchtypes.php or in module");
+            $message = "ERROR: Constant 'X_SEARCH_TYPE_".strtoupper($mod->name);
+            $message .= "' is not defined in search/searchtypes.php or in module";
+            mtrace($message);
             continue;
         }
 
@@ -146,7 +148,7 @@ foreach ($searchables as $mod) {
             if (is_array($documents)) {
                 mtrace("Success: '$mod->name' module seems to be ready for indexing.");
             } else {
-                mtrace("ERROR: $index_function() doesn't seem to be returning an array.");
+                mtrace("ERROR: get_iterator() doesn't seem to be returning an array.");
             }
         } else {
             mtrace("Success : '$mod->name' has nothing to index.");

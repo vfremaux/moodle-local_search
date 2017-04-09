@@ -38,7 +38,8 @@ $PAGE->set_context($context);
 
 // Makes inclusions of the Zend Engine more reliable.
 
-ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
+$dirsep = DIRECTORY_SEPARATOR;
+ini_set('include_path', $CFG->dirroot.$dirsep.'local'.$dirsep.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
 $config = get_config('local_search');
 
@@ -55,7 +56,7 @@ require_once($CFG->dirroot.'/local/search/indexlib.php');
 $indexinfo = new IndexInfo();
 
 if ($indexinfo->valid()) {
-    // In case the index exists,
+    // In case the index exists.
     $strsearch = get_string('search', 'local_search');
     $strquery  = get_string('stats');
 
@@ -64,7 +65,7 @@ if ($indexinfo->valid()) {
     $PAGE->set_pagelayout('admin');
     $PAGE->navbar->add($strsearch, 'index.php');
     $PAGE->navbar->add($strquery, 'stats.php');
-    $PAGE->navbar->add(get_string('runindexer','local_search'));
+    $PAGE->navbar->add(get_string('runindexer', 'local_search'));
 
     echo $OUTPUT->header();
 
