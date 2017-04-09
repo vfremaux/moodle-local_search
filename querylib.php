@@ -33,21 +33,24 @@ define('DEFAULT_POPUP_SETTINGS', "\"menubar=0,location=0,scrollbars,resizable,wi
  * a class that represents a single result record of the search engine
  */
 class SearchResult {
-    public  $url,
-            $title,
-            $doctype,
-            $author,
-            $score,
-            $number,
-            $courseid;
+
+    public $url;
+    public $title;
+    public $doctype;
+    public $author;
+    public $score;
+    public $number;
+    public $courseid;
 }
 
 /**
  * split this into Cache class and extend to SearchCache?
  */
 class SearchCache {
-    private $mode,
-            $valid;
+
+    private $mode;
+
+    private $valid;
 
     // Foresees other caching locations.
     public function __construct($mode = 'session') {
@@ -57,7 +60,7 @@ class SearchCache {
             $this->mode = $mode;
         } else {
             $this->mode = 'session';
-        } //else
+        }
 
         $this->valid = true;
     }
@@ -77,11 +80,11 @@ class SearchCache {
     public function cache($id = false, $object = false) {
 
         // See if there was a previous query.
-        $last_term = $this->fetch('search_last_term');
+        $lastterm = $this->fetch('search_last_term');
 
         // If this query is different from the last, clear out the last one.
-        if ($id != false && $last_term != $id) {
-            $this->clear($last_term);
+        if ($id != false && $lastterm != $id) {
+            $this->clear($lastterm);
         }
 
         // Store the new query if id and object are passed in.
@@ -117,7 +120,6 @@ class SearchCache {
         switch ($this->mode) {
             case 'session': {
                 unset($_SESSION[$id]);
-                session_unregister($id);
                 return;
             }
         }
@@ -240,13 +242,8 @@ class SearchQuery {
         $term = $this->term;
         $page = optional_param('page', 1, PARAM_INT);
 
-        // Experimental - return more results.
-        // $strip_arr = array('author:', 'title:', '+', '-', 'doctype:');
-        // $stripped_term = str_replace($strip_arr, '', $term);
-
-        // $search_string = $term." title:".$stripped_term." author:".$stripped_term;
-        $search_string = $term;
-        $hits = $this->index->find($search_string);
+        $searchstring = $term;
+        $hits = $this->index->find($searchstring);
 
         $hitcount = count($hits);
         $this->total_results = $hitcount;
@@ -255,7 +252,7 @@ class SearchQuery {
             return array();
         }
 
-        $resultdoc  = new SearchResult();
+        $resultdoc = new SearchResult();
         $resultdocs = array();
         $searchables = search_collect_searchables(false, false);
 
@@ -283,12 +280,12 @@ class SearchQuery {
                 }
                 $realindex++;
             } else {
-               // Lowers total_results one unit.
-               $this->total_results--;
+                // Lowers total_results one unit.
+                $this->total_results--;
             }
         }
 
-        $totalpages = ceil($this->total_results/$this->results_per_page);
+        $totalpages = ceil($this->total_results / $this->results_per_page);
 
         return $resultdocs;
     }
@@ -307,7 +304,6 @@ class SearchQuery {
                 $cache->cache($this->term, $resultdocs);
             } else {
                 // There was something in the cache, so we're using that to save time.
-                // print "Using cached results.";
                 assert(1);
             }
         } else {
@@ -321,13 +317,12 @@ class SearchQuery {
      * @return string the results paging links
      */
     public function page_numbers() {
+
         $pages = $this->total_pages();
-        // $query  = htmlentities($this->term);
-        // http://moodle.org/mod/forum/discuss.php?d=115788
         $query = htmlentities($this->term, ENT_NOQUOTES, 'utf-8');
-        $page   = $this->pagenumber;
-        $next   = get_string('next', 'local_search');
-        $back   = get_string('back', 'local_search');
+        $page = $this->pagenumber;
+        $next = get_string('next', 'local_search');
+        $back = get_string('back', 'local_search');
 
         $ret = "<div align='center' id='search_page_links'>";
 
@@ -357,7 +352,7 @@ class SearchQuery {
             $ret .= "{$next} &gt;&nbsp;";
         }
 
-        $ret .= "</div>";
+        $ret .= '</div>';
 
         // Shorten really long page lists, to stop table distorting width-ways.
         if (strlen($ret) > 70) {
@@ -395,7 +390,7 @@ class SearchQuery {
         */
        // Admins can see everything, anyway.
        if (has_capability('moodle/site:config', context_system::instance())) {
-            return true;
+           return true;
        }
 
         // First check course compatibility against user : enrolled users to that course can see.
@@ -443,7 +438,7 @@ class SearchQuery {
      */
     public function count() {
         return $this->total_results;
-    } //count
+    }
 
     /**
      *
@@ -470,7 +465,7 @@ class SearchQuery {
      *
      */
     public function total_pages() {
-        return ceil($this->count()/$this->results_per_page);
+        return ceil($this->count() / $this->results_per_page);
     }
 
     /**

@@ -33,7 +33,8 @@ defined('MOODLE_INTERNAL') || die();
 
 // Makes inclusions of the Zend Engine more reliable.
 
-ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
+$dirsep = DIRECTORY_SEPARATOR;
+ini_set('include_path', $CFG->dirroot.$dirsep.'local'.$dirsep.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
 require_once($CFG->dirroot.'/local/search/lib.php');
 require_once($CFG->dirroot.'/local/search/indexlib.php');
@@ -41,7 +42,9 @@ require_once($CFG->dirroot.'/local/search/indexlib.php');
 try {
     $index = new Zend_Search_Lucene(SEARCH_INDEX_PATH);
 } catch (LuceneException $e) {
-    mtrace("Could not construct a valid index. Maybe the first indexation was never made, or files might be corrupted. Run complete indexation again.");
+    $message = "Could not construct a valid index. Maybe the first indexation was never made, or files might be corrupted.";
+    $message .= " Run complete indexation again.";
+    mtrace($message);
     return;
 }
 
@@ -50,7 +53,7 @@ if (!isset($config)) {
 }
 
 $dbcontrol = new IndexDBControl();
-$update_count = 0;
+$updatecount = 0;
 $indexdate = 0 + @$config->update_date;
 $startupdatedate = time();
 
@@ -79,7 +82,7 @@ if ($mods = search_collect_searchables(false, true)) {
             // If both required functions exist.
             mtrace("Checking $mod->name module for updates.");
             $valuesarray = $wrapperclass::db_names();
-            if ($valuesarray){
+            if ($valuesarray) {
                 foreach ($valuesarray as $values) {
 
                     $where = (!empty($values[5])) ? 'AND ('.$values[5].')' : '';
@@ -123,7 +126,7 @@ if ($mods = search_collect_searchables(false, true)) {
                 }
 
                 foreach ($updates as $update) {
-                    ++$update_count;
+                    ++$updatecount;
 
                     // Delete old document.
                     $doc = $index->find("+docid:{$update->id} +doctype:{$mod->name} +itemtype:{$update->itemtype}");
@@ -133,7 +136,7 @@ if ($mods = search_collect_searchables(false, true)) {
                         $message = " Delete: $thisdoc->title (database id = $thisdoc->dbid, index id = $thisdoc->id, ";
                         $message .= " moodle instance id = $thisdoc->docid)";
                         mtrace($message);
-                        $dbcontrol->delDocument($thisdoc);
+                        $dbcontrol->delete_document($thisdoc);
                         $index->delete($thisdoc->id);
                     }
 
@@ -144,7 +147,7 @@ if ($mods = search_collect_searchables(false, true)) {
                     }
 
                     // Object to insert into db.
-                    $dbid = $dbcontrol->addDocument($add);
+                    $dbid = $dbcontrol->add_document($add);
 
                     // Synchronise db with index.
                     $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
@@ -165,5 +168,5 @@ $index->commit();
 // Update index date.
 set_config('update_date', $startupdatedate, 'local_search');
 
-mtrace("Finished $update_count updates");
+mtrace("Finished $updatecount updates");
 

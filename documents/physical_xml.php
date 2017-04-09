@@ -23,7 +23,7 @@
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
- * this is a format handler for getting text out of a proprietary binary format 
+ * this is a format handler for getting text out of a proprietary binary format
  * so it can be indexed by Lucene search engine
  */
 defined('MOODLE_INTERNAL') || die();
@@ -33,7 +33,6 @@ defined('MOODLE_INTERNAL') || die();
  * @return some raw text for indexation
  */
 function get_text_for_indexing_xml($physicalfilepath) {
-    global $CFG;
 
     $config = get_config('local_search');
 

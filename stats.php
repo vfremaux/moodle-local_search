@@ -28,7 +28,7 @@
  */
 
 require('../../config.php');
-require_once("{$CFG->dirroot}/local/search/lib.php");
+require_once($CFG->dirroot.'/local/search/lib.php');
 
 $url = new moodle_url('/local/search/stats.php');
 $PAGE->set_url($url);
@@ -59,14 +59,14 @@ if (!$site = get_site()) {
 }
 
 $strsearch = get_string('search', 'local_search');
-$strquery  = get_string('statistics', 'local_search'); 
+$strquery  = get_string('statistics', 'local_search');
 
-$PAGE->set_heading("$site->fullname");
+$PAGE->set_heading($site->fullname);
 $PAGE->set_title("$strsearch");
 $PAGE->set_pagelayout('admin');
 $PAGE->navbar->add($strsearch, 'index.php');
 $PAGE->navbar->add($strquery, 'stats.php');
-$PAGE->navbar->add(get_string('runindexer','local_search'));
+$PAGE->navbar->add(get_string('runindexer', 'local_search'));
 
 // Keep things pretty, even if php5 isn't available.
 
@@ -98,49 +98,49 @@ if (has_capability('moodle/site:config', context_system::instance())) {
     $runindexerteststr = get_string('runindexertest', 'local_search');
     $runindexerstr = get_string('runindexer', 'local_search');
 
-    $admin_table = new html_table();
-    $admin_table->tablealign = "center";
-    $admin_table->align = array ("right", "left");
-    $admin_table->wrap = array ("nowrap", "nowrap");
-    $admin_table->cellpadding = 5;
-    $admin_table->cellspacing = 0;
-    $admin_table->width = '500';
+    $admintable = new html_table();
+    $admintable->tablealign = "center";
+    $admintable->align = array ("right", "left");
+    $admintable->wrap = array ("nowrap", "nowrap");
+    $admintable->cellpadding = 5;
+    $admintable->cellspacing = 0;
+    $admintable->width = '500';
 
-    $admin_table->data[] = array("<strong>{$datadirectorystr}</strong>", '<em><strong>'.$indexinfo->path.'</strong></em>');
-    $admin_table->data[] = array($inindexdirectorystr, $indexinfo->filecount);
-    $admin_table->data[] = array($totalsizestr, $indexinfo->size);
+    $admintable->data[] = array("<strong>{$datadirectorystr}</strong>", '<em><strong>'.$indexinfo->path.'</strong></em>');
+    $admintable->data[] = array($inindexdirectorystr, $indexinfo->filecount);
+    $admintable->data[] = array($totalsizestr, $indexinfo->size);
 
     if ($indexinfo->time > 0) {
-        $admin_table->data[] = array(get_string('createdon', 'local_search'), date('r', $indexinfo->time));
+        $admintable->data[] = array(get_string('createdon', 'local_search'), date('r', $indexinfo->time));
     } else {
-        $admin_table->data[] = array(get_string('createdon', 'local_search'), '-');
+        $admintable->data[] = array(get_string('createdon', 'local_search'), '-');
     }
 
     if (!$indexinfo->valid($errors)) {
-        $admin_table->data[] = array("<strong>{$errorsstr}</strong>", '&nbsp;');
+        $admintable->data[] = array("<strong>{$errorsstr}</strong>", '&nbsp;');
         foreach ($errors as $key => $value) {
-            $admin_table->data[] = array($key.' ... ', $value);
+            $admintable->data[] = array($key.' ... ', $value);
         }
     }
 
-    echo html_writer::table($admin_table);
+    echo html_writer::table($admintable);
 
     echo $OUTPUT->heading($solutionsstr);
 
-    unset($admin_table->data);
+    unset($admintable->data);
     if (isset($errors['dir'])) {
-        $admin_table->data[] = array($checkdirstr, $checkdiradvicestr);
+        $admintable->data[] = array($checkdirstr, $checkdiradvicestr);
     }
     if (isset($errors['db'])) {
-        $admin_table->data[] = array($checkdbstr, $checkdbadvicestr);
+        $admintable->data[] = array($checkdbstr, $checkdbadvicestr);
     }
 
     $url = new moodle_url('/local/search/tests/index.php');
-    $admin_table->data[] = array($runindexerteststr, '<a href="'.$url.'" target="_blank">tests/index.php</a>');
+    $admintable->data[] = array($runindexerteststr, '<a href="'.$url.'" target="_blank">tests/index.php</a>');
     $url = new moodle_url('/local/search/indexersplash.php');
-    $admin_table->data[] = array($runindexerstr, '<a href="'.$url.'" target="_blank">indexersplash.php</a>');
+    $admintable->data[] = array($runindexerstr, '<a href="'.$url.'" target="_blank">indexersplash.php</a>');
 
-    echo html_writer::table($admin_table);
+    echo html_writer::table($admintable);
 }
 
 // This is the standard summary table for normal users, shows document counts.
@@ -167,7 +167,7 @@ if (has_capability('moodle/site:config', context_system::instance())) {
      * as it turns out, they're only marked as deleted and not returned in search results
      */
     $table->data[] = array($deletionsinindexstr, (int)$indexinfo->indexcount - (int)$indexinfo->dbcount);
-} 
+}
 
 $table->data[] = array($documentsindatabasestr, $indexinfo->dbcount);
 

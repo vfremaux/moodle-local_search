@@ -17,7 +17,7 @@
 /*
  * Moodle global search engine
  * This is a special externalized code for cron handling in PHP5.
- * Should never be called by a php 4.3.0 implementation. 
+ * Should never be called by a php 4.3.0 implementation.
  */
 define('CLI_SCRIPT', true);
 
@@ -41,19 +41,18 @@ if ($unrecognized) {
 if ($options['help'] || (!$options['list'] && !$options['execute'])) {
     $help = "Scheduled cron tasks.
 
-Options:
--H, --host            Virtual root to run for
--h, --help            Print out this help
-
-Example:
-
-Master or single Moodle
-\$sudo -u www-data /usr/bin/php local/search/cli/make_index.php
-
-Virtual Moodle
-\$sudo -u www-data /usr/bin/php local/search/cli/make_index.php --host=http://vmoodle1.mydomain.fr
-
-";
+    Options:
+    -H, --host            Virtual root to run for
+    -h, --help            Print out this help
+    
+    Example:
+    
+    Master or single Moodle
+    \$sudo -u www-data /usr/bin/php local/search/cli/make_index.php
+    
+    Virtual Moodle
+    \$sudo -u www-data /usr/bin/php local/search/cli/make_index.php --host=http://vmoodle1.mydomain.fr
+    ";
     echo $help;
     die;
 }
@@ -82,7 +81,7 @@ try {
     mtrace('done');
 
     // Set back normal values for php limits.
-} catch(Exception $ex) {
+} catch (Exception $ex) {
     mtrace('Fatal exception from Lucene subsystem. Search engine may not have been updated.');
     mtrace($ex);
 }
