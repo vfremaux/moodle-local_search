@@ -32,31 +32,19 @@ $string['checkdir'] = 'Check dir';
 $string['checkdiradvice'] = 'Ensure the data directory exists and is writable.';
 $string['commenton'] = 'Comment on ';
 $string['configbuttonlabel'] = 'Button label';
-$string['configbuttonlabel_desc'] = 'Label that will appear on the search form';
+$string['configdocxtotextcmd'] = 'Docx converter tool path';
 $string['configenablefileindexing'] = 'Physical File Indexing';
-$string['configenablefileindexing_desc'] = 'If enabled, physical files attached to moodle content or resources will be plain text indexed';
 $string['configenableglobalsearch'] = 'Global activation';
-$string['configenableglobalsearch_desc'] = 'If disabled, will avoid indexing operations and hide everything related to global search';
 $string['configfiletypes'] = 'File types handled';
-$string['configfiletypes_desc'] = 'List of all file extensions being handled for text conversion';
 $string['configlimitindexbody'] = 'Indexed body size limitation';
-$string['configlimitindexbody_desc'] = 'Limits the size of content that will be actually indexed. This may save performance for the indexing process, but may loose some search capabilities.';
 $string['configpdftotextcmd'] = 'pdftotext path';
-$string['configpdftotextcmd_desc'] = 'Path to command pdftotext';
 $string['configsearchtext'] = 'Search text';
-$string['configsearchtext_desc'] = 'Search text';
 $string['configtypetotxtcmd'] = 'Command line';
-$string['configtypetotxtcmd_desc'] = 'Converter\'s command line for the type';
 $string['configtypetotxtenv'] = 'Environment for converter';
-$string['configtypetotxtenv_desc'] = 'A definition of environment variable to set for the converter if any.';
 $string['configusingsoftlock'] = 'Software interlocking';
-$string['configusingsoftlock_desc'] = 'Switch this on if indexing might be operated on several clusters and stored on remotely mounted NFS volume. soft interlocking is less secured as not avoiding any possibility of writing collision on the index files, but it the only way to work from clusters.';
 $string['configutf8transcoding'] = 'Results UTF8 transcoding';
-$string['configutf8transcoding_desc'] = 'This should be not needed any more';
 $string['configwordtotextcmd'] = 'Path to doctotext';
-$string['configwordtotextcmd_desc'] = 'Path to the Word doctotext converter command';
 $string['configwordtotextenv'] = 'Environment setting for the MSWord converter';
-$string['configwordtotextenv_desc'] = 'Environment setting for the MSWord converter';
 $string['coresearchswitches'] = 'Core searchable elements';
 $string['createanindex'] = 'create an index';
 $string['createdon'] = 'Created on';
@@ -120,3 +108,34 @@ $string['whichmodulestosearch'] = 'Which modules to search?';
 $string['wordhandling'] = 'Microsoft Word handling';
 $string['wordsintitle'] = 'Words in title';
 
+$string['configbuttonlabel_desc'] = 'Label that will appear on the search form';
+
+$string['configdocxtotextcmd_desc'] = 'Path to the MSWord DOCX converter';
+
+$string['configenablefileindexing_desc'] = 'If enabled, physical files attached to moodle content or resources will be
+plain text indexed';
+
+$string['configenableglobalsearch_desc'] = 'If disabled, will avoid indexing operations and hide everything related to global search';
+
+$string['configfiletypes_desc'] = 'List of all file extensions being handled for text conversion';
+
+$string['configlimitindexbody_desc'] = 'Limits the size of content that will be actually indexed. This may save performance for the
+indexing process, but may loose some search capabilities.';
+
+$string['configpdftotextcmd_desc'] = 'Path to command pdftotext';
+
+$string['configsearchtext_desc'] = 'Search text';
+
+$string['configtypetotxtcmd_desc'] = 'Converter\'s command line for the type';
+
+$string['configtypetotxtenv_desc'] = 'A definition of environment variable to set for the converter if any.';
+
+$string['configusingsoftlock_desc'] = 'Switch this on if indexing might be operated on several clusters and stored on remotely mounted
+NFS volume. soft interlocking is less secured as not avoiding any possibility of writing collision on the index files, but it the only
+way to work from clusters.';
+
+$string['configutf8transcoding_desc'] = 'This should be not needed any more';
+
+$string['configwordtotextcmd_desc'] = 'Path to the Word doctotext converter command';
+
+$string['configwordtotextenv_desc'] = 'Environment setting for the MSWord converter';

@@ -259,6 +259,10 @@ function search_get_physical_file(&$documents, &$file, &$object, $contextid, $ob
 
     $config = get_config('local_search');
 
+    if (strpos($objectdocumentclass, '\\local_search\\') === false) {
+        $objectdocumentclass = '\\local_search\\'.$objectdocumentclass;
+    }
+
     // Cannot index missing file.
     if ($file->is_directory()) {
         return;

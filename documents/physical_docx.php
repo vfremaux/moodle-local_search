@@ -51,11 +51,11 @@ function get_text_for_indexing_doc($physicalfilepath) {
     $moodleroot = str_replace('\\', '/', $moodleroot);
 
     // Just call antiword over stdout and capture the output.
-    if (!empty($config->word_to_text_cmd)) {
+    if (!empty($config->docx_to_text_cmd)) {
         // We need to remove any line command options...
-        preg_match("/^\S+/", $config->word_to_text_cmd, $matches);
+        preg_match("/^\S+/", $config->docx_to_text_cmd, $matches);
         if (!file_exists("{$moodleroot}{$matches[0]}")) {
-            mtrace('Error with MSWord to text converter command : executable not found at '.$moodleroot.$config->word_to_text_cmd);
+            mtrace('Error with MSWord to text converter command : executable not found at '.$moodleroot.$config->docx_to_text_cmd);
         } else {
 
             $command = trim($config->word_to_text_cmd);
@@ -63,9 +63,9 @@ function get_text_for_indexing_doc($physicalfilepath) {
                 $command = str_replace('/', '\\', $command);
                 $physicalfilepath = str_replace('/', '\\', $physicalfilepath);
             }
-            $textconvertercmd = "{$moodleroot}{$command} -m UTF-8.txt $physicalfilepath";
-            if ($config->word_to_text_env) {
-                putenv($config->word_to_text_env);
+            $textconvertercmd = "{$moodleroot}{$command} $physicalfilepath";
+            if ($config->docx_to_text_env) {
+                putenv($config->docx_to_text_env);
             }
             mtrace("Executing : $textconvertercmd");
             $result = shell_exec($textconvertercmd);

@@ -31,6 +31,7 @@ $string['checkdir'] = 'Vérifier le dossier';
 $string['checkdiradvice'] = 'Vérifie que le dossier de données existe et qu\'il peut être modifié.';
 $string['commenton'] = 'Commenté le ';
 $string['configbuttonlabel'] = 'Libellé du bouton';
+$string['configdocxtotextcmd'] = 'Chemin vers le convertisseur DOCX to text';
 $string['configenablefileindexing'] = 'Indexation des fichiers physiques';
 $string['configenableglobalsearch'] = 'Activation globale';
 $string['configfiletypes'] = 'Types de fichiers';

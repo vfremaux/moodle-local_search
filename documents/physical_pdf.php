@@ -43,7 +43,9 @@ function get_text_for_indexing_pdf($physicalfilepath) {
         $config->usemoodleroot = 1;
     }
 
-    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/" : '';
+    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/lib/" : '';
+    // Fix to unix path format.
+    $moodleroot = str_replace('\\', '/', $moodleroot);
 
     // Just call pdftotext over stdout and capture the output.
     if (!empty($config->pdf_to_text_cmd)) {
@@ -52,17 +54,21 @@ function get_text_for_indexing_pdf($physicalfilepath) {
         if (!file_exists("{$moodleroot}{$matches[0]}")) {
             mtrace('Error with pdf to text converter : executable not found at '.$moodleroot.$matches[0]);
         } else {
-            $file = escapeshellarg($physicalfilepath);
             $command = trim($config->pdf_to_text_cmd);
-            $text_converter_cmd = "{$moodleroot}{$command} $file -";
-            $result = shell_exec($text_converter_cmd);
+            if ($CFG->ostype == 'WINDOWS') {
+                $command = str_replace('/', '\\', $command);
+                $physicalfilepath = str_replace('/', '\\', $physicalfilepath);
+            }
+            $physicalfilepath = escapeshellarg($physicalfilepath);
+            $textconvertercmd = "{$moodleroot}{$command} $physicalfilepath -";
+            $result = shell_exec($textconvertercmd);
             if ($result) {
                 if (!empty($config->limit_index_body)) {
                     $result = shorten_text($result, $config->limit_index_body);
                 }
                 return $result;
             } else {
-                $message = 'Error with pdf to text converter command : execution failed for '.$text_converter_cmd;
+                $message = 'Error with pdf to text converter command : execution failed for '.$textconvertercmd;
                 $message .= '. Check for execution permission on pdf converter executable.';
                 mtrace($message);
                 return '';

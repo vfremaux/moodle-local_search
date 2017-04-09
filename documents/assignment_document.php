@@ -126,7 +126,13 @@ class assignment_document_wrapper extends document_wrapper {
      * @uses $CFG
      * @return a well formed link to session display
      */
-    public static function make_link($instanceid, $itemtype) {
+    public static function make_link($instanceid) {
+
+        // Get an additional subentity id dynamically.
+        $extravars = func_get_args();
+        array_shift($extravars);
+        $itemtype = array_shift($extravars);
+
         if ($itemtype == 'description') {
             return new moodle_url('/mod/assignment/view.php', array('id' => $instanceid));
         }
@@ -286,7 +292,7 @@ class assignment_document_wrapper extends document_wrapper {
      * // TODO chat indexable records are virtual. Should proceed in a special way
      * // [primary id], [table name], [time created field name], [time modified field name], [itemtype]
      */
-    public function db_names() {
+    public static function db_names() {
         return array(
             array('id', 'assignment', 'timemodified', 'timemodified', 'description'),
             array('id', 'assignment_submissions', 'timecreated', 'timemodified', 'submission')
@@ -383,7 +389,7 @@ class assignment_document_wrapper extends document_wrapper {
      * this call back is called when displaying the link for some last post processing
      *
      */
-    public function link_post_processing($title) {
+    public static function link_post_processing($title) {
         global $CFG;
          if (!function_exists('search_assignment_getstring')) {
              function search_assignment_getstring($matches) {

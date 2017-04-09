@@ -33,7 +33,7 @@ if ($hassiteconfig) {
     $settings = new admin_settingpage('local_search', get_string('pluginname', 'local_search'));
     $ADMIN->add('searchplugins', $settings);
 
-    $defaultfiletypes = "PDF,TXT,HTML,PPT,XML,DOC,HTM";
+    $defaultfiletypes = "PDF,TXT,HTML,PPT,XML,DOC,HTM,DOCX";
 
     $convertoptions = array(
         '-1' => get_string('fromutf', 'local_search'),
@@ -73,9 +73,9 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_heading('head1', get_string('pdfhandling', 'local_search'), ''));
 
     if ($CFG->ostype == 'WINDOWS'){
-        $default= "lib/xpdf/win32/pdftotext.exe -eol dos -enc UTF-8 -q";
+        $default= "xpdf/win32/pdftotext.exe -eol dos -enc UTF-8 -q";
     } else {
-        $default = "lib/xpdf/linux/pdftotext -enc UTF-8 -eol unix -q";
+        $default = "xpdf/linux/bin64/pdftotext -enc UTF-8 -eol unix -q";
     }
 
     $key = 'local_search/pdf_to_text_cmd';
@@ -86,9 +86,9 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_heading('head2', get_string('wordhandling', 'local_search'), ''));
 
     if ($CFG->ostype == 'WINDOWS') {
-        $default = "lib/antiword/win32/antiword/antiword.exe";
+        $default = "antiword/win32/antiword/antiword.exe";
     } else {
-        $default = "lib/antiword/linux/usr/bin/antiword";
+        $default = "antiword/linux/usr/bin/antiword";
     }
 
     $key = 'local_search/word_to_text_cmd';
@@ -107,7 +107,20 @@ if ($hassiteconfig) {
     $desc = get_string('configwordtotextenv_desc', 'local_search');
     $settings->add(new admin_setting_configtext($key, $label, $desc, $default, PARAM_TEXT));
 
-    $types = explode(',', @$CFG->local_search_filetypes);
+    if ($CFG->ostype == 'WINDOWS') {
+        $default = "{No cenverter supported}";
+    } else {
+        $default = "antiword-xp-rb/antiword.rb";
+    }
+
+    $key = 'local_search/docx_to_text_cmd';
+    $label = get_string('configdocxtotextcmd', 'local_search');
+    $desc = get_string('configdocxtotextcmd_desc', 'local_search');
+    $settings->add(new admin_setting_configtext($key, $label, $desc, $default, PARAM_TEXT));
+
+    // Ensures it comes from real DB.
+    $filetypes = $DB->get_field('config_plugins', 'value', array('plugin' => 'local_search', 'name' => 'filetypes'));
+    $types = explode(',', $filetypes);
     if (!empty($types)) {
         foreach ($types as $type) {
             $utype = strtoupper($type);
@@ -120,12 +133,12 @@ if ($hassiteconfig) {
             $key = 'local_search/'.$type.'_to_text_cmd';
             $label = get_string('configtypetotxtcmd', 'local_search');
             $desc = get_string('configtypetotxtcmd_desc', 'local_search');
-            $settings->add(new admin_setting_configcheckbox($key, $label, $desc, 0));
+            $settings->add(new admin_setting_configtext($key, $label, $desc, 0));
 
             $key = 'local_search/'.$type.'_to_text_env';
             $label = get_string('configtypetotxtenv', 'local_search');
             $desc = get_string('configtypetotxtenv_desc', 'local_search');
-            $settings->add(new admin_setting_configcheckbox($key, $label, $desc, 0));
+            $settings->add(new admin_setting_configtext($key, $label, $desc, 0));
         }
     }
 

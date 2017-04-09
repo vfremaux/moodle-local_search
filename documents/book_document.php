@@ -122,7 +122,7 @@ class book_document_wrapper extends document_wrapper {
 
         // Get context.
         $coursemodule = $DB->get_field('modules', 'id', array('name' => 'book'));
-        $params = array('course' => $book->course, 'module' => $coursemodule, 'instance' => $instance->id);
+        $params = array('course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id);
         $cm = $DB->get_record('course_modules', $params);
         $context = context_module::instance($cm->id);
 

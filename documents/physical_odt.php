@@ -46,7 +46,9 @@ function get_text_for_indexing_odt($physicalfilepath) {
         $config->usemoodleroot = 1;
     }
 
-    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/" : '';
+    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/lib/" : '';
+    // Fix to unix path format.
+    $moodleroot = str_replace('\\', '/', $moodleroot);
 
     // Just call pdftotext over stdout and capture the output.
     if (!empty($config->odt_to_text_cmd)) {
@@ -54,14 +56,18 @@ function get_text_for_indexing_odt($physicalfilepath) {
         preg_match("/^\S+/", $config->odt_to_text_cmd, $matches);
         if (!file_exists("{$moodleroot}{$matches[0]}")) {
             $message = 'Error with OpenOffice ODT to text converter : executable not found at ';
-            $message .= $moodleroot.$CFG->block_search_odt_to_text_cmd;
+            $message .= $moodleroot.$config->odt_to_text_cmd;
             mtrace($message);
         } else {
-            $file = escapeshellarg($physicalfilepath);
             $command = trim($config->odt_to_text_cmd);
-            $text_converter_cmd = "{$moodleroot}{$command} --encoding=UTF-8 $file";
-            mtrace("Executing : $text_converter_cmd");
-            $result = shell_exec($text_converter_cmd);
+            if ($CFG->ostype == 'WINDOWS') {
+                $command = str_replace('/', '\\', $command);
+                $physicalfilepath = str_replace('/', '\\', $physicalpath);
+            }
+            $physicalfilepath = escapeshellarg($physicalfilepath);
+            $textconvertercmd = "{$moodleroot}{$command} --encoding=UTF-8 $physicalpath";
+            mtrace("Executing : $textconvertercmd");
+            $result = shell_exec($textconvertercmd);
             if ($result) {
                 if (!empty($config->limit_index_body)) {
                     $result = shorten_text($result, $config->limit_index_body);
