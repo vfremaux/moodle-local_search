@@ -400,7 +400,7 @@ class assignment_document_wrapper extends document_wrapper {
 
         if (!function_exists('search_assignment_getstring')) {
             function search_assignment_getstring($matches) {
-               return get_string($matches[1], 'assignment');
+                return get_string($matches[1], 'assignment');
             }
         }
 

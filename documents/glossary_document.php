@@ -53,7 +53,7 @@ class GlossarySearchDocument extends SearchDocument {
      * document constructor
      *
      */
-    public function __construct(&$entry, $course_id, $contextid) {
+    public function __construct(&$entry, $courseid, $contextid) {
         global $DB;
 
         // Generic information; required.
@@ -78,7 +78,7 @@ class GlossarySearchDocument extends SearchDocument {
         $data->glossary = $entry['glossaryid'];
 
         // Construct the parent class.
-        parent::__construct($doc, $data, $course_id, -1, $entry['userid'], 'mod/'.SEARCH_TYPE_GLOSSARY);
+        parent::__construct($doc, $data, $courseid, -1, $entry['userid'], 'mod/'.SEARCH_TYPE_GLOSSARY);
     }
 }
 
@@ -91,7 +91,7 @@ class GlossaryCommentSearchDocument extends SearchDocument {
     /**
      * document constructor
      */
-    public function __construct(&$entry, $course_id, $contextid) {
+    public function __construct(&$entry, $courseid, $contextid) {
         global $DB;
 
         // Generic information; required.
@@ -117,7 +117,7 @@ class GlossaryCommentSearchDocument extends SearchDocument {
         $data->entryid = $entry['entryid'];
 
         // Construct the parent class.
-        parent::__construct($doc, $data, $course_id, -1, $entry['userid'], 'mod/'.SEARCH_TYPE_GLOSSARY);
+        parent::__construct($doc, $data, $courseid, -1, $entry['userid'], 'mod/'.SEARCH_TYPE_GLOSSARY);
     }
 }
 
@@ -129,12 +129,6 @@ class glossary_document_wrapper extends document_wrapper {
      * @return a full featured link element as a string
      */
     public static function make_link($instanceid) {
-        global $CFG;
-
-        // TOO LONG URL
-        // Suggestion : bounce on popup within the glossarie's showentry page
-        // preserve glossary pop-up, be careful where you place your ' and "s
-        //this function is meant to return a url that is placed between href='[url here]'
         return new moodle_url('/mod/glossary/showentry.php', array('eid' => $instanceid));
     }
 
@@ -213,7 +207,8 @@ class glossary_document_wrapper extends document_wrapper {
         }
         $glossarycourse = $DB->get_field('glossary', 'course', array('id' => $entry->glossaryid));
         $coursemodule = $DB->get_field('modules', 'id', array('name' => 'glossary'));
-        $cm = $DB->get_record('course_modules', array('course' => $glossarycourse, 'module' => $coursemodule, 'instance' => $entry->glossaryid));
+        $params = array('course' => $glossarycourse, 'module' => $coursemodule, 'instance' => $entry->glossaryid);
+        $cm = $DB->get_record('course_modules', $params);
         $context = context_module::instance($cm->id);
         if ($itemtype == 'standard') {
             $vars = get_object_vars($entry);
