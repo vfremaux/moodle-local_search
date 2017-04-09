@@ -33,7 +33,6 @@ defined('MOODLE_INTERNAL') || die();
  * @return some raw text for indexation
  */
 function get_text_for_indexing_xml($physicalfilepath) {
-    global $CFG;
 
     $config = get_config('local_search');
 

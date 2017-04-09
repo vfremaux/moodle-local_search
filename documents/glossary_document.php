@@ -260,7 +260,6 @@ class glossary_document_wrapper extends document_wrapper {
 
         // Get the glossary object and all related stuff.
         $entry = $DB->get_record('glossary_entries', array('id' => $thisid));
-        $glossary = $DB->get_record('glossary', array('id' => $entry->glossaryid));
         $context = $DB->get_record('context', array('id' => $contextid));
         $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));
 

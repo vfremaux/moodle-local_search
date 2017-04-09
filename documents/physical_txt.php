@@ -34,7 +34,6 @@ defined('MOODLE_INTERNAL') || die();
  * @param string $physicalfilepath
  */
 function get_text_for_indexing_txt($physicalfilepath) {
-    global $CFG;
 
     $config = get_config('local_search');
 

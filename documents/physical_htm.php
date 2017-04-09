@@ -35,7 +35,6 @@ defined('MOODLE_INTERNAL') || die();
  * @return some raw text for indexation
  */
 function get_text_for_indexing_htm($physicalfilepath) {
-    global $CFG;
 
     // Just get text.
     $text = implode('', file($physicalfilepath));

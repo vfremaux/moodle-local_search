@@ -104,7 +104,7 @@ class resource_document_wrapper extends document_wrapper {
      * @return an array of searchable documents
      */
     public static function get_content_for_index(&$instance) {
-        global $CFG, $DB;
+        global $DB;
 
         $config = get_config('local_search');
 
@@ -153,7 +153,7 @@ class resource_document_wrapper extends document_wrapper {
      * @return a searchable object or null if failure
      */
     public static function single_document($id, $itemtype) {
-        global $CFG, $DB;
+        global $DB;
 
         $config = get_config('local_search');
 
@@ -180,7 +180,6 @@ class resource_document_wrapper extends document_wrapper {
         $resource = $DB->get_record_sql($sql, array($id));
 
         if ($resource) {
-            $coursemodule = $DB->get_field('modules', 'id', array('name' => 'resource'));
             $cm = $DB->get_record('course_modules', array('id' => $resource->id));
             $context = context_module::instance($cm->id);
 
@@ -192,7 +191,8 @@ class resource_document_wrapper extends document_wrapper {
             if ($hasdocument && @$config->enable_file_indexing) {
                 $files = $fs->get_area_files($context->id, 'mod_resource', 'content', 0, true);
                 $file = array_shift($files);
-                $document = search_get_physical_file($documents, $file, $resource, 'ResourceSearchDocument');
+                $void = array();
+                $document = search_get_physical_file($void, $file, $resource, 'ResourceSearchDocument');
                 if (!$document) {
                     mtrace("Warning : this document {$resource->name} will not be indexed");
                 }

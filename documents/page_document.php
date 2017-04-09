@@ -167,10 +167,9 @@ class page_document_wrapper extends document_wrapper {
         $page = $DB->get_record_sql($sql, array($id));
 
         if ($page) {
-            $coursemodule = $DB->get_field('modules', 'id', array('name' => 'page'));
             $cm = $DB->get_record('course_modules', array('id' => $page->id));
             $context = context_module::instance($cm->id);
-            $vars = get_object_vars($label);
+            $vars = get_object_vars($page);
             return new PageSearchDocument($vars, $context->id);
         }
         mtrace("no pages");

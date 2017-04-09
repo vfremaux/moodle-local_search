@@ -124,7 +124,7 @@ class lesson_document_wrapper extends document_wrapper {
         global $DB;
 
         $documents = array();
-        if (!$lesson) {
+        if (!$instance) {
             return $documents;
         }
 

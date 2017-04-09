@@ -136,7 +136,6 @@ class label_document_wrapper extends document_wrapper {
         $label = $DB->get_record('label', array('id' => $id));
 
         if ($label) {
-            $coursemodule = $DB->get_field('modules', 'id', array('name' => 'label'));
             $cm = $DB->get_record('course_modules', array('id' => $label->id));
             $context = context_module::instance($cm->id);
             $arr = get_object_vars($label);

@@ -80,7 +80,6 @@ function get_text_for_indexing_ppt($physicalfilepath) {
     $indextext = preg_replace('/\x09/', '', $indextext); // Some extra chars.
     $indextext = preg_replace('/\x0D/', "\n", $indextext); // Some quotes.
     $indextext = preg_replace('/\x0A/', "\n", $indextext); // Some quotes.
-    $indextextprint = implode('<hr/>', $fragments);
 
     if (!empty($config->limit_index_body)) {
         $indextext = shorten_text($text, $config->limit_index_body);
