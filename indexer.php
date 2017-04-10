@@ -51,7 +51,8 @@ $PAGE->set_url($url);
 $context = context_system::instance();
 $PAGE->set_context($context);
 
-ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
+$dirsep = DIRECTORY_SEPARATOR;
+ini_set('include_path', $CFG->dirroot.$dirsep.'local'.$dirsep.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
 $config = get_config('local_search');
 
@@ -79,7 +80,7 @@ if ($sure != 'yes') {
 // check for php5 (lib.php)
 
 mtrace('<html><head><meta http-equiv="content-type" content="text/html; charset=utf-8" /></head><body>');
-mtrace('<pre>Server Time: '.date('r',time())."\n");
+mtrace('<pre>Server Time: '.date('r', time())."\n");
 
 if (!empty($config->indexer_busy)) {
     // Means indexing was not finished previously.
@@ -141,8 +142,8 @@ if ($searchables) {
             mtrace(" module $key has been administratively disabled. Skipping...\n");
             continue;
         }
-    
-        if ($mod->location == 'internal'){
+
+        if ($mod->location == 'internal') {
             $classfile = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
         } else {
             $classfile = $CFG->dirroot.'/'.$mod->location.'/'.$mod->name.'/search_document.php';
@@ -167,7 +168,7 @@ if ($searchables) {
                             $counter++;
 
                             // Object to insert into db.
-                            $dbid = $dbcontrol->addDocument($document);
+                            $dbid = $dbcontrol->add_document($document);
 
                             // Synchronise db with index.
                             $document->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
@@ -187,12 +188,12 @@ if ($searchables) {
 
                 // Commit left over documents, and finish up.
                 $index->commit();
-      
+
                 mtrace("-- $counter documents indexed");
                 mtrace("done.\n");
             }
         } else {
-           mtrace (" No search document found for plugin {$mod->name}. Ignoring.");
+            mtrace (" No search document found for plugin {$mod->name}. Ignoring.");
         }
     }
 }

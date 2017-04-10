@@ -57,7 +57,7 @@ class IndexInfo {
         $config = get_config('local_search');
 
         try {
-            $test_index = new Zend_Search_Lucene($this->path, false);
+            $testindex = new Zend_Search_Lucene($this->path, false);
             $validindex = true;
         } catch (Exception $e) {
             $validindex = false;
@@ -66,9 +66,9 @@ class IndexInfo {
         // Retrieve file system info about the index if it is valid.
         if ($validindex) {
             $this->size = display_size(get_directory_size($this->path));
-            $index_dir  = get_directory_list($this->path, '', false, false);
-            $this->filecount = count($index_dir);
-            $this->indexcount = $test_index->count();
+            $indexdir = get_directory_list($this->path, '', false, false);
+            $this->filecount = count($indexdir);
+            $this->indexcount = $testindex->count();
         } else {
             $this->size = 0;
             $this->filecount = 0;
@@ -101,7 +101,7 @@ class IndexInfo {
         if ($this->valid() && $config->indexer_run_date) {
             $this->time = $config->indexer_run_date;
         } else {
-          $this->time = 0;
+            $this->time = 0;
         }
     }
 
@@ -124,7 +124,7 @@ class IndexInfo {
         }
 
         if (!$this->complete) {
-            $err['index'] = get_string('uncompleteindexingerror','local_search');
+            $err['index'] = get_string('uncompleteindexingerror', 'local_search');
             $ret = false;
         }
 
@@ -178,7 +178,7 @@ class IndexDBControl {
      * @param document must be a Lucene SearchDocument instance
      * @uses db, CFG
      */
-    public function addDocument($document = null) {
+    public function add_document($document = null) {
         global $DB, $CFG;
 
         if ($document == null) {
@@ -197,7 +197,9 @@ class IndexDBControl {
         $doc->courseid  = $document->course_id;
         $doc->groupid   = $document->group_id;
 
-        if ($doc->groupid < 0) $doc->groupid = 0;
+        if ($doc->groupid < 0) {
+            $doc->groupid = 0;
+        }
 
         // Insert summary into db.
         $id = $DB->insert_record(SEARCH_DATABASE_TABLE, $doc);
@@ -210,7 +212,7 @@ class IndexDBControl {
      * @param document must be a Lucene document instance, or at least a dbid enveloppe
      * @uses db
      */
-    public function delDocument($document) {
+    public function delete_document($document) {
         global $DB;
 
         $DB->delete_records(SEARCH_DATABASE_TABLE, array('id' => $document->dbid));

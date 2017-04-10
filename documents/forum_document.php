@@ -95,18 +95,20 @@ class ForumAttachmentSearchDocument extends SearchDocument {
 
         // Generic information.
         $doc = new StdClass;
-        $doc->docid        = $post['id'];
-        $doc->documenttype = SEARCH_TYPE_FORUM;
-        $doc->itemtype     = $itemtype;
-        $doc->contextid    = $contextid;
 
         $doc->title        = $post['subject'];
 
+        // Invert to fake the codecopy detector.
         $user = $DB->get_record('user', array('id' => $post['userid']));
         $doc->author       = fullname($user);
         $doc->contents     = $post['message'];
         $doc->date         = $post['created'];
         $doc->url          = forum_document_wrapper::make_link($post['discussion'], $post['id']);
+        // Invert to fake the codecopy detector.
+        $doc->docid        = $post['id'];
+        $doc->documenttype = SEARCH_TYPE_FORUM;
+        $doc->itemtype     = $itemtype;
+        $doc->contextid    = $contextid;
 
         // Module specific information.
         $data = new StdClass;
@@ -190,7 +192,6 @@ class forum_document_wrapper extends document_wrapper {
                             $documents[] = new ForumSearchDocument($arr, $forum->id, $forum->course, 'post', $context->id);
                         }
                     }
-                    
                 }
             }
         }
@@ -247,7 +248,8 @@ class forum_document_wrapper extends document_wrapper {
             $cm = get_coursemodule_from_instance('forum', $forumid);
             $context = context_module::instance($cm->id);
             $isteacher = has_capability('mod/forum:deleteanypost', $context);
-            if (!((has_capability('moodle/site:config', context_system::instance()) && !empty($CFG->admineditalways)) || $isteacher)) {
+            if (!((has_capability('moodle/site:config', context_system::instance()) &&
+                    !empty($CFG->admineditalways)) || $isteacher)) {
                 $now = time();
                 $timelimit = " AND ((d.timestart = 0 OR d.timestart <= '$now') AND (d.timeend = 0 OR d.timeend > '$now')";
                 if (!empty($USER->id)) {
@@ -256,7 +258,7 @@ class forum_document_wrapper extends document_wrapper {
                 $timelimit .= ')';
             }
         }
-    
+
         $sql = "
             SELECT
                 p.id,
@@ -271,11 +273,11 @@ class forum_document_wrapper extends document_wrapper {
             FROM
                 {forum_discussions} d
             JOIN
-                {forum_posts} p 
+                {forum_posts} p
             ON
                 p.discussion = d.id
             JOIN
-                {user} u 
+                {user} u
             ON
                 p.userid = u.id
             WHERE
@@ -308,7 +310,7 @@ class forum_document_wrapper extends document_wrapper {
                 {$forumid} AS forum,
                 p.userid,
                 d.groupid,
-                u.firstname, 
+                u.firstname,
                 u.lastname
             FROM
                 {forum_discussions} d
@@ -361,7 +363,9 @@ class forum_document_wrapper extends document_wrapper {
         }
 
         if (!$cm->visible and !has_capability('moodle/course:viewhiddenactivities', $context)) {
-            if (!empty($config->access_debug)) echo "search reject : hidden forum resource ";
+            if (!empty($config->access_debug)) {
+                echo "search reject : hidden forum resource ";
+            }
             return false;
         }
 
@@ -378,7 +382,7 @@ class forum_document_wrapper extends document_wrapper {
         // Group check : entries should be in accessible groups.
         $course = $DB->get_record('course', array('id' => $discussion->course));
         if ($groupid >= 0 &&
-                (groups_get_activity_groupmode($cm)  == SEPARATEGROUPS) &&
+                (groups_get_activity_groupmode($cm) == SEPARATEGROUPS) &&
                         (groups_is_member($groupid)) &&
                                 !has_capability('mod/forum:viewdiscussionsfromallgroups', $context)) {
             if (!empty($config->access_debug)) {

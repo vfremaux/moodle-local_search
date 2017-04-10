@@ -24,7 +24,7 @@
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
- * this is a format handler for getting text out of a standard html format 
+ * this is a format handler for getting text out of a standard html format
  * so it can be indexed by Lucene search engine
  */
 defined('MOODLE_INTERNAL') || die();
