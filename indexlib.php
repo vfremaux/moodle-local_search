@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -30,23 +28,24 @@ defined('MOODLE_INTERNAL') || die();
  * Has methods to check for valid database and data directory,
  * and the index itself.
  */
+defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/local/search/lib.php');
 require_once($CFG->dirroot.'/local/search/Zend/Search/Lucene.php');
 
 /**
- * main class for searchable information in the Lucene index 
+ * main class for searchable information in the Lucene index
  */
 class IndexInfo {
 
-    private $path,        //index data directory
-            $size,        //size of directory (i.e. the whole index)
-            $filecount,   //number of files
-            $indexcount,  //number of docs in index
-            $dbcount,     //number of docs in db
-            $types,       //array of [document types => count]
-            $complete,    //is index completely formed?
-            $time;        //date index was generated
+    private $path,        // Index data directory.
+            $size,        // Size of directory (i.e. the whole index).
+            $filecount,   // Number of files.
+            $indexcount,  // Number of docs in index.
+            $dbcount,     // Number of docs in db.
+            $types,       // Array of [document types => count].
+            $complete,    // Is index completely formed?
+            $time;        // Date index was generated.
 
     public function __construct($path = SEARCH_INDEX_PATH) {
         global $CFG, $DB;
@@ -58,18 +57,18 @@ class IndexInfo {
         $config = get_config('local_search');
 
         try {
-            $test_index = new Zend_Search_Lucene($this->path, false);
+            $testindex = new Zend_Search_Lucene($this->path, false);
             $validindex = true;
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             $validindex = false;
         }
 
         // Retrieve file system info about the index if it is valid.
         if ($validindex) {
             $this->size = display_size(get_directory_size($this->path));
-            $index_dir  = get_directory_list($this->path, '', false, false);
-            $this->filecount = count($index_dir);
-            $this->indexcount = $test_index->count();
+            $indexdir = get_directory_list($this->path, '', false, false);
+            $this->filecount = count($indexdir);
+            $this->indexcount = $testindex->count();
         } else {
             $this->size = 0;
             $this->filecount = 0;
@@ -77,13 +76,12 @@ class IndexInfo {
         }
 
         // Retrieve database information if it does.
-        $db_exists = true;
+        $dbexists = true;
 
         // Total documents.
         $this->dbcount = $DB->count_records(SEARCH_DATABASE_TABLE);
 
         // Individual document types.
-        // $types = search_get_document_types();
         $types = search_collect_searchables(true, false);
         sort($types);
 
@@ -92,18 +90,18 @@ class IndexInfo {
             $this->types[$type] = (int)$c;
         }
 
-        //check if the busy flag is set
+        // Check if the busy flag is set.
         if (isset($config->indexer_busy) && $config->indexer_busy == '1') {
             $this->complete = false;
         } else {
             $this->complete = true;
         }
 
-        //get the last run date for the indexer
+        // Get the last run date for the indexer.
         if ($this->valid() && $config->indexer_run_date) {
             $this->time = $config->indexer_run_date;
         } else {
-          $this->time = 0;
+            $this->time = 0;
         }
     }
 
@@ -126,7 +124,7 @@ class IndexInfo {
         }
 
         if (!$this->complete) {
-            $err['index'] = get_string('uncompleteindexingerror','local_search');
+            $err['index'] = get_string('uncompleteindexingerror', 'local_search');
             $ret = false;
         }
 
@@ -180,7 +178,7 @@ class IndexDBControl {
      * @param document must be a Lucene SearchDocument instance
      * @uses db, CFG
      */
-    public function addDocument($document=null) {
+    public function add_document($document = null) {
         global $DB, $CFG;
 
         if ($document == null) {
@@ -199,9 +197,11 @@ class IndexDBControl {
         $doc->courseid  = $document->course_id;
         $doc->groupid   = $document->group_id;
 
-        if ($doc->groupid < 0) $doc->groupid = 0;
+        if ($doc->groupid < 0) {
+            $doc->groupid = 0;
+        }
 
-        //insert summary into db
+        // Insert summary into db.
         $id = $DB->insert_record(SEARCH_DATABASE_TABLE, $doc);
 
         return $id;
@@ -212,7 +212,7 @@ class IndexDBControl {
      * @param document must be a Lucene document instance, or at least a dbid enveloppe
      * @uses db
      */
-    public function delDocument($document) {
+    public function delete_document($document) {
         global $DB;
 
         $DB->delete_records(SEARCH_DATABASE_TABLE, array('id' => $document->dbid));

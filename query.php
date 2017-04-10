@@ -47,12 +47,12 @@ require('../../config.php');
 require_once($CFG->dirroot.'/local/search/lib.php');
 require_once($CFG->dirroot.'/local/search/querylib.php');
 
-$page_number  = optional_param('page', -1, PARAM_INT);
-$pages        = ($page_number == -1) ? false : true;
+$pagenum  = optional_param('page', -1, PARAM_INT);
+$pages        = ($pagenum == -1) ? false : true;
 $advanced     = (optional_param('a', '0', PARAM_INT) == '1') ? true : false;
-$query_string = optional_param('query_string', '', PARAM_CLEAN);
+$querystring = optional_param('query_string', '', PARAM_CLEAN);
 
-$url = new moodle_url('/local/search/query.php', array('query_string' => $query_string));
+$url = new moodle_url('/local/search/query.php', array('query_string' => $querystring));
 $PAGE->set_url($url);
 
 $context = context_system::instance();
@@ -62,23 +62,25 @@ if ($CFG->forcelogin) {
     require_login();
 }
 
+$config = get_config('local_search');
+
 if (empty($config->enable)) {
     print_error('globalsearchdisabled', 'local_search');
 }
 
-$adv = new Object();
+$adv = new StdClass();
 
 // Discard harmfull searches.
 
-if (preg_match("/^[\*\?]+$/", $query_string)) {
-    $query_string = '';
-    $error = get_string('fullwildcardquery','local_search');
+if (preg_match("/^[\*\?]+$/", $querystring)) {
+    $querystring = '';
+    $error = get_string('fullwildcardquery', 'local_search');
 }
 
 if ($pages && isset($_SESSION['search_advanced_query'])) {
-    // if both are set, then we are busy browsing through the result pages of an advanced query
+    // If both are set, then we are busy browsing through the result pages of an advanced query.
     $adv = unserialize($_SESSION['search_advanced_query']);
-} elseif ($advanced) {
+} else if ($advanced) {
 
     // Otherwise we are dealing with a new advanced query.
     unset($_SESSION['search_advanced_query']);
@@ -96,29 +98,29 @@ if ($pages && isset($_SESSION['search_advanced_query'])) {
 }
 
 if ($advanced) {
-    //parse the advanced variables into a query string
-    //TODO: move out to external query class (QueryParse?)
+    // Parse the advanced variables into a query string.
+    // TODO: move out to external query class (QueryParse?).
 
-    $query_string = '';
+    $querystring = '';
 
     // Get all available module types adding third party modules.
-    $module_types = array_merge(array('all'), array_values(search_get_document_types()));
-    $module_types = array_merge($module_types, array_values(search_get_document_types('X_SEARCH_TYPE')));
-    $adv->module = in_array($adv->module, $module_types) ? $adv->module : 'all';
+    $moduletypes = array_merge(array('all'), array_values(search_get_document_types()));
+    $moduletypes = array_merge($moduletypes, array_values(search_get_document_types('X_SEARCH_TYPE')));
+    $adv->module = in_array($adv->module, $moduletypes) ? $adv->module : 'all';
 
     // Convert '1 2' into '+1 +2' for required words field.
     if (strlen(trim($adv->mustappear)) > 0) {
-        $query_string  = ' +'.implode(' +', preg_split("/[\s,;]+/", $adv->mustappear));
+        $querystring  = ' +'.implode(' +', preg_split("/[\s,;]+/", $adv->mustappear));
     }
 
     // Convert '1 2' into '-1 -2' for not wanted words field.
     if (strlen(trim($adv->notappear)) > 0) {
-        $query_string .= ' -'.implode(' -', preg_split("/[\s,;]+/", $adv->notappear));
+        $querystring .= ' -'.implode(' -', preg_split("/[\s,;]+/", $adv->notappear));
     }
 
     // This field is left untouched, apart from whitespace being stripped.
     if (strlen(trim($adv->canappear)) > 0) {
-        $query_string .= ' '.implode(' ', preg_split("/[\s,;]+/", $adv->canappear));
+        $querystring .= ' '.implode(' ', preg_split("/[\s,;]+/", $adv->canappear));
     }
 
     // Add module restriction.
@@ -126,33 +128,33 @@ if ($advanced) {
     $titlestr = 'title';
     $authorstr = 'author';
     if ($adv->module != 'all') {
-        $query_string .= " +{$doctypestr}:".$adv->module;
+        $querystring .= " +{$doctypestr}:".$adv->module;
     }
 
     // Create title search string.
     if (strlen(trim($adv->title)) > 0) {
-        $query_string .= " +{$titlestr}:".implode(" +{$titlestr}:", preg_split("/[\s,;]+/", $adv->title));
+        $querystring .= " +{$titlestr}:".implode(" +{$titlestr}:", preg_split("/[\s,;]+/", $adv->title));
     }
 
     // Create author search string.
     if (strlen(trim($adv->author)) > 0) {
-        $query_string .= " +{$authorstr}:".implode(" +{$authorstr}:", preg_split("/[\s,;]+/", $adv->author));
+        $querystring .= " +{$authorstr}:".implode(" +{$authorstr}:", preg_split("/[\s,;]+/", $adv->author));
     }
 
     // Save our options if the query is valid.
-    if (!empty($query_string)) {
+    if (!empty($querystring)) {
         $_SESSION['search_advanced_query'] = serialize($adv);
     }
 }
 
 // Normalise page number.
-if ($page_number < 1) {
-    $page_number = 1;
+if ($pagenum < 1) {
+    $pagenum = 1;
 }
 
 // Run the query against the index ensuring internal coding works in UTF-8.
 Zend_Search_Lucene_Analysis_Analyzer::setDefault(new Zend_Search_Lucene_Analysis_Analyzer_Common_Utf8_CaseInsensitive());
-$sq = new SearchQuery($query_string, $page_number, 10, false);
+$sq = new SearchQuery($querystring, $pagenum, 10, false);
 
 if (!$site = get_site()) {
     redirect($CFG->wwwroot);
@@ -165,6 +167,8 @@ $PAGE->set_title("$site->fullname");
 $PAGE->set_heading("$site->shortname: $strsearch: $strquery");
 $PAGE->navbar->add($strsearch, new moodle_url('/local/search/index.php'));
 $PAGE->navbar->add($strquery);
+
+$renderer = $PAGE->get_renderer('local_search');
 
 echo $OUTPUT->header();
 
@@ -181,123 +185,47 @@ $vars = get_object_vars($adv);
 
 if (isset($vars)) {
     foreach ($vars as $key => $value) {
-        // htmlentities breaks non-ascii chars
+        // Htmlentities breaks non-ascii chars.
         $adv->key = stripslashes($value);
-        //$adv->$key = stripslashes(htmlentities($value));
     }
 }
 
-$url = new moodle_url('/local/sharedresources/query.php');
+$url = new moodle_url('/local/search/query.php');
 echo '<form id="query" method="get" action="'.$url.'">';
 
 if (!$advanced) {
-    echo '<input type="text" name="query_string" length="50" value="'.$query_string.'" />';
-    echo '&nbsp;<input type="submit" value="'.get_string('search', 'local_search').'" /> &nbsp;';
-    $url = new moodle_url('/local/sharedresources/query.php', array('a' => 1));
-    echo '<a href="'.$url.'">'.get_string('advancedsearch', 'local_search').'</a> |';
-    $url = new moodle_url('/local/sharedresources/stats.php');
-    echo '<a href="'.$url.'">'.get_string('statistics', 'local_search').'</a>';
+    echo $renderer->simple_form($querystring);
 } else {
     echo $OUTPUT->box_start();
-  ?>
-    <input type="hidden" name="a" value="<?php p($advanced); ?>"/>
 
-    <table border="0" cellpadding="3" cellspacing="3">
-
-    <tr>
-      <td width="240"><?php print_string('thesewordsmustappear', 'local_search') ?>:</td>
-      <td><input type="text" name="mustappear" length="50" value="<?php p($adv->mustappear); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('thesewordsmustnotappear', 'local_search') ?>:</td>
-      <td><input type="text" name="notappear" length="50" value="<?php p($adv->notappear); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('thesewordshelpimproverank', 'local_search') ?>:</td>
-      <td><input type="text" name="canappear" length="50" value="<?php p($adv->canappear); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('whichmodulestosearch', 'local_search') ?>:</td>
-      <td>
-        <select name="module">
-<?php 
-    foreach ($module_types as $mod) {
-        if ($mod == $adv->module) {
-            if ($mod != 'all'){
-                print '<option value="'.$mod.'" selected="selected">'.get_string('modulenameplural', $mod).'</option>'."\n";
-            } else {
-                print '<option value="'.$mod.'" selected="selected">'.get_string('all', 'local_search').'</option>'."\n";
-            }
-        } else {
-            if ($mod != 'all'){
-                print "<option value='$mod'>".get_string('modulenameplural', $mod)."</option>\n";
-            } else {
-                print "<option value='$mod'>".get_string('all', 'local_search')."</option>\n";
-            }
-        }
-    }
-?>
-        </select>
-      </td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('wordsintitle', 'local_search') ?>:</td>
-      <td><input type="text" name="title" length="50" value="<?php p($adv->title); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td><?php print_string('authorname', 'local_search') ?>:</td>
-      <td><input type="text" name="author" length="50" value="<?php p($adv->author); ?>" /></td>
-    </tr>
-
-    <tr>
-      <td colspan="3" align="center"><br /><input type="submit" value="<?php p(get_string('search', 'local_search')) ?>" /></td>
-    </tr>
-
-    <tr>
-      <td colspan="3" align="center">
-        <table border="0" cellpadding="0" cellspacing="0">
-          <tr>
-            <td><a href="query.php"><?php print_string('normalsearch', 'local_search') ?></a> |</td>
-            <td>&nbsp;<a href="stats.php"><?php print_string('statistics', 'local_search') ?></a></td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    </table>
-<?php
+    echo $renderer->advanced_form($adv);
     echo $OUTPUT->box_end();
 }
-?>
-</form>
-<br/>
 
-<div align="center">
-<?php
+echo '</form>';
+echo '<br/>';
+
+echo '<div align="center">';
 print_string('searching', 'local_search').': ';
 
 if ($sq->is_valid_index()) {
-    //use cached variable to show up-to-date index size (takes deletions into account)
-    print 0 + @$config->index_size;
+    // Use cached variable to show up-to-date index size (takes deletions into account).
+    echo 0 + @$config->index_size;
 } else {
-    print "0";
-} 
+    print '0';
+}
 
-print ' ';
+echo ' ';
 print_string('documents', 'local_search');
-print '.';
+echo '.';
 
 if (!$sq->is_valid_index() && has_capability('moodle/site:config', context_system::instance())) {
-    print '<p>' . get_string('noindexmessage', 'local_search') . '<a href="indexersplash.php">' . get_string('createanindex', 'local_search').'</a></p>'."\n";
-} 
+    echo '<p>'.get_string('noindexmessage', 'local_search').'<a href="indexersplash.php"> ';
+    echo get_string('createanindex', 'local_search').'</a></p>'."\n";
+}
 
-?>
-</div>
-<?php
+echo '</div>';
+
 echo $OUTPUT->box_end();
 
 // Prints all the results in a box.
@@ -306,29 +234,27 @@ if ($sq->is_valid()) {
     echo $OUTPUT->box_start();
 
     search_stopwatch();
-    $hit_count = $sq->count();
+    $hitcount = $sq->count();
 
-    print "<br />";
+    echo "<br />";
 
-    print $hit_count.' '.get_string('resultsreturnedfor', 'local_search') . " '".s($query_string)."'.";
-    print '<br />';
+    echo $hitcount.' '.get_string('resultsreturnedfor', 'local_search') . " '".s($querystring)."'.";
+    echo '<br />';
 
-    if ($hit_count > 0) {
-        $page_links = $sq->page_numbers();
+    if ($hitcount > 0) {
+        $pagelinks = $sq->page_numbers();
         $hits = $sq->results();
 
         if ($advanced) {
-            // if in advanced mode, search options are saved in the session, so
-            // we can remove the query string var from the page links, and replace
-            // it with a=1 (Advanced = on) instead
-            $page_links = preg_replace("/query_string=[^&]+/", 'a=1', $page_links);
+            /*
+             * if in advanced mode, search options are saved in the session, so
+             * we can remove the query string var from the page links, and replace
+             * it with a=1 (Advanced = on) instead
+             */
+            $pagelinks = preg_replace("/query_string=[^&]+/", 'a=1', $pagelinks);
         }
 
-        print "<ol>";
-
-        $typestr = get_string('type', 'local_search');
-        $scorestr = get_string('score', 'local_search');
-        $authorstr = get_string('author', 'local_search');
+        echo '<ol>';
 
         $searchables = search_collect_searchables(false, false);
 
@@ -337,49 +263,40 @@ if ($sq->is_valid()) {
             if ($listing->doctype == 'user') {
                 // A special handle for users.
                 $user = $DB->get_record('user', array('id' => $listing->userid));
-                $icon = $OUTPUT->user_picture($user) ;
+                $listing->icon = $OUTPUT->user_picture($user);
             } else {
-                $iconpath = $OUTPUT->pix_url($listing->doctype.'/icon');
-                $icon = '<img align="top" src="'.$iconpath.'" class="activityicon" alt=""/>';
+                $iconpath = $OUTPUT->pix_url('icon', $listing->doctype);
+                $listing->icon = '<img align="top" src="'.$iconpath.'" class="activityicon" alt=""/>';
             }
             $coursename = $DB->get_field('course', 'fullname', array('id' => $listing->courseid));
             $courseword = mb_convert_case(get_string('course', 'moodle'), MB_CASE_LOWER, 'UTF-8');
-            $course = ($listing->doctype != 'user') ? '<strong> ('.$courseword.': \''.$coursename.'\')</strong>' : '';
+            $listing->course = ($listing->doctype != 'user') ? '<strong> ('.$courseword.': \''.$coursename.'\')</strong>' : '';
 
-            $title_post_processing_function = $listing->doctype.'_link_post_processing';
-            $searchable_instance = $searchables[$listing->doctype];
-            if ($searchable_instance->location == 'internal') {
-                require_once $CFG->dirroot.'/local/search/documents/'.$listing->doctype.'_document.php';
+            $searchableinstance = $searchables[$listing->doctype];
+            if ($searchableinstance->location == 'internal') {
+                include_once($CFG->dirroot.'/local/search/documents/'.$listing->doctype.'_document.php');
             } else {
-                require_once $CFG->dirroot.'/'.$searchable_instance->location.'/'.$listing->doctype.'/search_document.php';
+                include_once($CFG->dirroot.'/'.$searchableinstance->location.'/'.$listing->doctype.'/search_document.php');
             }
-            if (function_exists($title_post_processing_function)) {
-                $listing->title = $title_post_processing_function($listing->title);
-            }
+            $wrapperclass = $listing->doctype.'_document_wrapper';
+            $listing->title = $wrapperclass->link_post_processing($listing->title);
 
-            echo '<li value="'.($listing->number + 1).'">';
-            $prcoessedurl = str_replace('DEFAULT_POPUP_SETTINGS', DEFAULT_POPUP_SETTINGS, $listing->url);
-            echo '<a href="'.$processedurl.'">'.$icon.' '.$listing->title.'</a> '.$course.'<br />'."\n";
-            echo "{$typestr}: " . $listing->doctype . ", {$scorestr}: " . round($listing->score, 3);
-            if (!empty($listing->author) && !is_numeric($listing->author)) {
-                echo ", {$authorstr}: ".$listing->author."\n"
-                    .'</li>'."\n";
-            }
+            echo $renderer->search_result($listing);
         }
         echo '</ol>';
-        echo $page_links;
+        echo $pagelinks;
     }
     echo $OUTPUT->box_end();
-?>
-<div align="center">
-<?php 
-    print_string('ittook', 'local_search');
-    search_stopwatch(); 
-    print_string('tofetchtheseresults', 'local_search');
-?>.
-</div>
 
-<?php
+    echo '<div align="center">';
+
+    print_string('ittook', 'local_search');
+    search_stopwatch();
+    print_string('tofetchtheseresults', 'local_search');
+    echo '.';
+    echo '</div>';
+
 }
 echo $OUTPUT->box_end();
+
 echo $OUTPUT->footer();

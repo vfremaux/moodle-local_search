@@ -46,9 +46,8 @@ try {
     mtrace("--ADD-------");
     require_once($CFG->dirroot.'/local/search/add.php');
     mtrace("------------");
-    //mtrace("cron finished.</pre>");
     mtrace('done');
-} catch(Exception $ex) {
+} catch (Exception $ex) {
     mtrace('Fatal exception from Lucene subsystem. Search engine may not have been updated.');
     mtrace($ex);
 }

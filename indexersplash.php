@@ -15,19 +15,18 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
-* Global Search Engine for Moodle
-*
-* @package local_search
-* @category local
-* @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
-* @date 2008/03/31
-* @license http://www.gnu.org/copyleft/gpl.html GNU Public License
-*
-* This file serves as a splash-screen (entry page) to the indexer script -
-* it is in place to prevent accidental reindexing which can lead to a loss
-* of time, amongst other things.
-*/
-
+ * Global Search Engine for Moodle
+ *
+ * @package local_search
+ * @category local
+ * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @date 2008/03/31
+ * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ *
+ * This file serves as a splash-screen (entry page) to the indexer script -
+ * it is in place to prevent accidental reindexing which can lead to a loss
+ * of time, amongst other things.
+ */
 require('../../config.php');
 require_once($CFG->dirroot.'/local/search/lib.php');
 
@@ -37,13 +36,14 @@ $PAGE->set_url($url);
 $context = context_system::instance();
 $PAGE->set_context($context);
 
-// makes inclusions of the Zend Engine more reliable
+// Makes inclusions of the Zend Engine more reliable.
 
-ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
+$dirsep = DIRECTORY_SEPARATOR;
+ini_set('include_path', $CFG->dirroot.$dirsep.'local'.$dirsep.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
 $config = get_config('local_search');
 
-// check global search is enabled 
+// Check global search is enabled.
 
 require_login();
 require_capability('moodle/site:config', context_system::instance());
@@ -56,7 +56,7 @@ require_once($CFG->dirroot.'/local/search/indexlib.php');
 $indexinfo = new IndexInfo();
 
 if ($indexinfo->valid()) {
-    // In case the index exists, 
+    // In case the index exists.
     $strsearch = get_string('search', 'local_search');
     $strquery  = get_string('stats');
 
@@ -65,7 +65,7 @@ if ($indexinfo->valid()) {
     $PAGE->set_pagelayout('admin');
     $PAGE->navbar->add($strsearch, 'index.php');
     $PAGE->navbar->add($strquery, 'stats.php');
-    $PAGE->navbar->add(get_string('runindexer','local_search'));
+    $PAGE->navbar->add(get_string('runindexer', 'local_search'));
 
     echo $OUTPUT->header();
 

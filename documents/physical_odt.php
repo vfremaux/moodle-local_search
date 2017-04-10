@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -27,16 +25,17 @@ defined('MOODLE_INTERNAL') || die();
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
- * this is a format handler for getting text out of the opensource ODT binary format 
+ * this is a format handler for getting text out of the opensource ODT binary format
  * so it can be indexed by Lucene search engine
  */
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * OpenOffice Odt extractor
  * @param object $physicalfilepath
  * @return some raw text for indexation
  */
-function get_text_for_indexing_odt($physicalfilepath){
+function get_text_for_indexing_odt($physicalfilepath) {
     global $CFG;
 
     $config = get_config('local_search');
@@ -47,32 +46,40 @@ function get_text_for_indexing_odt($physicalfilepath){
         $config->usemoodleroot = 1;
     }
 
-    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/" : '' ;
+    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/lib/" : '';
+    // Fix to unix path format.
+    $moodleroot = str_replace('\\', '/', $moodleroot);
 
     // Just call pdftotext over stdout and capture the output.
     if (!empty($config->odt_to_text_cmd)) {
         // We need to remove any line command options...
         preg_match("/^\S+/", $config->odt_to_text_cmd, $matches);
         if (!file_exists("{$moodleroot}{$matches[0]}")) {
-            mtrace('Error with OpenOffice ODT to text converter command : executable not found at '.$moodleroot.$CFG->block_search_odt_to_text_cmd);
+            $message = 'Error with OpenOffice ODT to text converter : executable not found at ';
+            $message .= $moodleroot.$config->odt_to_text_cmd;
+            mtrace($message);
         } else {
-            $file = escapeshellarg($physicalfilepath);
             $command = trim($config->odt_to_text_cmd);
-            $text_converter_cmd = "{$moodleroot}{$command} --encoding=UTF-8 $file";
-            mtrace("Executing : $text_converter_cmd");
-            $result = shell_exec($text_converter_cmd);
+            if ($CFG->ostype == 'WINDOWS') {
+                $command = str_replace('/', '\\', $command);
+                $physicalfilepath = str_replace('/', '\\', $physicalpath);
+            }
+            $physicalfilepath = escapeshellarg($physicalfilepath);
+            $textconvertercmd = "{$moodleroot}{$command} --encoding=UTF-8 $physicalpath";
+            mtrace("Executing : $textconvertercmd");
+            $result = shell_exec($textconvertercmd);
             if ($result) {
                 if (!empty($config->limit_index_body)) {
                     $result = shorten_text($result, $config->limit_index_body);
                 }
                 return $result;
             } else {
-                mtrace('Error with OpenOffice ODT to text converter command : execution failed. ');
+                mtrace('Error with OpenOffice ODT to text converter command : execution failed.');
                 return '';
             }
         }
     } else {
-        mtrace('Error with OpenOffice ODT to text converter command : command not set up. Execute once search block configuration.');
+        mtrace('Error with OpenOffice ODT to text converter : command not set up. Execute once search block configuration.');
         return '';
     }
 }

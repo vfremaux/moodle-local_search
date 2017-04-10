@@ -1,4 +1,18 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 $string['advancedsearch'] = 'Recherche avancée';
 $string['all'] = 'Tout';
@@ -17,31 +31,19 @@ $string['checkdir'] = 'Vérifier le dossier';
 $string['checkdiradvice'] = 'Vérifie que le dossier de données existe et qu\'il peut être modifié.';
 $string['commenton'] = 'Commenté le ';
 $string['configbuttonlabel'] = 'Libellé du bouton';
-$string['configbuttonlabel_desc'] = 'Libellé du bouton de lancement de la recherche.';
+$string['configdocxtotextcmd'] = 'Chemin vers le convertisseur DOCX to text';
 $string['configenablefileindexing'] = 'Indexation des fichiers physiques';
-$string['configenablefileindexing_desc'] = 'Si actif, les fichiers physiques attachés aux contenus Moodle ou aux ressources sont indexées en plein texte.';
 $string['configenableglobalsearch'] = 'Activation globale';
-$string['configenableglobalsearch_desc'] = 'Si désactivé, aucune indexation ne sera faite et toutes les interfaces relatives à la recherche globale sont masquées.';
 $string['configfiletypes'] = 'Types de fichiers';
-$string['configfiletypes_desc'] = 'Listes des types de fichiers (extensions) prises en charge par les conversions plein texte.';
 $string['configlimitindexbody'] = 'Limite de corps d\'analyse';
-$string['configlimitindexbody_desc'] = 'Limite la taille du corps de texte analysé pour l\'indexation. Ceci peut améliorer les performances de l\'indexeur, mais faire perdre des capacités de recherche.';
 $string['configpdftotextcmd'] = 'Chemin vers pdftotext';
-$string['configpdftotextcmd_desc'] = 'chemin système vers la librairie pdftotext (xpdf)';
 $string['configsearchtext'] = 'Texte de recherche';
-$string['configsearchtext_desc'] = 'Texte de recherche';
 $string['configtypetotxtcmd'] = 'Ligne de commande';
-$string['configtypetotxtcmd_desc'] = 'Ligne de commande système du convertiseseur';
 $string['configtypetotxtenv'] = 'Ligne d\'environnement système du convertisseur';
-$string['configtypetotxtenv_desc'] = 'Une définition d\'environnement si nécessaire.';
 $string['configusingsoftlock'] = 'Interblocage logiciel';
-$string['configusingsoftlock_desc'] = 'Bascule l\'interblocage des fichiers d\'index en mode "logiciel". Doit être utilisé dans les cas où l\'indexation continue des ressources est réalisée par plusieurs clusters différents sur un montage NFS partagé. L\'interblocage logiciel est moins rigoureux que l\'interblocage physique, mais est le seul moyen de fonctionner sur un système clusterisé.';
 $string['configutf8transcoding'] = 'Transcodage UTF8 des résultats';
-$string['configutf8transcoding_desc'] = 'Ceci ne devrait plus être utile';
 $string['configwordtotextcmd'] = 'chemin vers doctotext';
-$string['configwordtotextcmd_desc'] = 'Chemin système vers le convertisseur doctotext pour Word';
 $string['configwordtotextenv'] = 'Environnement doctotext';
-$string['configwordtotextenv_desc'] = 'Variable d\'environnment pour la conversion MSWord';
 $string['coresearchswitches'] = 'Recherche sur les éléments centraux';
 $string['createanindex'] = 'créer un index';
 $string['createdon'] = 'Créé le';
@@ -71,7 +73,7 @@ $string['ittook'] = 'Il a fallu ';
 $string['modulessearchswitches'] = 'Activation de l\'indexation des modules ';
 $string['next'] = 'Suite';
 $string['nochange'] = 'Pas de conversion';
-$string['noindexmessage'] = 'Administrateur : il semble qu\'il n\'y a pas d\'index de recherche. Merci de ';
+$string['noindexmessage'] = 'Administrateur&nbsp;: il semble qu\'il n\'y a pas d\'index de recherche. Merci de ';
 $string['normalsearch'] = 'Recherche normale';
 $string['nosearchableblocks'] = 'aucun bloc cherchable';
 $string['nosearchablemodules'] = 'Aucun module d\'activité';
@@ -105,3 +107,34 @@ $string['whichmodulestosearch'] = 'Rechercher dans quels modules ?';
 $string['wordhandling'] = 'Prise en charge des documents Word Microsoft';
 $string['wordsintitle'] = 'Termes dans le titre';
 
+$string['configbuttonlabel_desc'] = 'Libellé du bouton de lancement de la recherche.';
+
+$string['configenablefileindexing_desc'] = 'Si actif, les fichiers physiques attachés aux contenus Moodle ou
+aux ressources sont indexées en plein texte.';
+
+$string['configenableglobalsearch_desc'] = 'Si désactivé, aucune indexation ne sera faite et toutes les interfaces relatives
+à la recherche globale sont masquées.';
+
+$string['configfiletypes_desc'] = 'Listes des types de fichiers (extensions) prises en charge par les conversions plein texte.';
+
+$string['configlimitindexbody_desc'] = 'Limite la taille du corps de texte analysé pour l\'indexation. Ceci peut améliorer
+les performances de l\'indexeur, mais faire perdre des capacités de recherche.';
+
+$string['configpdftotextcmd_desc'] = 'chemin système vers la librairie pdftotext (xpdf)';
+
+$string['configsearchtext_desc'] = 'Texte de recherche';
+
+$string['configtypetotxtcmd_desc'] = 'Ligne de commande système du convertiseseur';
+
+$string['configtypetotxtenv_desc'] = 'Une définition d\'environnement si nécessaire.';
+
+$string['configusingsoftlock_desc'] = 'Bascule l\'interblocage des fichiers d\'index en mode "logiciel". Doit être utilisé dans
+ cas où l\'indexation continue des ressources est réalisée par plusieurs clusters différents sur un montage NFS partagé.
+ L\'interblocage logiciel est moins rigoureux que l\'interblocage physique, mais est le seul moyen de fonctionner sur un
+ système clusterisé.';
+
+$string['configutf8transcoding_desc'] = 'Ceci ne devrait plus être utile';
+
+$string['configwordtotextcmd_desc'] = 'Chemin système vers le convertisseur doctotext pour Word';
+
+$string['configwordtotextenv_desc'] = 'Variable d\'environnment pour la conversion MSWord';

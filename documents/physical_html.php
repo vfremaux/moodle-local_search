@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -26,17 +24,18 @@ defined('MOODLE_INTERNAL') || die();
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
- * this is a format handler for getting text out of a standard html format 
+ * this is a format handler for getting text out of a standard html format
  * so it can be indexed by Lucene search engine
  */
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * @param string $physicalfilepath
  * @return some raw text for indexation
  */
-function get_text_for_indexing_html($physicalfilepath){
-    
-    // wraps to htm handler
-    include_once 'physical_htm.php';
+function get_text_for_indexing_html($physicalfilepath) {
+
+    // Wraps to htm handler.
+    include_once('physical_htm.php');
     return get_text_for_indexing_htm($physicalfilepath);
 }

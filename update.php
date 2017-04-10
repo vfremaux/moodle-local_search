@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -30,17 +28,23 @@ defined('MOODLE_INTERNAL') || die();
  * Major chages in this review is passing the xxxx_db_names return to
  * multiple arity to handle multiple document types modules
  */
+defined('MOODLE_INTERNAL') || die();
 
-/// makes inclusions of the Zend Engine more reliable
-ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
+
+// Makes inclusions of the Zend Engine more reliable.
+
+$dirsep = DIRECTORY_SEPARATOR;
+ini_set('include_path', $CFG->dirroot.$dirsep.'local'.$dirsep.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
 require_once($CFG->dirroot.'/local/search/lib.php');
 require_once($CFG->dirroot.'/local/search/indexlib.php');
 
 try {
     $index = new Zend_Search_Lucene(SEARCH_INDEX_PATH);
-} catch(LuceneException $e) {
-    mtrace("Could not construct a valid index. Maybe the first indexation was never made, or files might be corrupted. Run complete indexation again.");
+} catch (LuceneException $e) {
+    $message = "Could not construct a valid index. Maybe the first indexation was never made, or files might be corrupted.";
+    $message .= " Run complete indexation again.";
+    mtrace($message);
     return;
 }
 
@@ -49,7 +53,7 @@ if (!isset($config)) {
 }
 
 $dbcontrol = new IndexDBControl();
-$update_count = 0;
+$updatecount = 0;
 $indexdate = 0 + @$config->update_date;
 $startupdatedate = time();
 
@@ -67,104 +71,102 @@ if ($mods = search_collect_searchables(false, true)) {
             continue;
         }
 
-        $class_file = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
-        $get_document_function = $mod->name.'_single_document';
-        $delete_function = $mod->name.'_delete';
-        $db_names_function = $mod->name.'_db_names';
+        $classfile = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
         $updates = array();
-        
-        if (file_exists($class_file)) {
-            require_once($class_file);
 
-            //if both required functions exist
-            if (function_exists($delete_function) and function_exists($db_names_function) and function_exists($get_document_function)) {
-                mtrace("Checking $mod->name module for updates.");
-                $valuesArray = $db_names_function();
-                if ($valuesArray){
-                    foreach ($valuesArray as $values) {
+        if (file_exists($classfile)) {
+            require_once($classfile);
 
-                        $where = (!empty($values[5])) ? 'AND ('.$values[5].')' : '';
-                        $joinextension = (!empty($values[6])) ? $values[6] : '';
-                        $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " AND itemtype = '{$values[4]}' " : '' ;
+            $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
 
-                        //TODO: check 'in' syntax with other RDBMS' (add and update.php as well)
-                        $table = SEARCH_DATABASE_TABLE;
-                        $query = "
-                            SELECT 
-                                docid,
-                                itemtype
-                            FROM 
-                                {{$table}}
-                            WHERE
-                                doctype = '{$values[1]}'
-                                $itemtypes
-                        ";
-                        $docIds = $DB->get_records_sql_menu($query, array($mod->name));
-                        $docIdList = ($docIds) ? implode("','", array_keys($docIds)) : '' ;
+            // If both required functions exist.
+            mtrace("Checking $mod->name module for updates.");
+            $valuesarray = $wrapperclass::db_names();
+            if ($valuesarray) {
+                foreach ($valuesarray as $values) {
 
-                        $sql = "
-                            SELECT 
-                                {$values[0]} as id,
-                                {$values[0]} as docid
-                            FROM 
-                                {{$values[1]}}
-                                $joinextension
-                            WHERE
-                                {$values[3]} > {$indexdate} AND 
-                                {$values[0]} IN ('{$docIdList}')
-                                $where
-                        ";
-                        echo $sql;
-                        $records = $DB->get_records_sql($sql);
-                        if (is_array($records)) {
-                            foreach($records as $record) {
-                                $updates[] = $delete_function($record->docid, $docIds[$record->docid]);
-                            } 
-                        } 
-                    }
+                    $where = (!empty($values[5])) ? 'AND ('.$values[5].')' : '';
+                    $joinextension = (!empty($values[6])) ? $values[6] : '';
+                    $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " AND itemtype = '{$values[4]}' " : '';
 
-                    foreach ($updates as $update) {
-                        ++$update_count;
+                    // TODO: check 'in' syntax with other RDBMS' (add and update.php as well).
+                    $table = SEARCH_DATABASE_TABLE;
+                    $query = "
+                        SELECT
+                            docid,
+                            itemtype
+                        FROM
+                            {{$table}}
+                        WHERE
+                            doctype = '{$values[1]}'
+                            $itemtypes
+                    ";
+                    $docids = $DB->get_records_sql_menu($query, array($mod->name));
+                    $docidlist = ($docids) ? implode("','", array_keys($docids)) : '';
 
-                        //delete old document
-                        $doc = $index->find("+docid:{$update->id} +doctype:{$mod->name} +itemtype:{$update->itemtype}");
-
-                        // Get the record, should only be one.
-                        foreach ($doc as $thisdoc) {
-                            mtrace("  Delete: $thisdoc->title (database id = $thisdoc->dbid, index id = $thisdoc->id, moodle instance id = $thisdoc->docid)");
-                            $dbcontrol->delDocument($thisdoc);
-                            $index->delete($thisdoc->id);
+                    $sql = "
+                        SELECT
+                            {$values[0]} as id,
+                            {$values[0]} as docid
+                        FROM
+                            {{$values[1]}}
+                            $joinextension
+                        WHERE
+                            {$values[3]} > {$indexdate} AND
+                            {$values[0]} IN ('{$docidlist}')
+                            $where
+                    ";
+                    echo $sql;
+                    $records = $DB->get_records_sql($sql);
+                    if (is_array($records)) {
+                        foreach ($records as $record) {
+                            $updates[] = $wrapperclass::delete($record->docid, $docids[$record->docid]);
                         }
-
-                        // Add new modified document back into index.
-                        if (!$add = $get_document_function($update->id, $update->itemtype)) {
-                            // Ignore on errors.
-                            continue;
-                        }
-
-                        //object to insert into db
-                        $dbid = $dbcontrol->addDocument($add);
-
-                        // Synchronise db with index.
-                        $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
-                        mtrace("  Add: $add->title (database id = $add->dbid, moodle instance id = $add->docid)");
-                        $index->addDocument($add);
                     }
                 }
-                else{
-                    mtrace("No types to update.\n");
+
+                foreach ($updates as $update) {
+                    ++$updatecount;
+
+                    // Delete old document.
+                    $doc = $index->find("+docid:{$update->id} +doctype:{$mod->name} +itemtype:{$update->itemtype}");
+
+                    // Get the record, should only be one.
+                    foreach ($doc as $thisdoc) {
+                        $message = " Delete: $thisdoc->title (database id = $thisdoc->dbid, index id = $thisdoc->id, ";
+                        $message .= " moodle instance id = $thisdoc->docid)";
+                        mtrace($message);
+                        $dbcontrol->delete_document($thisdoc);
+                        $index->delete($thisdoc->id);
+                    }
+
+                    // Add new modified document back into index.
+                    if (!$add = $wrapperclass::single_document($update->id, $update->itemtype)) {
+                        // Ignore on errors.
+                        continue;
+                    }
+
+                    // Object to insert into db.
+                    $dbid = $dbcontrol->add_document($add);
+
+                    // Synchronise db with index.
+                    $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
+                    mtrace("  Add: $add->title (database id = $add->dbid, moodle instance id = $add->docid)");
+                    $index->addDocument($add);
                 }
-                mtrace("Finished $mod->name.\n");
+            } else {
+                mtrace("No types to update.\n");
             }
+            mtrace("Finished $mod->name.\n");
         }
     }
 }
 
-//commit changes
+// Commit changes.
 $index->commit();
 
-//update index date
+// Update index date.
 set_config('update_date', $startupdatedate, 'local_search');
 
-mtrace("Finished $update_count updates");
+mtrace("Finished $updatecount updates");
 
