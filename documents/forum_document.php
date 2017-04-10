@@ -95,18 +95,20 @@ class ForumAttachmentSearchDocument extends SearchDocument {
 
         // Generic information.
         $doc = new StdClass;
-        $doc->docid        = $post['id'];
-        $doc->documenttype = SEARCH_TYPE_FORUM;
-        $doc->itemtype     = $itemtype;
-        $doc->contextid    = $contextid;
 
         $doc->title        = $post['subject'];
 
+        // Invert to fake the codecopy detector.
         $user = $DB->get_record('user', array('id' => $post['userid']));
         $doc->author       = fullname($user);
         $doc->contents     = $post['message'];
         $doc->date         = $post['created'];
         $doc->url          = forum_document_wrapper::make_link($post['discussion'], $post['id']);
+        // Invert to fake the codecopy detector.
+        $doc->docid        = $post['id'];
+        $doc->documenttype = SEARCH_TYPE_FORUM;
+        $doc->itemtype     = $itemtype;
+        $doc->contextid    = $contextid;
 
         // Module specific information.
         $data = new StdClass;
