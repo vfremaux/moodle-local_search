@@ -37,7 +37,7 @@ interface indexable {
      * part of standard API. Provides the set of searchable instances.
      *
      */
-    static function get_iterator();
+    public static function get_iterator();
 
     /**
      * Part of standard API
@@ -45,7 +45,7 @@ interface indexable {
      * @param notneeded to comply API, remember to fake the iterator array though
      * @return an array of searchable documents
      */
-    static function get_content_for_index(&$instance);
+    public static function get_content_for_index(&$instance);
 
     /**
      * part of standard API.
@@ -53,7 +53,7 @@ interface indexable {
      * @param id the id of the accessible document
      * @return a searchable object or null if failure
      */
-    static function single_document($id, $itemtype);
+    public static function single_document($id, $itemtype);
 
     /**
      * returns the var names needed to build a sql query for addition/deletions
@@ -61,7 +61,7 @@ interface indexable {
      * [primary id], [table name], [time created field name], [time modified field name],
      * [additional where conditions for sql]
      */
-    static function db_names();
+    public static function db_names();
 
     /**
      * this function handles the access policy to contents indexed as searchable documents. If this
@@ -74,7 +74,7 @@ interface indexable {
      * @param group_id the current group used by the user when searching
      * @return true if access is allowed, false elsewhere
      */
-    static function check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid);
+    public static function check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid);
 
 }
 
@@ -91,7 +91,7 @@ abstract class document_wrapper implements indexable {
      * @return a full featured link element as a string
      */
     public static function make_link($instanceid) {
-        if (!empty($modname)) {
+        if (!empty(self::$modname)) {
             return new moodle_url('/mod/'.self::modname.'/view.php', array('id' => $instanceid));
         }
     }
@@ -115,8 +115,8 @@ abstract class document_wrapper implements indexable {
      */
     public static function link_post_processing($title) {
 
-        setLocale(LC_TIME, substr(current_language(), 0, 2));
-        $title = preg_replace('/TT_(.*)_TT/e', "userdate(\\1)", $title);
+        setlocale(LC_TIME, substr(current_language(), 0, 2));
+        $title = preg_replace('/TT_(.*)_TT/', userdate("\\1"), $title);
 
         $config = get_config('local_search');
 
