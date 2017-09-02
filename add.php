@@ -32,7 +32,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 // Makes inclusions of the Zend Engine more reliable.
-ini_set('include_path', $CFG->dirroot.DIRECTORY_SEPARATOR.'local'.DIRECTORY_SEPARATOR.'search'.PATH_SEPARATOR.ini_get('include_path'));
+$dirsep = DIRECTORY_SEPARATOR;
+ini_set('include_path', $CFG->dirroot.$dirsep.'local'.$dirsep.'search'.PATH_SEPARATOR.ini_get('include_path'));
 
 require_once($CFG->dirroot.'/local/search/lib.php');
 require_once($CFG->dirroot.'/local/search/indexlib.php');
@@ -47,13 +48,15 @@ if (empty($config->enable)) {
 
 try {
     $index = new Zend_Search_Lucene(SEARCH_INDEX_PATH);
-} catch(LuceneException $e) {
-    mtrace("Could not construct a valid index. Maybe the first indexation was never made, or files might be corrupted. Run complete indexation again.");
+} catch (LuceneException $e) {
+    $message = 'Could not construct a valid index. Maybe the first indexation was never made, ';
+    $message .= 'or files might be corrupted. Run complete indexation again.';
+    mtrace($message);
     return;
 }
 
 $dbcontrol = new IndexDBControl();
-$addition_count = 0;
+$additioncount = 0;
 $startindextime = time();
 
 $indexdate = $config->rundate;
@@ -64,7 +67,7 @@ mtrace('Index size before: '.$config->index_size."\n");
 // Get all modules.
 if ($mods = search_collect_searchables(false, true)) {
 
-// Append virtual modules onto array.
+    // Append virtual modules onto array.
 
     foreach ($mods as $mod) {
 
@@ -75,85 +78,83 @@ if ($mods = search_collect_searchables(false, true)) {
         }
 
         // Build include file and function names.
-        $class_file = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
-        $db_names_function = $mod->name.'_db_names';
-        $get_document_function = $mod->name.'_single_document';
-        $get_newrecords_function = $mod->name.'_new_records';
+        $classfile = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
         $additions = array();
 
-        if (file_exists($class_file)) {
-            require_once($class_file);
+        if (file_exists($classfile)) {
+            require_once($classfile);
+            $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
 
             // If both required functions exist.
-            if (function_exists($db_names_function) and function_exists($get_document_function)) {
-                mtrace("Checking $mod->name module for additions.");
-                $valuesArray = $db_names_function();
-                if ($valuesArray){
-                    foreach ($valuesArray as $values) {
-                        $where = (!empty($values[5])) ? 'AND ('.$values[5].')' : '';
-                        $joinextension = (!empty($values[6])) ? $values[6] : '';
-                        $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " AND itemtype = '{$values[4]}' " : '' ;
+            mtrace("Checking $mod->name module for additions.");
 
-                        // Select records in MODULE table, but not in SEARCH_DATABASE_TABLE.
-                        $table = SEARCH_DATABASE_TABLE;
-                        $query = "
-                            SELECT
-                                docid,
-                                itemtype
-                            FROM
-                                {{$table}}
-                            WHERE
-                                doctype = '{$values[1]}'
-                                $itemtypes
-                        ";
-                        $docIds = $DB->get_records_sql_menu($query, array($mod->name));
-                        $docIdList = ($docIds) ? implode("','", array_keys($docIds)) : '';
+            $valuesarr = $wrapperclass::db_names();
 
-                        $query =  "
-                            SELECT
-                                {$values[0]} as id, 
-                                {$values[0]} as docid 
-                            FROM
-                                {{$values[1]}}
-                                $joinextension
-                            WHERE
-                                {$values[0]} NOT IN ('{$docIdList}') AND 
-                                {$values[2]} > {$indexdate}
-                                $where
-                        ";
-                        $records = $DB->get_records_sql($query);
+            if ($valuesarr) {
+                foreach ($valuesarr as $values) {
+                    $where = (!empty($values[5])) ? 'AND ('.$values[5].')' : '';
+                    $joinextension = (!empty($values[6])) ? $values[6] : '';
+                    $itemtypes = ($values[4] != '*' && $values[4] != 'any') ? " AND itemtype = '{$values[4]}' " : '';
 
-                        // foreach record, build a module specific search document using the get_document function
-                        if (is_array($records)) {
-                            foreach ($records as $record) {
-                                $add = $get_document_function($record->docid, $values[4]);
-                                // some documents may not be indexable
-                                if ($add) {
-                                    $additions[] = $add;
-                                }
-                            } 
-                        } 
-                    } 
+                    // Select records in MODULE table, but not in SEARCH_DATABASE_TABLE.
+                    $table = SEARCH_DATABASE_TABLE;
+                    $sql = "
+                        SELECT
+                            docid,
+                            itemtype
+                        FROM
+                            {{$table}}
+                        WHERE
+                            doctype = '{$values[1]}'
+                            $itemtypes
+                    ";
+                    $docids = $DB->get_records_sql_menu($sql, array($mod->name));
+                    $docidlist = ($docids) ? implode("','", array_keys($docids)) : '';
 
-                    // Foreach document, add it to the index and database table.
-                    foreach ($additions as $add) {
-                        ++$addition_count;
+                    $sql = "
+                        SELECT
+                            {$values[0]} as id,
+                            {$values[0]} as docid
+                        FROM
+                            {{$values[1]}}
+                            $joinextension
+                        WHERE
+                            {$values[0]} NOT IN ('{$docidlist}') AND
+                            {$values[2]} > {$indexdate}
+                            $where
+                    ";
+                    $records = $DB->get_records_sql($sql);
 
-                        // Object to insert into db.
-                        $dbid = $dbcontrol->addDocument($add);
-
-                        // Synchronise db with index
-                        $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
-
-                        mtrace("  Add: $add->title (database id = $add->dbid, moodle instance id = $add->docid)");
-
-                        $index->addDocument($add);
+                    // Foreach record, build a module specific search document using the get_document function.
+                    if (is_array($records)) {
+                        foreach ($records as $record) {
+                            $add = $wrapperclass::single_document($record->docid, $values[4]);
+                            // Some documents may not be indexable.
+                            if ($add) {
+                                $additions[] = $add;
+                            }
+                        }
                     }
-                } else {
-                    mtrace("No types to add.\n");
                 }
-                mtrace("Finished $mod->name.\n");
+
+                // Foreach document, add it to the index and database table.
+                foreach ($additions as $add) {
+                    ++$additioncount;
+
+                    // Object to insert into db.
+                    $dbid = $dbcontrol->add_document($add);
+
+                    // Synchronise db with index.
+                    $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
+
+                    mtrace("Add: $add->title (database id = $add->dbid, moodle instance id = $add->docid)");
+
+                    $index->addDocument($add);
+                }
+            } else {
+                mtrace("No types to add.\n");
             }
+            mtrace("Finished $mod->name.\n");
         }
     }
 }
@@ -165,10 +166,10 @@ $index->commit();
 // Update index date and size.
 
 set_config('run_date', $startindextime, 'local_search');
-set_config('index_size', (int)$config->index_size + (int)$addition_count, 'local_search');
+set_config('index_size', (int)$config->index_size + (int)$additioncount, 'local_search');
 
 // Print some additional info.
 
-mtrace("Added $addition_count documents.");
+mtrace("Added $additioncount documents.");
 mtrace('Index size after: '.$index->count());
 

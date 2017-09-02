@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -27,41 +25,42 @@ defined('MOODLE_INTERNAL') || die();
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
  * @note : The Adobe SWF Converters library is not GPL, although it can be of free use in some
- * situations. This file is provided for convenience, but should use having a glance at 
+ * situations. This file is provided for convenience, but should use having a glance at
  * {@link http://www.adobe.com/licensing/developer/}
  *
- * this is a format handler for getting text out of a proprietary binary format 
+ * this is a format handler for getting text out of a proprietary binary format
  * so it can be indexed by Lucene search engine
  */
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * @param string $physicalfilepath
  * @return some raw text for indexation
  */
-function get_text_for_indexing_swf($physicalfilepath){
+function get_text_for_indexing_swf($physicalfilepath) {
     global $CFG;
 
     $config = get_config('local_search');
 
-    // adds moodle root switch if none was defined
+    // Adds moodle root switch if none was defined.
     if (!isset($config->usemoodleroot)) {
         set_config('usemoodleroot', 1, 'local_search');
         $config->usemoodleroot = 1;
     }
 
-    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/" : '' ;
+    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/" : '';
 
-    // just call pdftotext over stdout and capture the output
-    if (!empty($config->pdf_to_text_cmd)){
+    // Just call pdftotext over stdout and capture the output.
+    if (!empty($config->pdf_to_text_cmd)) {
         $command = trim($config->swf_to_text_cmd);
-        if (!file_exists("{$moodleroot}{$command}")){
+        if (!file_exists("{$moodleroot}{$command}")) {
             mtrace('Error with swf to text converter command : executable not found as '.$moodleroot.$command);
         } else {
             $file = escapeshellarg($physicalfilepath);
-            $text_converter_cmd = "{$moodleroot}{$command} -t $file";
-            $result = shell_exec($text_converter_cmd);
+            $textconvertercmd = "{$moodleroot}{$command} -t $file";
+            $result = shell_exec($textconvertercmd);
 
-            // result is in html. We must strip it off
+            // Result is in html. We must strip it off.
             $result = preg_replace("/<[^>]*>/", '', $result);
             $result = preg_replace("/<!--[^>]*-->/", '', $result);
             $result = html_entity_decode($result, ENT_COMPAT, 'UTF-8');
@@ -73,12 +72,14 @@ function get_text_for_indexing_swf($physicalfilepath){
                 }
                 return $result;
             } else {
-                mtrace('Error with swf to text converter command : execution failed for '.$text_converter_cmd.'. Check for execution permission on swf converter executable.');
+                $message = 'Error with swf to text converter command : execution failed for '.$textconvertercmd;
+                $message .= '. Check for execution permission on swf converter executable.';
+                mtrace($message);
                 return '';
             }
         }
     } else {
-        mtrace('Error with swf to text converter command : command not set up. Execute once search block configuration.');
+        mtrace('Error with swf to text converter : command not set up. Execute once search block configuration.');
         return '';
     }
 }

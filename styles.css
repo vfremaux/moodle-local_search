@@ -1,0 +1,13 @@
+.search-results * {
+    line-height: 1.3em;
+}
+
+.search-result {
+    font-size: 120%;
+    margin-bottom: 15px;
+}
+
+.search-result-attributes {
+    font-size: 80%;
+}
+

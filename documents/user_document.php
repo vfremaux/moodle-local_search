@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -29,8 +27,19 @@ defined('MOODLE_INTERNAL') || die();
  *
  * special (EXTRA) document handling for user related data
  */
+namespace local_search;
+
+use \StdClass;
+use \context_module;
+use \context_course;
+use \context_system;
+use \context_user;
+use \moodle_url;
+
+defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/local/search/documents/document.php');
+require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
 require_once($CFG->dirroot.'/blog/lib.php');
 
 /**
@@ -39,9 +48,9 @@ require_once($CFG->dirroot.'/blog/lib.php');
 class UserSearchDocument extends SearchDocument {
 
     /**
-    * Constructor.
-    */
-    public function __construct(&$userhash, $user_id, $context_id) {
+     * Constructor.
+     */
+    public function __construct(&$userhash, $userid, $contextid) {
         global $DB;
 
         // Generic information; required.
@@ -49,23 +58,33 @@ class UserSearchDocument extends SearchDocument {
         $doc->docid         = $userhash['id'];
         $doc->documenttype  = SEARCH_TYPE_USER;
         $doc->itemtype      = 'user';
-        $doc->contextid     = $context_id;
+        $doc->contextid     = $contextid;
 
-        $user = $DB->get_record('user', array('id' => $user_id));
+        $user = $DB->get_record('user', array('id' => $userid));
         $doc->title         = get_string('user').': '.fullname($user);
-        $doc->date          = ($userhash['lastaccess']) ? $userhash['lastaccess'] : time() ;
+        $doc->date          = ($userhash['lastaccess']) ? $userhash['lastaccess'] : time();
 
         // Remove '(ip.ip.ip.ip)' from chat author list.
         $doc->author        = $user->id;
         $doc->contents      = $userhash['description'];
-        $doc->url           = user_make_link($user_id, 'user');
+        $doc->url           = user_document_wrapper::make_link($userid, 'user');
 
         // Module specific information; optional.
 
-        /* construct the parent class
+        /*
+         * construct the parent class
          * Shirai : User pictures are not displayed in results of blogs (2009/05/29) MDL19341
          */
-        parent::__construct($doc, $data, 0, 0, $user_id, PATH_FOR_SEARCH_TYPE_USER);
+        parent::__construct($doc, $data, 0, 0, $userid, PATH_FOR_SEARCH_TYPE_USER);
+
+        // Add extra fields.
+
+        $encoding = 'UTF-8';
+
+        $this->addField(Zend_Search_Lucene_Field::Keyword('institution', $userhash['institution'], $encoding));
+        $this->addField(Zend_Search_Lucene_Field::Keyword('department', $userhash['department'], $encoding));
+        $this->addField(Zend_Search_Lucene_Field::Keyword('country', $userhash['country'], $encoding));
+
     }
 }
 
@@ -78,7 +97,7 @@ class UserPostSearchDocument extends SearchDocument {
     /**
      * Constructor.
      */
-    public function __construct(&$post, $user_id, $context_id) {
+    public function __construct(&$post, $userid, $contextid) {
         global $DB;
 
         // Generic information; required.
@@ -86,26 +105,24 @@ class UserPostSearchDocument extends SearchDocument {
         $doc->docid         = $post['id'];
         $doc->documenttype  = SEARCH_TYPE_USER;
         $doc->itemtype      = 'post';
-        $doc->contextid     = $context_id;
+        $doc->contextid     = $contextid;
 
-        $user = $DB->get_record('user', array('id' => $user_id));
+        $user = $DB->get_record('user', array('id' => $userid));
 
         // We cannot call userdate with relevant locale at indexing time.
-        // $doc->title         = get_string('post').': '.fullname($user);
         $doc->title         = $post['subject'];
         $doc->date          = $post['created'];
 
         // Remove '(ip.ip.ip.ip)' from chat author list.
         $doc->author        = fullname($user);
         $doc->contents      = $post['description'];
-        // $doc->url           = user_make_link($user_id, 'post');
-        $doc->url           = user_make_link($post['id'], 'post');
+        $doc->url           = user_document_wrapper::make_link($post['id'], 'post');
 
         // Module specific information; optional.
 
         // Construct the parent class.
-        parent::__construct($doc, $data, 0, 0, $user_id, PATH_FOR_SEARCH_TYPE_USER);
-    } 
+        parent::__construct($doc, $data, 0, 0, $userid, PATH_FOR_SEARCH_TYPE_USER);
+    }
 }
 
 /**
@@ -116,7 +133,7 @@ class UserBlogAttachmentSearchDocument extends SearchDocument {
     /**
      * constructor
      */
-    public function __construct(&$post, $context_id) {
+    public function __construct(&$post, $contextid) {
         global $DB;
 
         // Generic information; required.
@@ -124,7 +141,7 @@ class UserBlogAttachmentSearchDocument extends SearchDocument {
         $doc->docid         = $post['id'];
         $doc->documenttype  = SEARCH_TYPE_USER;
         $doc->itemtype      = 'attachment';
-        $doc->contextid     = $context_id;
+        $doc->contextid     = $contextid;
 
         $user = $DB->get_record('user', array('id' => $post['userid']));
 
@@ -135,267 +152,194 @@ class UserBlogAttachmentSearchDocument extends SearchDocument {
         // Remove '(ip.ip.ip.ip)' from chat author list.
         $doc->author        = fullname($user);
         $doc->contents      = $post['alltext'];
-        $doc->url           = user_make_link($post['id'], 'attachment');
+        $doc->url           = user_document_wrapper::make_link($post['id'], 'attachment');
 
         // Module specific information; optional.
 
         // Construct the parent class.
         parent::__construct($doc, $data, 0, 0, $post['userid'], PATH_FOR_SEARCH_TYPE_USER);
-    } 
-}
-
-
-/**
- * constructs a valid link to a user record
- * @param userid the user
- * @param itemtype 
- * @uses CFG
- * @return a well formed link to user information
- */
-function user_make_link($itemid, $itemtype) {
-    global $CFG, $DB;
-
-    if ($itemtype == 'user') {
-        return new moodle_url('/user/view.php', array('id' => $itemid));
-    } elseif ($itemtype == 'post') {
-        return new moodle_url('/blog/index.php', array('postid' => $itemid));
-    } elseif ($itemtype == 'attachment') {
-        $post = $DB->get_record('post', array('id' => $itemid));
-        // TODO : change to pluginfile
-        /*
-        if (!$CFG->slasharguments){
-            return $CFG->wwwroot."/file.php?file=/blog/attachments/{$post->id}/{$post->attachment}";
-        } else {
-            return $CFG->wwwroot."/file.php/blog/attachments/{$post->id}/{$post->attachment}";
-        }
-        */
-    } else {
-        return null;
     }
 }
 
-/**
- * part of search engine API
- *
- */
-function user_iterator() {
-    global $DB;
+class user_document_wrapper extends document_wrapper {
 
-    $users = $DB->get_records('user');
-    return $users;
-}
+    /**
+     * constructs a valid link to a user record
+     * @param userid the user
+     * @param itemtype
+     * @return a well formed link to user information
+     */
+    public static function make_link($instanceid) {
 
-/**
- * part of search engine API
- * @uses CFG
- * @return an array of documents generated from data
- */
-function user_get_content_for_index(&$user) {
-    global $CFG, $DB;
+        // Get an additional subentity id dynamically.
+        $extravars = func_get_args();
+        array_shift($extravars);
+        $itemtype = array_shift($extravars);
 
-    $documents = array();
-    $config = get_config('local_search');
+        if ($itemtype == 'user') {
+            return new moodle_url('/user/view.php', array('id' => $instanceid));
+        } else if ($itemtype == 'post') {
+            return new moodle_url('/blog/index.php', array('postid' => $instanceid));
+        } else if ($itemtype == 'attachment') {
+            $post = $DB->get_record('post', array('id' => $instanceid));
+            // TODO : change to pluginfile
+            /*
+            if (!$CFG->slasharguments){
+                return $CFG->wwwroot."/file.php?file=/blog/attachments/{$post->id}/{$post->attachment}";
+            } else {
+                return $CFG->wwwroot."/file.php/blog/attachments/{$post->id}/{$post->attachment}";
+            }
+            */
+        } else {
+            return null;
+        }
+    }
 
-    $userhash = get_object_vars($user);
-    $documents[] = new UserSearchDocument($userhash, $user->id, null);
+    /**
+     * part of search engine API
+     *
+     */
+    public static function get_iterator() {
+        global $DB;
 
-    if ($posts = $DB->get_records('post', array('userid' => $user->id), 'created')) {
-        foreach ($posts as $post) {
-            $texts = array();
-            $texts[] = $post->subject;
-            $texts[] = $post->summary;
-            $texts[] = $post->content;
-            $post->description = implode(" ", $texts);
+        $users = $DB->get_records('user');
+        return $users;
+    }
 
-            // record the attachment if any and physical files can be indexed
-            if (@$config->enable_file_indexing) {
+    /**
+     * part of search engine API
+     * @uses CFG
+     * @return an array of documents generated from data
+     */
+    public static function get_content_for_index(&$user) {
+        global $CFG, $DB;
+
+        $documents = array();
+        $config = get_config('local_search');
+        $fs = get_file_storage();
+
+        $userhash = get_object_vars($user);
+        $documents[] = new UserSearchDocument($userhash, $user->id, null);
+
+        if ($posts = $DB->get_records('post', array('userid' => $user->id), 'created')) {
+            foreach ($posts as $post) {
+                $texts = array();
+                $texts[] = $post->subject;
+                $texts[] = $post->summary;
+                $texts[] = $post->content;
+                $post->description = implode(' ', $texts);
+
+                // Record the attachment if any and physical files can be indexed.
+                if (@$config->enable_file_indexing) {
+                    $contextid = context_user::instance($post->userid)->id;
+                    $files = $fs->get_area_files($contextid, 'blog', 'attachement', $post->id, 'filename', true);
+                    if ($post->attachment && !empty($files)) {
+                        $file = array_pop($files);
+                        search_get_physical_file($documents, $file, $post, $contextid, 'UserBlogAttachmentSearchDocument', false);
+                    }
+                }
+
+                $posthash = get_object_vars($post);
+                $documents[] = new UserPostSearchDocument($posthash, $user->id, null);
+            }
+        }
+        return $documents;
+    }
+
+    /**
+     * returns a single user search document
+     * @param composite $id a unique document id made with
+     * @param itemtype the type of information (session is the only type)
+     */
+    public static function single_document($id, $itemtype) {
+        global $DB;
+
+        $config = get_config('local_search');
+
+        if ($itemtype == 'user') {
+            if ($user = $DB->get_record('user', array('id' => $id))) {
+                $userhash = get_object_vars($user);
+                return new UserSearchDocument($userhash, $user->id, 'user', null);
+            }
+        } else if ($itemtype == 'post') {
+            if ($post = $DB->get_records('post', array('id' => $id))) {
+                $texts = array();
+                $texts[] = $post->subject;
+                $texts[] = $post->summary;
+                $texts[] = $post->content;
+                $post->description = implode(' ', $texts);
+                $posthash = get_object_vars($post);
+                return new UserPostSearchDocument($posthash, $user->id, 'post', null);
+            }
+        } else if ($itemtype == 'attachment' && $config->enable_file_indexing) {
+            if ($post = $DB->get_records('post', array('id' => $id))) {
+                $contextid = context_user::instance($post->userid)->id;
                 if ($post->attachment) {
-                    user_get_physical_file($post, null, false, $documents);
+                    return search_get_physical_file($documents, $file, $post, $contextid, 'UserBlogAttachmentSearchDocument', true);
                 }
             }
-
-            $posthash = get_object_vars($post);
-            $documents[] = new UserPostSearchDocument($posthash, $user->id, null);
         }
-    }
-    return $documents;
-}
-
-/**
- * get text from a physical file 
- * @param object $post a post to whech the file is attached to 
- * @param boolean $context_id if in future we need recording a context along with the search document, pass it here
- * @param boolean $getsingle if true, returns a single search document, elsewhere return the array
- * given as documents increased by one
- * @param array $documents the array of documents, by ref, where to add the new document.
- * @return a search document when unique or false.
- */
-function user_get_physical_file(&$post, $context_id, $getsingle, &$documents = null) {
-    global $CFG;
-
-    $config = get_config('local_search');
-
-    // Cannot index empty references.
-    if (empty($post->attachment)) {
-        mtrace("Cannot index, empty reference.");
-        return false;
+        return null;
     }
 
-    $fileparts = pathinfo($post->attachment);
-    // Cannot index unknown or masked types.
-    if (empty($fileparts['extension'])) {
-        mtrace("Cannot index without explicit extension.");
-        return false;
+    /**
+     * returns the var names needed to build a sql query for addition/deletions
+     * attachments are indirect records, linked to its post
+     * [primary id], [table name], [time created field name], [time modified field name] [itemtype]
+     * [select restriction clause]
+     */
+    public static function db_names() {
+        return array(
+            array('id', 'user', 'firstaccess', 'timemodified', 'user'),
+            array('id', 'post', 'created', 'lastmodified', 'post'),
+            array('id', 'post', 'created', 'lastmodified', 'attachment')
+        );
     }
 
-    // Cannot index non existent file.
-    $file = "{$CFG->dataroot}/blog/attachments/{$post->id}/{$post->attachment}";
-    if (!file_exists($file)){
-        mtrace("Missing attachment file $file : will not be indexed.");
-        return false;
-    }
+    /**
+     * this function handles the access policy to contents indexed as searchable documents. If this
+     * function does not exist, the search engine assumes access is allowed.
+     * When this point is reached, we already know that :
+     * - user is legitimate in the surrounding context
+     * - user may be guest and guest access is allowed to the module
+     * - the function may perform local checks within the module information logic
+     * @param path the access path to the module script code
+     * @param itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
+     * @param this_id the item id within the information class denoted by entry_type. In chats, this id
+     * points out a session history which is a close sequence of messages.
+     * @param user the user record denoting the user who searches
+     * @param group_id the current group used by the user when searching
+     * @uses CFG
+     * @return true if access is allowed, false elsewhere
+     */
+    public static function check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid) {
+        global $CFG, $DB;
 
-    $ext = strtolower($fileparts['extension']);
+        include_once("{$CFG->dirroot}/{$path}/lib.php");
+        $config = get_config('local_search');
 
-    // Cannot index unallowed or unhandled types.
-    if (!preg_match("/\b$ext\b/i", $config->filetypes)) {
-        mtrace($fileparts['extension'] . ' is not an allowed extension for indexing');
-        return false;
-    }
+        if ($itemtype == 'user') {
+            // Get the user.
+            $userrecord = $DB->get_record('user', array('id' => $thisid));
 
-    if (file_exists($CFG->dirroot.'/search/documents/physical_'.$ext.'.php')) {
-        include_once($CFG->dirroot.'/search/documents/physical_'.$ext.'.php');
-        $function_name = 'get_text_for_indexing_'.$ext;
-        $directfile = "blog/attachments/{$post->id}/{$post->attachment}";
-        $post->alltext = $function_name($post, $directfile);
-        if (!empty($post->alltext)){
-            if ($getsingle){
-                $posthash = get_object_vars($post);
-                $single = new UserBlogAttachmentSearchDocument($posthash, $context_id);
-                mtrace("finished attachment {$post->attachment} in {$post->title}");
-                return $single;
-            } else {
-                $posthash = get_object_vars($post);
-                $documents[] = new UserBlogAttachmentSearchDocument($posthash, $context_id);
+            // We cannot see nothing from unconfirmed users.
+            if (!$userrecord->confirmed &&
+                    !has_capability('moodle/site:config', context_system::instance())) {
+                if (!empty($config->access_debug)) {
+                    echo "search reject : unconfirmed user ";
+                }
+                return false;
             }
-            mtrace("finished attachment {$post->attachment} in {$post->subject}");
+        } else if ($itemtype == 'post' || $itemtype == 'attachment') {
+            // Get the post.
+            $post = $DB->get_record('post', array('id' => $thisid));
+            $userrecord = $DB->get_record('user', array('id' => $post->userid));
+
+            // We can try using blog visibility check.
+            return blog_user_can_view_user_post($user->id, $post);
         }
-    } else {
-        mtrace("fulltext handler not found for $ext type");
+        $context = $DB->get_record('context', array('id' => $contextid));
+
+        return true;
     }
-    return false;
-}
-
-/**
- * returns a single user search document 
- * @param composite $id a unique document id made with 
- * @param itemtype the type of information (session is the only type)
- */
-function user_single_document($id, $itemtype) {
-    global $DB;
-
-    $config = get_config('local_search');
-
-    if ($itemtype == 'user') {
-        if ($user = $DB->get_record('user', array('id' =>$id))){
-            $userhash = get_object_vars($user);
-            return new UserSearchDocument($userhash, $user->id, 'user', null);
-        }
-    } elseif ($itemtype == 'post') {
-        if ($post = $DB->get_records('post', array('id' => $id))){
-            $texts = array();
-            $texts[] = $post->subject;
-            $texts[] = $post->summary;
-            $texts[] = $post->content;
-            $post->description = implode(" ", $texts);
-            $posthash = get_object_vars($post);
-            return new UserPostSearchDocument($posthash, $user->id, 'post', null);
-        }
-    } elseif ($itemtype == 'attachment' && $config->enable_file_indexing) {
-        if ($post = $DB->get_records('post', array('id' => $id))){
-            if ($post->attachment){
-                return user_get_physical_file($post, null, true);
-            }
-        }
-    }
-    return null;
-}
-
-/**
- * dummy delete function that packs id with itemtype.
- * this was here for a reason, but I can't remember it at the moment.
- */
-function user_delete($info, $itemtype) {
-    $object->id = $info;
-    $object->itemtype = $itemtype;
-    return $object;
-}
-
-/**
- * returns the var names needed to build a sql query for addition/deletions
- * attachments are indirect records, linked to its post
- */
-function user_db_names() {
-    //[primary id], [table name], [time created field name], [time modified field name] [itemtype] [select restriction clause]
-    return array(
-        array('id', 'user', 'firstaccess', 'timemodified', 'user'),
-        array('id', 'post', 'created', 'lastmodified', 'post'),
-        array('id', 'post', 'created', 'lastmodified', 'attachment')
-    );
-}
-
-/**
- * this function handles the access policy to contents indexed as searchable documents. If this 
- * function does not exist, the search engine assumes access is allowed.
- * When this point is reached, we already know that : 
- * - user is legitimate in the surrounding context
- * - user may be guest and guest access is allowed to the module
- * - the function may perform local checks within the module information logic
- * @param path the access path to the module script code
- * @param itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
- * @param this_id the item id within the information class denoted by entry_type. In chats, this id 
- * points out a session history which is a close sequence of messages.
- * @param user the user record denoting the user who searches
- * @param group_id the current group used by the user when searching
- * @uses CFG
- * @return true if access is allowed, false elsewhere
- */
-function user_check_text_access($path, $itemtype, $this_id, $user, $group_id, $context_id) {
-    global $CFG, $DB;
-
-    include_once("{$CFG->dirroot}/{$path}/lib.php");
-
-    if ($itemtype == 'user') {
-        // Get the user. 
-        $userrecord = $DB->get_record('user', array('id' => $this_id));
-
-        // We cannot see nothing from unconfirmed users.
-        if (!$userrecord->confirmed and !has_capability('moodle/site:config', context_system::instance())) {
-            if (!empty($CFG->search_access_debug)) echo "search reject : unconfirmed user ";
-            return false;
-        }
-    } elseif ($itemtype == 'post' || $itemtype == 'attachment') {
-        // Get the post.
-        $post = $DB->get_record('post', array('id' => $this_id));
-        $userrecord = $DB->get_record('user', array('id' => $post->userid));
-
-        // we can try using blog visibility check
-        return blog_user_can_view_user_post($user->id, $post);
-    }
-    $context = $DB->get_record('context', array('id' => $context_id));
-
-    return true;
-}
-
-/**
- * this call back is called when displaying the link for some last post processing
- */
-function user_link_post_processing($title) {
-
-    $config = get_config();
-
-    if ($config->utf8dir) {
-        return mb_convert_encoding($title, 'UTF-8', 'auto');
-    }
-    return mb_convert_encoding($title, 'auto', 'UTF-8');
 }

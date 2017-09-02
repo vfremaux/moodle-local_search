@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<libraries>
+  <library>
+    <location>Zend</location>
+    <name>Zend Lucene Engine</name>
+    <license>GPL</license>
+    <version></version>
+    <licenseversion></licenseversion>
+  </library>
+  <library>
+    <location>cli</location>
+    <name>Console scripts</name>
+    <license>GPL</license>
+    <version></version>
+    <licenseversion></licenseversion>
+  </library>
+  <library>
+    <location>extra</location>
+    <name>Special unchecked funtions</name>
+    <license>GPL</license>
+    <version></version>
+    <licenseversion></licenseversion>
+  </library>
+  <library>
+    <location>lib</location>
+    <name>Document converters</name>
+    <license></license>
+    <version></version>
+    <licenseversion></licenseversion>
+  </library>
+</libraries>

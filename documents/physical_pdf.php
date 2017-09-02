@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -25,9 +23,10 @@ defined('MOODLE_INTERNAL') || die();
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
- * this is a format handler for getting text out of a proprietary binary format 
+ * this is a format handler for getting text out of a proprietary binary format
  * so it can be indexed by Lucene search engine
  */
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * @param string $physicalfilepath
@@ -44,31 +43,39 @@ function get_text_for_indexing_pdf($physicalfilepath) {
         $config->usemoodleroot = 1;
     }
 
-    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/" : '';
+    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/lib/" : '';
+    // Fix to unix path format.
+    $moodleroot = str_replace('\\', '/', $moodleroot);
 
-    // just call pdftotext over stdout and capture the output
+    // Just call pdftotext over stdout and capture the output.
     if (!empty($config->pdf_to_text_cmd)) {
-        // we need to remove any line command options...
+        // We need to remove any line command options...
         preg_match("/^\S+/", $config->pdf_to_text_cmd, $matches);
         if (!file_exists("{$moodleroot}{$matches[0]}")) {
-            mtrace('Error with pdf to text converter command : executable not found at '.$moodleroot.$matches[0]);
+            mtrace('Error with pdf to text converter : executable not found at '.$moodleroot.$matches[0]);
         } else {
-            $file = escapeshellarg($physicalfilepath);
             $command = trim($config->pdf_to_text_cmd);
-            $text_converter_cmd = "{$moodleroot}{$command} $file -";
-            $result = shell_exec($text_converter_cmd);
+            if ($CFG->ostype == 'WINDOWS') {
+                $command = str_replace('/', '\\', $command);
+                $physicalfilepath = str_replace('/', '\\', $physicalfilepath);
+            }
+            $physicalfilepath = escapeshellarg($physicalfilepath);
+            $textconvertercmd = "{$moodleroot}{$command} $physicalfilepath -";
+            $result = shell_exec($textconvertercmd);
             if ($result) {
                 if (!empty($config->limit_index_body)) {
                     $result = shorten_text($result, $config->limit_index_body);
                 }
                 return $result;
             } else {
-                mtrace('Error with pdf to text converter command : execution failed for '.$text_converter_cmd.'. Check for execution permission on pdf converter executable.');
+                $message = 'Error with pdf to text converter command : execution failed for '.$textconvertercmd;
+                $message .= '. Check for execution permission on pdf converter executable.';
+                mtrace($message);
                 return '';
             }
         }
     } else {
-        mtrace('Error with pdf to text converter command : command not set up. Execute once search block configuration.');
+        mtrace('Error with pdf to text converter : command not set up. Execute once search block configuration.');
         return '';
     }
 }

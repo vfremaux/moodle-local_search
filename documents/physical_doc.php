@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Global Search Engine for Moodle
  *
@@ -27,19 +25,20 @@ defined('MOODLE_INTERNAL') || die();
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
- * this is a format handler for getting text out of a proprietary binary format 
+ * this is a format handler for getting text out of a proprietary binary format
  * so it can be indexed by Lucene search engine
  */
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * MS Word extractor
- * @param object $resource 
+ * @param object $resource
  * @uses $CFG
  */
 function get_text_for_indexing_doc($physicalfilepath) {
     global $CFG;
 
-    $config = get_config('block_search');
+    $config = get_config('local_search');
 
     // Adds moodle root switch if none was defined.
     if (!isset($config->usemoodleroot)) {
@@ -47,7 +46,9 @@ function get_text_for_indexing_doc($physicalfilepath) {
         $config->usemoodleroot = 1;
     }
 
-    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/" : '' ;
+    $moodleroot = ($config->usemoodleroot) ? "{$CFG->dirroot}/local/search/lib/" : '';
+    // Fix to unix path format.
+    $moodleroot = str_replace('\\', '/', $moodleroot);
 
     // Just call antiword over stdout and capture the output.
     if (!empty($config->word_to_text_cmd)) {
@@ -58,12 +59,16 @@ function get_text_for_indexing_doc($physicalfilepath) {
         } else {
 
             $command = trim($config->word_to_text_cmd);
-            $text_converter_cmd = "{$moodleroot}{$command} -m UTF-8.txt $physicalfilepath";
-            if ($config->word_to_text_env){
+            if ($CFG->ostype == 'WINDOWS') {
+                $command = str_replace('/', '\\', $command);
+                $physicalfilepath = str_replace('/', '\\', $physicalfilepath);
+            }
+            $textconvertercmd = "{$moodleroot}{$command} -m UTF-8.txt $physicalfilepath";
+            if ($config->word_to_text_env) {
                 putenv($config->word_to_text_env);
             }
-            mtrace("Executing : $text_converter_cmd");
-            $result = shell_exec($text_converter_cmd);
+            mtrace("Executing : $textconvertercmd");
+            $result = shell_exec($textconvertercmd);
             if ($result) {
                 if (!empty($config->limit_index_body)) {
                     $result = shorten_text($result, $config->limit_index_body);
