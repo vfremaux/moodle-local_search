@@ -81,9 +81,9 @@ class UserSearchDocument extends SearchDocument {
 
         $encoding = 'UTF-8';
 
-        $this->addField(Zend_Search_Lucene_Field::Keyword('institution', $userhash['institution'], $encoding));
-        $this->addField(Zend_Search_Lucene_Field::Keyword('department', $userhash['department'], $encoding));
-        $this->addField(Zend_Search_Lucene_Field::Keyword('country', $userhash['country'], $encoding));
+        $this->addField(\Zend_Search_Lucene_Field::Keyword('institution', $userhash['institution'], $encoding));
+        $this->addField(\Zend_Search_Lucene_Field::Keyword('department', $userhash['department'], $encoding));
+        $this->addField(\Zend_Search_Lucene_Field::Keyword('country', $userhash['country'], $encoding));
 
     }
 }
