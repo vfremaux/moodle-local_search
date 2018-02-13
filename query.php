@@ -198,7 +198,11 @@ if (!$advanced) {
 } else {
     echo $OUTPUT->box_start();
 
+<<<<<<< HEAD
     echo $renderer->advanced_form($adv);
+=======
+    echo $renderer->advanced_form($adv, $moduletypes);
+>>>>>>> MOODLE_34_STABLE
     echo $OUTPUT->box_end();
 }
 
@@ -278,8 +282,13 @@ if ($sq->is_valid()) {
             } else {
                 include_once($CFG->dirroot.'/'.$searchableinstance->location.'/'.$listing->doctype.'/search_document.php');
             }
+<<<<<<< HEAD
             $wrapperclass = $listing->doctype.'_document_wrapper';
             $listing->title = $wrapperclass->link_post_processing($listing->title);
+=======
+            $wrapperclass = '\\local_search\\'.$listing->doctype.'_document_wrapper';
+            $listing->title = $wrapperclass::link_post_processing($listing->title);
+>>>>>>> MOODLE_34_STABLE
 
             echo $renderer->search_result($listing);
         }

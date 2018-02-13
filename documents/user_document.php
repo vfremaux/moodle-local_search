@@ -76,6 +76,18 @@ class UserSearchDocument extends SearchDocument {
          * Shirai : User pictures are not displayed in results of blogs (2009/05/29) MDL19341
          */
         parent::__construct($doc, $data, 0, 0, $userid, PATH_FOR_SEARCH_TYPE_USER);
+<<<<<<< HEAD
+=======
+
+        // Add extra fields.
+
+        $encoding = 'UTF-8';
+
+        $this->addField(\Zend_Search_Lucene_Field::Keyword('institution', $userhash['institution'], $encoding));
+        $this->addField(\Zend_Search_Lucene_Field::Keyword('department', $userhash['department'], $encoding));
+        $this->addField(\Zend_Search_Lucene_Field::Keyword('country', $userhash['country'], $encoding));
+
+>>>>>>> MOODLE_34_STABLE
     }
 }
 
