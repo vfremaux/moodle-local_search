@@ -398,11 +398,7 @@ class SearchQuery {
         $unenroled = !in_array($courseid, array_keys($mycourses));
 
         // If guests are allowed, logged guest can see.
-<<<<<<< HEAD
-        $isallowedguest = (isguest()) ? $DB->get_field('course', 'guest', array('id' => $courseid)) : false;
-=======
         $isallowedguest = (isguestuser()) ? $DB->get_field('course', 'guest', array('id' => $courseid)) : false;
->>>>>>> MOODLE_34_STABLE
 
         if ($unenroled && !$isallowedguest) {
             return false;
