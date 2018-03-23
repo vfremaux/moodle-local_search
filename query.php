@@ -269,7 +269,7 @@ if ($sq->is_valid()) {
                 $user = $DB->get_record('user', array('id' => $listing->userid));
                 $listing->icon = $OUTPUT->user_picture($user);
             } else {
-                $iconpath = $OUTPUT->pix_url('icon', $listing->doctype);
+                $iconpath = $OUTPUT->image_url('icon', $listing->doctype);
                 $listing->icon = '<img align="top" src="'.$iconpath.'" class="activityicon" alt=""/>';
             }
             $coursename = $DB->get_field('course', 'fullname', array('id' => $listing->courseid));
