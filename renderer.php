@@ -75,11 +75,7 @@ class local_search_renderer extends plugin_renderer_base {
         return $str;
     }
 
-<<<<<<< HEAD
-    public function advanced_form($adv) {
-=======
     public function advanced_form($adv, $moduletypes) {
->>>>>>> MOODLE_34_STABLE
         $str = '';
 
         $str .= '<input type="hidden" name="a" value="1"/>';
@@ -104,11 +100,6 @@ class local_search_renderer extends plugin_renderer_base {
         $str .= '<tr>';
         $str .= '  <td>'.get_string('whichmodulestosearch', 'local_search').':</td>';
         $str .= '  <td>';
-<<<<<<< HEAD
-        foreach ($moduletypes as $mod) {
-            if ($mod != 'all') {
-                $optionsmenu[$mod] = get_string('modulenameplural', $mod);
-=======
         $optionsmenu = array();
         foreach ($moduletypes as $mod) {
             if ($mod != 'all') {
@@ -117,7 +108,6 @@ class local_search_renderer extends plugin_renderer_base {
                 } else {
                     $optionsmenu[$mod] = get_string('users');
                 }
->>>>>>> MOODLE_34_STABLE
             } else {
                 $optionsmenu[$mod] = get_string('all', 'local_search');
             }

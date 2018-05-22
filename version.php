@@ -27,20 +27,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->version  = 2015072400;
-<<<<<<< HEAD
-$plugin->requires = 2016120500;  // Requires this Moodle version.
-$plugin->component = 'local_search';
-$plugin->maturity = MATURITY_BETA;
-$plugin->release = '3.2.0 (Build 2015072400)';
-
-// Non moodle attributes.
-$plugin->codeincrement = '3.2.0000';
-=======
-$plugin->requires = 2017110800;  // Requires this Moodle version.
+$plugin->requires = 2018042700;  // Requires this Moodle version.
 $plugin->component = 'local_search';
 $plugin->maturity = MATURITY_RC;
-$plugin->release = '3.4.0 (Build 2015072400)';
+$plugin->release = '3.5.0 (Build 2015072400)';
 
 // Non moodle attributes.
-$plugin->codeincrement = '3.4.0000';
->>>>>>> MOODLE_34_STABLE
+$plugin->codeincrement = '3.5.0000';
