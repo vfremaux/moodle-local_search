@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+// Privacy
+$string['privacy:metadata'] = 'Le moteur de recherche local, bien que pouvant indexer des données liées à des utisateurs, ne stocke lui même aucune donnée personnelle.';
+
 $string['advancedsearch'] = 'Recherche avancée';
 $string['all'] = 'Tout';
 $string['asynchronous'] = 'Asynchrone (Ajax)';

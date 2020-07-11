@@ -16,6 +16,9 @@
 
 $string['pluginname'] = 'Local Global Search';
 
+// Privacy
+$string['privacy:metadata'] = 'The Local Search plugin, although indexing personnal information for search purpose,  does not store itself any personal data about the users.';
+
 $string['advancedsearch'] = 'Advanced search';
 $string['all'] = 'All';
 $string['asynchronous'] = 'Asynchronous (Ajax)';

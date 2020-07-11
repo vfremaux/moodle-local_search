@@ -14,23 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
- * Version details.
- *
- * @package local_search
- * @category local
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
- * @date 2008/03/31
- * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
- */
+namespace local_search\privacy;
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2015072400;
-$plugin->requires = 2019051100;  // Requires this Moodle version.
-$plugin->component = 'local_search';
-$plugin->maturity = MATURITY_RC;
-$plugin->release = '3.7.0 (Build 2015072400)';
-
-// Non moodle attributes.
-$plugin->codeincrement = '3.7.0000';
+class provider implements \core_privacy\local\metadata\null_provider {
+    /**
+     * Get the language string identifier with the component's language
+     * file to explain why this plugin stores no data.
+     *
+     * @return  string
+     */
+    public static function get_reason() : string {
+        return 'privacy:metadata';
+    }
+}

@@ -16,24 +16,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// Settings default init.
-if (is_dir($CFG->dirroot.'/local/adminsettings')) {
-    // Integration driven code.
-    require_once($CFG->dirroot.'/local/adminsettings/lib.php');
-    list($hasconfig, $hassiteconfig, $capability) = local_adminsettings_access();
-} else {
-    // Standard Moodle code.
-    $capability = 'moodle/site:config';
-    $hasconfig = $hassiteconfig = has_capability($capability, context_system::instance());
-}
-
 if ($hassiteconfig) {
     require_once($CFG->dirroot.'/local/search/lib.php');
 
     $settings = new admin_settingpage('local_search', get_string('pluginname', 'local_search'));
     $ADMIN->add('searchplugins', $settings);
-
-    $defaultfiletypes = "PDF,TXT,HTML,PPT,XML,DOC,HTM,DOCX";
 
     $convertoptions = array(
         '-1' => get_string('fromutf', 'local_search'),
@@ -58,6 +45,7 @@ if ($hassiteconfig) {
     $key = 'local_search/filetypes';
     $label = get_string('configfiletypes', 'local_search');
     $desc = get_string('configfiletypes_desc', 'local_search');
+    $defaultfiletypes = "PDF,TXT,HTML,PPT,XML,DOC,HTM,DOCX";
     $settings->add(new admin_setting_configtext($key, $label, $desc, $defaultfiletypes, PARAM_TEXT));
 
     $key = 'local_search/usemoodleroot';
