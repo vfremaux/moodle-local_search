@@ -19,7 +19,7 @@
  *
  * @package local_search
  * @category local
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  */
@@ -383,7 +383,7 @@ class SearchQuery {
      * // TODO reorder parameters more consistently
      */
     private function can_display(&$user, $thisid, $doctype, $courseid, $groupid, $path, $itemtype, $contextid, &$searchables) {
-        global $CFG;
+        global $CFG, $DB;
 
        /**
         * course related checks
@@ -394,7 +394,7 @@ class SearchQuery {
        }
 
         // First check course compatibility against user : enrolled users to that course can see.
-        $mycourses = enrol_get_my_courses($user->id);
+        $mycourses = enrol_get_my_courses();
         $unenroled = !in_array($courseid, array_keys($mycourses));
 
         // If guests are allowed, logged guest can see.

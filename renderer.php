@@ -19,7 +19,7 @@
  *
  * @package local_search
  * @category local
- * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -34,6 +34,8 @@ defined('MOODLE_INTERNAL') || die();
 class local_search_renderer extends plugin_renderer_base {
 
     public function search_result($listing) {
+        global $OUTPUT;
+
         static $typestr;
         static $scorestr;
         static $authorstr;
@@ -43,68 +45,51 @@ class local_search_renderer extends plugin_renderer_base {
             $scorestr = get_string('score', 'local_search');
             $authorstr = get_string('author', 'local_search');
         }
-
-        $str = '';
-
-        $str .= '<li class="search-result" value="'.($listing->number + 1).'">';
-        $processedurl = str_replace('DEFAULT_POPUP_SETTINGS', DEFAULT_POPUP_SETTINGS, $listing->url);
-        $str .= '<a href="'.$processedurl.'">'.$listing->icon.' '.$listing->title.'</a> '.$listing->course;
-        $str .= '<div class="search-result-attributes">';
-        $str .= $typestr.': '.$listing->doctype.', '.$scorestr.': '.round($listing->score, 3);
-        $str .= '</div>';
-        if (!empty($listing->author) && !is_numeric($listing->author)) {
-            $str .= '<div class="search-result-attributes">';
-            $str .= $authorstr.': '.$listing->author;
-            $str .= '</div>';
-        }
-        $str .= '</li>';
-
-        return $str;
+        $template = new StdClass;
+        $template->listingnumber = $listing->number + 1;
+        $template->listingicon = $listing->icon;
+        $template->listingtitle = $listing->title;
+        $template->listingcourse = $listing->course;
+        $template->listingdoctype = $listing->doctype;
+        $template->listingscore = round($listing->score, 3);
+        $template->listingauthor = $listing->author;
+        $template->typestr = $typestr;
+        $template->scorestr = $scorestr;
+        $template->authorstr = $authorstr;
+        $template->notauthorid = (!empty($listing->author) && !is_numeric($listing->author));
+        $template->processedurl = str_replace('DEFAULT_POPUP_SETTINGS', DEFAULT_POPUP_SETTINGS, $listing->url);
+        
+        return $OUTPUT->render_from_template('local_search/search_result', $template);
     }
 
     public function simple_form($querystring) {
-        $str = '';
+        global $OUTPUT;
 
-        $str .= '<input type="text" name="query_string" length="50" value="'.$querystring.'" />';
-        $str .= '&nbsp;<input type="submit" value="'.get_string('search', 'local_search').'" /> &nbsp;';
-        $url = new moodle_url('/local/search/query.php', array('a' => 1));
-        $str .= '<a href="'.$url.'">'.get_string('advancedsearch', 'local_search').'</a> |';
-        $url = new moodle_url('/local/search/stats.php');
-        $str .= '<a href="'.$url.'">'.get_string('statistics', 'local_search').'</a>';
+        $template = new StdClass;
+        $template->searchurl = new moodle_url('/local/search/query.php', array('a' => 1));
+        $template->staturl = new moodle_url('/local/search/stats.php');
+        $template->querystring = $querystring;
 
-        return $str;
+        return $OUTPUT->render_from_template('local_search/simple_form', $template);
     }
 
     public function advanced_form($adv, $moduletypes) {
-        $str = '';
-
-        $str .= '<input type="hidden" name="a" value="1"/>';
-
-        $str .= '<table border="0" cellpadding="3" cellspacing="3">';
-
-        $str .= '<tr>';
-        $str .= '<td width="240">'.get_string('thesewordsmustappear', 'local_search').':</td>';
-        $str .= '<td><input type="text" name="mustappear" length="50" value="'.$adv->mustappear.'" /></td>';
-        $str .= '</tr>';
-
-        $str .= '<tr>';
-        $str .= '  <td>'.get_string('thesewordsmustnotappear', 'local_search').':</td>';
-        $str .= '  <td><input type="text" name="notappear" length="50" value="'.$adv->notappear.'" /></td>';
-        $str .= '</tr>';
-
-        $str .= '<tr>';
-        $str .= '  <td>'.get_string('thesewordshelpimproverank', 'local_search').':</td>';
-        $str .= '  <td><input type="text" name="canappear" length="50" value="'.$adv->canappear.'" /></td>';
-        $str .= '</tr>';
-
-        $str .= '<tr>';
-        $str .= '  <td>'.get_string('whichmodulestosearch', 'local_search').':</td>';
-        $str .= '  <td>';
-        $optionsmenu = array();
+        global $OUTPUT;
+        
+        $template = new StdClass;
+        $template->mustappear = $adv->mustappear;
+        $template->notappear = $adv->notappear;
+        $template->canappear = $adv->canappear;
+        $template->author = $adv->author;
+        $template->title = $adv->title;
+        $template->staturl = new moodle_url('/local/search/stats.php');
+        $template->queryurl = new moodle_url('/local/search/query.php');
         foreach ($moduletypes as $mod) {
             if ($mod != 'all') {
-                if ($mod != 'user') {
+                if ($mod != 'user' && $mod != 'course') {
                     $optionsmenu[$mod] = get_string('modulenameplural', $mod);
+                } else if ($mod == 'course') {
+                    $optionsmenu[$mod] = get_string('courses');
                 } else {
                     $optionsmenu[$mod] = get_string('users');
                 }
@@ -112,40 +97,19 @@ class local_search_renderer extends plugin_renderer_base {
                 $optionsmenu[$mod] = get_string('all', 'local_search');
             }
         }
-        $str .= html_writer::select($optionsmenu, 'module', $adv->module);
-        $str .= '  </td>';
-        $str .= '</tr>';
+        $template->optionmenu = (html_writer::select($optionsmenu, 'module', $adv->module));
+        
+        return $OUTPUT->render_from_template('local_search/advanced_form', $template);
+    }
 
-        $str .= '<tr>';
-        $str .= '  <td>'.get_string('wordsintitle', 'local_search').':</td>';
-        $str .= '  <td><input type="text" name="title" length="50" value="'.$adv->title.'" /></td>';
-        $str .= '</tr>';
+    public function course_search_form($value) {
+        $template = new StdClass;
+        $params = [
+            'a' => 1
+        ];
+        $template->coursesearchurl = new moodle_url('/local/search/query.php', $params);
+        $template->querystring = $value;
 
-        $str .= '<tr>';
-        $str .= '  <td>'.get_string('authorname', 'local_search').':</td>';
-        $str .= '  <td><input type="text" name="author" length="50" value="'.$adv->author.'" /></td>';
-        $str .= '</tr>';
-
-        $str .= '<tr>';
-        $str .= '  <td colspan="3" align="center"><br />';
-        $str .= '<input type="submit" value="'.get_string('search', 'local_search').'" />';
-        $str .= '</td>';
-        $str .= '</tr>';
-
-        $str .= '<tr>';
-        $str .= '<td colspan="3" align="center">';
-        $str .= '<table border="0" cellpadding="0" cellspacing="0">';
-        $str .= '<tr>';
-        $qurl = new moodle_url('/local/search/query.php');
-        $str .= '<td><a href="'.$qurl.'">'.get_string('normalsearch', 'local_search').'</a> |</td>';
-        $surl = new moodle_url('/local/search/stats.php');
-        $str .= '<td>&nbsp;<a href="'.$surl.'">'.get_string('statistics', 'local_search').'</a></td>';
-        $str .= '</tr>';
-        $str .= '</table>';
-        $str .= '  </td>';
-        $str .= '</tr>';
-        $str .= '</table>';
-
-        return $str;
+        return $this->output->render_from_template('local_search/course_search_form', $template);
     }
 }

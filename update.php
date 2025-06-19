@@ -19,7 +19,7 @@
  *
  * @package local_search
  * @category local
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -63,7 +63,13 @@ mtrace("Starting index update (updates)...\n");
 
 if ($mods = search_collect_searchables(false, true)) {
 
-    foreach ($mods as $mod) {
+    foreach ($mods as $modtype => $mod) {
+
+        if (!empty($doctype)) {
+            if ($modtype != $doctype) {
+                continue;
+            }
+        }
 
         $key = 'search_in_'.$mod->name;
         if (empty($config->$key)) {
@@ -125,6 +131,8 @@ if ($mods = search_collect_searchables(false, true)) {
                     }
                 }
 
+                $i = 0;
+                $j = 0;
                 foreach ($updates as $update) {
                     ++$updatecount;
 
@@ -133,11 +141,26 @@ if ($mods = search_collect_searchables(false, true)) {
 
                     // Get the record, should only be one.
                     foreach ($doc as $thisdoc) {
-                        $message = " Delete: $thisdoc->title (database id = $thisdoc->dbid, index id = $thisdoc->id, ";
+                        $message = " Update-Delete ($j)/($updatecount): $thisdoc->title (database id = $thisdoc->dbid, index id = $thisdoc->id, ";
                         $message .= " moodle instance id = $thisdoc->docid)";
                         mtrace($message);
                         $dbcontrol->delete_document($thisdoc);
                         $index->delete($thisdoc->id);
+
+                        $i++;
+                        if ($i > 5000) {
+                            // Commit each 5000, in case we crash.
+                            $i = 0;
+                            mtrace("Commiting.\n");
+                            $index->commit();
+                            sleep(2);
+                        }
+                        $j++;
+                        if ($j > 100000) {
+                            // Stop processing after 100000.
+                            mtrace("Stopping updates at 100000.\n");
+                            break 2;
+                        }
                     }
 
                     // Add new modified document back into index.
@@ -151,7 +174,7 @@ if ($mods = search_collect_searchables(false, true)) {
 
                     // Synchronise db with index.
                     $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
-                    mtrace("  Add: $add->title (database id = $add->dbid, moodle instance id = $add->docid)");
+                    mtrace("  Update-Add ($j): $add->title (database id = $add->dbid, moodle instance id = $add->docid)");
                     $index->addDocument($add);
                 }
             } else {

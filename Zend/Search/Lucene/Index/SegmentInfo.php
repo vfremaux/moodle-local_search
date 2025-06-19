@@ -203,21 +203,21 @@ class Zend_Search_Lucene_Index_SegmentInfo
         if (!is_null($isCompound)) {
             $this->_isCompound    = $isCompound;
         } else {
-        	// It's a pre-2.1 segment
-        	// detect if it uses compond file
-        	$this->_isCompound = true;
+            // It's a pre-2.1 segment
+            // detect if it uses compond file
+            $this->_isCompound = true;
 
-        	try {
-        		// Try to open compound file
-        		$this->_directory->getFileObject($name . '.cfs');
-        	} catch (Zend_Search_Lucene_Exception $e) {
-        		if (strpos($e->getMessage(), 'is not readable') !== false) {
-        			// Compound file is not found or is not readable
-        			$this->_isCompound = false;
-        		} else {
-        			throw $e;
-        		}
-        	}
+            try {
+                // Try to open compound file
+                $this->_directory->getFileObject($name . '.cfs');
+            } catch (Zend_Search_Lucene_Exception $e) {
+                if (strpos($e->getMessage(), 'is not readable') !== false) {
+                    // Compound file is not found or is not readable
+                    $this->_isCompound = false;
+                } else {
+                    throw $e;
+                }
+            }
         }
 
         $this->_segFiles = array();
@@ -273,7 +273,7 @@ class Zend_Search_Lucene_Index_SegmentInfo
                 $delFile = $this->_directory->getFileObject($this->_name . '.del');
 
                 $byteCount = $delFile->readInt();
-                $byteCount = ceil($byteCount/8);
+                $byteCount = ceil($byteCount / 8);
                 $bitCount  = $delFile->readInt();
 
                 if ($bitCount == 0) {
@@ -287,9 +287,9 @@ class Zend_Search_Lucene_Index_SegmentInfo
                 } else {
                     $this->_deleted = array();
                     for ($count = 0; $count < $byteCount; $count++) {
-                        $byte = ord($delBytes{$count});
+                        $byte = ord(substr($delBytes, $count, 1));
                         for ($bit = 0; $bit < 8; $bit++) {
-                            if ($byte & (1<<$bit)) {
+                            if ($byte & (1 << $bit)) {
                                 $this->_deleted[$count*8 + $bit] = 1;
                             }
                         }
@@ -330,10 +330,10 @@ class Zend_Search_Lucene_Index_SegmentInfo
                 } else {
                     $this->_deleted = array();
                     for ($count = 0; $count < $byteCount; $count++) {
-                        $byte = ord($delBytes{$count});
+                        $byte = ord(substr($delBytes, $count, 1));
                         for ($bit = 0; $bit < 8; $bit++) {
-                            if ($byte & (1<<$bit)) {
-                                $this->_deleted[$count*8 + $bit] = 1;
+                            if ($byte & (1 << $bit)) {
+                                $this->_deleted[$count * 8 + $bit] = 1;
                             }
                         }
                     }
@@ -840,7 +840,7 @@ class Zend_Search_Lucene_Index_SegmentInfo
             $this->_loadNorm($fieldNum);
         }
 
-        return Zend_Search_Lucene_Search_Similarity::decodeNorm( ord($this->_norms[$fieldNum]{$id}) );
+        return Zend_Search_Lucene_Search_Similarity::decodeNorm( ord(substr($this->_norms[$fieldNum], $id, 1)) );
     }
 
     /**
@@ -961,11 +961,11 @@ class Zend_Search_Lucene_Index_SegmentInfo
             for ($count = 0; $count < $byteCount; $count++) {
                 $byte = 0;
                 for ($bit = 0; $bit < 8; $bit++) {
-                    if (isset($this->_deleted[$count*8 + $bit])) {
-                        $byte |= (1<<$bit);
+                    if (isset($this->_deleted[$count * 8 + $bit])) {
+                        $byte |= (1 << $bit);
                     }
                 }
-                $delBytes{$count} = chr($byte);
+                substr_replace($delBytes, chr($byte), $count, 1);
             }
             $bitCount = count($this->_deleted);
         }
@@ -976,23 +976,23 @@ class Zend_Search_Lucene_Index_SegmentInfo
 
         $delFileList = array();
         foreach ($this->_directory->fileList() as $file) {
-        	if ($file == $this->_name . '.del') {
-        		// Matches <segment_name>.del file name
-        		$delFileList[] = 0;
-        	} else if (preg_match('/^' . $this->_name . '_([a-zA-Z0-9]+)\.del$/i', $file, $matches)) {
-        		// Matches <segment_name>_NNN.del file names
+            if ($file == $this->_name . '.del') {
+                // Matches <segment_name>.del file name
+                $delFileList[] = 0;
+            } else if (preg_match('/^' . $this->_name . '_([a-zA-Z0-9]+)\.del$/i', $file, $matches)) {
+                // Matches <segment_name>_NNN.del file names
                 $delFileList[] = (int)base_convert($matches[1], 36, 10);
             }
         }
 
         if (count($delFileList) == 0) {
-        	// There is no deletions file for current segment in the directory
-        	// Set detetions file generation number to 1
-        	$this->_delGen = 1;
+            // There is no deletions file for current segment in the directory
+            // Set detetions file generation number to 1
+            $this->_delGen = 1;
         } else {
-        	// There are some deletions files for current segment in the directory
-        	// Set detetions file generation number to the highest + 1
-        	$this->_delGen = max($delFileList) + 1;
+            // There are some deletions files for current segment in the directory
+            // Set detetions file generation number to the highest + 1
+            $this->_delGen = max($delFileList) + 1;
         }
 
         $delFile = $this->_directory->createFile($this->_name . '_' . base_convert($this->_delGen, 10, 36) . '.del');

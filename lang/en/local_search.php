@@ -16,6 +16,11 @@
 
 $string['pluginname'] = 'Local Global Search';
 
+$string['search:query'] = 'Can query the search engine';
+
+// Privacy
+$string['privacy:metadata'] = 'The Local Search plugin, although indexing personnal information for search purpose,  does not store itself any personal data about the users.';
+
 $string['advancedsearch'] = 'Advanced search';
 $string['all'] = 'All';
 $string['asynchronous'] = 'Asynchronous (Ajax)';
@@ -38,6 +43,7 @@ $string['configenableglobalsearch'] = 'Global activation';
 $string['configfiletypes'] = 'File types handled';
 $string['configlimitindexbody'] = 'Indexed body size limitation';
 $string['configpdftotextcmd'] = 'pdftotext path';
+$string['configpdftotextparams'] = 'pdftotext command line params';
 $string['configsearchtext'] = 'Search text';
 $string['configtypetotxtcmd'] = 'Command line';
 $string['configtypetotxtenv'] = 'Environment for converter';
@@ -48,6 +54,7 @@ $string['configwordtotextenv'] = 'Environment setting for the MSWord converter';
 $string['coresearchswitches'] = 'Core searchable elements';
 $string['createanindex'] = 'create an index';
 $string['createdon'] = 'Created on';
+$string['clearmarks'] = 'Clear search marks in text';
 $string['database'] = 'Database';
 $string['databasestate'] = 'Indexing database state';
 $string['datadirectory'] = 'Data directory';
@@ -80,6 +87,7 @@ $string['normalsearch'] = 'Normal search';
 $string['nosearchableblocks'] = 'No searchable blocks';
 $string['nosearchablemodules'] = 'No searchable modules';
 $string['openedon'] = 'opened on';
+$string['otherssearchswitches'] = 'Other plugin types';
 $string['pdfhandling'] = 'Acrobat PDF handling';
 $string['resultsreturnedfor'] = ' results returned for ';
 $string['runindexer'] = 'Run indexer (real)';
@@ -89,10 +97,12 @@ $string['search'] = 'Search';
 $string['searchdiscovery'] = 'Searchable items discovery';
 $string['searching'] = 'Searching in ...';
 $string['searchmoodle'] = 'Search Moodle';
+$string['searchcourses'] = 'Search for courses';
 $string['seconds'] = ' seconds ';
 $string['solutions'] = 'Solutions';
 $string['statistics'] = 'Statistics';
 $string['synchronous'] = 'Synchronous';
+$string['taskupdateindex'] = 'Update Lucene Search Index';
 $string['thesewordshelpimproverank'] = 'These words help improve rank';
 $string['thesewordsmustappear'] = 'These words must appear';
 $string['thesewordsmustnotappear'] = 'These words must not appear';
@@ -123,6 +133,7 @@ $string['configlimitindexbody_desc'] = 'Limits the size of content that will be 
 indexing process, but may loose some search capabilities.';
 
 $string['configpdftotextcmd_desc'] = 'Path to command pdftotext';
+$string['configpdftotextparams_desc'] = 'Additional attributes to the pdftotext command ';
 
 $string['configsearchtext_desc'] = 'Search text';
 

@@ -15,22 +15,36 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version details.
- *
- * @package local_search
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
- * @date 2008/03/31
- * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
+ * @package   local_search
+ * @category  local
+ * @author    Valery Fremaux <valery.fremaux@gmail.com>, <valery@edunao.com>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
+namespace local_search\task;
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2021032300;
-$plugin->requires = 2022112801;  // Requires this Moodle version.
-$plugin->component = 'local_search';
-$plugin->maturity = MATURITY_RC;
-$plugin->release = '4.5.0 (Build 2021032300)';
-$plugin->supported = [403, 405];
+require_once($CFG->dirroot.'/local/search/lib.php');
 
-// Non moodle attributes.
-$plugin->codeincrement = '4.5.0002';
+/**
+ * Scheduled task to update search Lucene index with new entries.
+ */
+class update_index_task extends \core\task\scheduled_task {
+
+    /**
+     * Get a descriptive name for this task (shown to admins).
+     *
+     * @return string
+     */
+    public function get_name() {
+        return get_string('taskupdateindex', 'local_search');
+    }
+
+    /**
+     * Do the job.
+     */
+    public function execute() {
+        search_update();
+    }
+}

@@ -20,7 +20,7 @@
  * @package local_search
  * @category local
  * @subpackage document_wrappers
- * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.9
+ * @author Valery Fremaux [valery.fremaux@gmail.com] > 1.9
  * @contributor Tatsuva Shirai 20090530
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -33,10 +33,11 @@
  */
 namespace local_search;
 
-use \StdClass;
-use \moodle_url;
-use \context_module;
-use \context_course;
+use StdClass;
+use moodle_url;
+use context_module;
+use context_course;
+use context;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -63,7 +64,7 @@ class LabelSearchDocument extends SearchDocument {
         $doc->date      = $label['timemodified'];
         $doc->author    = '';
         $doc->contents  = strip_tags($label['name']);
-        $doc->url       = label_document_wrapper::make_link($label['course']);
+        $doc->url       = label_document_wrapper::make_link($label['course'], $contextid);
 
         // Module specific information; optional.
         $data = new StdClass;
@@ -81,8 +82,26 @@ class label_document_wrapper extends document_wrapper {
      * @param resourceId the of the resource
      * @return a full featured link element as a string
      */
-    public static function make_link($instanceid) {
-        return new moodle_url('/course/view.php', array('id' => $instanceid));
+    public static function make_link($instanceid, $contextid = null) {
+        global $DB;
+
+        $format = $DB->get_field('course', 'format', ['id' => $instanceid]);
+        if ($format == 'page') {
+            // We need search on which page an occurrence of the search was found.
+            $context = context::instance_by_id($contextid);
+            $params = ['cmid' => $context->instanceid];
+            $pages = $DB->get_records('format_page_items', $params);
+            if ($pages) {
+                $firstitemoccurence = array_shift($pages);
+                $courseurl = new moodle_url('/course/view.php', array('id' => $instanceid, 'page' => $firstitemoccurence->pageid));
+            }
+        }
+
+        if (empty($courseurl)) {
+            $courseurl = new moodle_url('/course/view.php', array('id' => $instanceid));
+        }
+
+        return $courseurl;
     }
 
     /**
@@ -132,11 +151,15 @@ class label_document_wrapper extends document_wrapper {
      */
     public static function single_document($id, $itemtype) {
         global $DB;
+        static $labelmodule = null;
 
         $label = $DB->get_record('label', array('id' => $id));
+        if (is_null($labelmodule)) {
+            $labelmodule = $DB->get_record('modules', ['name' => 'label']);
+        }
 
         if ($label) {
-            $cm = $DB->get_record('course_modules', array('id' => $label->id));
+            $cm = $DB->get_record('course_modules', ['module' => $labelmodule->id, 'instance' => $label->id]);
             $context = context_module::instance($cm->id);
             $arr = get_object_vars($label);
             return new LabelSearchDocument($arr, $context->id);

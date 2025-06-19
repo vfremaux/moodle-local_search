@@ -20,7 +20,7 @@
  * @package local_search
  * @category local
  * @subpackage document_wrappers
- * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -95,6 +95,7 @@ class DataCommentSearchDocument extends SearchDocument {
     public function __construct(&$comment, $courseid, $contextid) {
 
         // Generic information; required.
+        $doc = new StdClass;
         $doc->docid     = $comment['id'];
         $doc->documenttype  = SEARCH_TYPE_DATA;
         $doc->itemtype      = 'comment';
@@ -125,7 +126,7 @@ class data_document_wrapper extends document_wrapper {
      * @param record_id the record reference
      * @return a valid url top access the information as a string
      */
-    public static function make_link($instanceid) {
+    public static function make_link($instanceid, $contextid = null) {
 
         // Get an additional subentity id dynamically.
         $extravars = func_get_args();
@@ -236,6 +237,10 @@ class data_document_wrapper extends document_wrapper {
                 $authoruser = $DB->get_record('user', array('id' => $acomment->userid));
                 $acomment->author = fullname($authoruser);
                 $acomment->recordid = $acomment->itemid;
+                $acomment->modified = $acomment->timecreated;
+                $acomment->dataid = $instance->id;
+                $acomment->groupid = 0;
+                $acomment->userid = $acomment->userid;
                 $vars = get_object_vars($acomment);
                 $documents[] = new DataCommentSearchDocument($vars, $instance->course, $context->id);
             }
@@ -280,8 +285,9 @@ class data_document_wrapper extends document_wrapper {
                 foreach ($recordcontent as $afield) {
                     $content = @$content.' '.$afield;
                 }
+                // Refresh from database.
                 unset($recordmetadata);
-                $recordmetadata = $DB->get_record('data_records', array('id' => $arecordid));
+                $recordmetadata = $DB->get_record('data_records', array('id' => $id));
                 $recordmetadata->title = $first;
                 $recordmetadata->content = $content;
                 $arr = get_object_vars($recordmetadata);

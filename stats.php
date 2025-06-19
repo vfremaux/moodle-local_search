@@ -19,7 +19,7 @@
  *
  * @package local_search
  * @category local
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -172,7 +172,11 @@ if (has_capability('moodle/site:config', context_system::instance())) {
 $table->data[] = array($documentsindatabasestr, $indexinfo->dbcount);
 
 foreach ($indexinfo->types as $key => $value) {
-    $table->data[] = array(get_string('documentsfor', 'local_search') . " '".get_string('modulenameplural', $key)."'", $value);
+    if ($key != 'course') {
+        $table->data[] = array(get_string('documentsfor', 'local_search') . " '".get_string('modulenameplural', $key)."'", $value);
+    } else {
+        $table->data[] = array(get_string('documentsfor', 'local_search') . " '".get_string('courses')."'", $value);
+    }
 }
 
 echo $OUTPUT->heading($databasestatestr);

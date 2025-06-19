@@ -20,7 +20,7 @@
  * @package local_search
  * @category local
  * @subpackage document_wrappers
- * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -44,6 +44,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot.'/local/search/documents/document.php');
 require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
 require_once($CFG->dirroot.'/mod/wiki/lib.php');
+require_once($CFG->dirroot.'/mod/wiki/locallib.php');
 
 /**
  * All the $doc->___ fields are required by the base document class!
@@ -55,6 +56,8 @@ require_once($CFG->dirroot.'/mod/wiki/lib.php');
 class WikiSearchDocument extends SearchDocument {
 
     public function __construct(&$page, $wikiid, $courseid, $groupid, $userid, $contextid) {
+        global $DB;
+
         // Generic information; required.
         $doc = new StdClass;
         $doc->docid         = $page['id'];
@@ -62,12 +65,14 @@ class WikiSearchDocument extends SearchDocument {
         $doc->itemtype      = 'standard';
         $doc->contextid     = $contextid;
 
-        $doc->title     = $page['pagename'];
-        $doc->date      = $page['lastmodified'];
+        $doc->title     = $page['title'];
+        $doc->date      = $page['timemodified'];
         // Remove '(ip.ip.ip.ip)' from wiki author field.
-        $doc->author    = preg_replace('/\(.*?\)/', '', $page['author']);
-        $doc->contents  = $page['content'];
-        $doc->url       = wiki_document_wrapper::make_link($wikiid, $page['pagename'], $page['version']);
+        // Remove '(ip.ip.ip.ip)' from data record author field.
+        $user = $DB->get_record('user', array('id' => $page['userid']));
+        $doc->author = (isset($user)) ? $user->firstname.' '.$user->lastname : '';
+        $doc->contents  = $page['cachedcontent'];
+        $doc->url       = wiki_document_wrapper::make_link($wikiid, $page['title'], $page['version']);
 
         // Module specific information; optional.
         $data = new StdClass;
@@ -96,7 +101,7 @@ class wiki_document_wrapper extends document_wrapper {
      * @param int $version
      * @return an url
      */
-    public static function make_link($instanceid) {
+    public static function make_link($instanceid, $contextid = null) {
 
         // Get an additional subentity id dynamically.
         $extravars = func_get_args();
@@ -162,8 +167,8 @@ class wiki_document_wrapper extends document_wrapper {
 
         $pages = array();
 
-        if ($ids = $DB->get_records('wiki_pages', array('wiki' => $entry->id), '', 'distinct pagename')) {
-            if ($pagesets = $DB->get_records('wiki_pages', array('wiki' => $entry->id), '', 'distinct pagename')) {
+        if ($ids = $DB->get_records('wiki_pages', array('subwikiid' => $entry->id), '', 'distinct pagename')) {
+            if ($pagesets = $DB->get_records('wiki_pages', array('subwikiid' => $entry->id), '', 'distinct pagename')) {
                 foreach ($pagesets as $apageset) {
                     $pages[] = self::get_latest_page($entry, $apageset->pagename);
                 }
@@ -194,7 +199,7 @@ class wiki_document_wrapper extends document_wrapper {
         global $DB;
 
         $documents = array();
-        $entries = wiki_get_entries($wiki);
+        $entries = wiki_get_page_list($wiki->id);
         if ($entries) {
             $coursemodule = $DB->get_field('modules', 'id', array('name' => 'wiki'));
             $params = array('course' => $wiki->course, 'module' => $coursemodule, 'instance' => $wiki->id);
@@ -228,13 +233,17 @@ class wiki_document_wrapper extends document_wrapper {
         global $DB;
 
         $page = $DB->get_record('wiki_pages', array('id' => $id));
-        $entry = $DB->get_record('wiki_entries', array('id' => $page->wiki));
+        $versions = $DB->get_records('wiki_versions', array('pageid' => $page->id), 'timecreated DESC');
+        $version = array_shift($versions); // Use only most recent version. there should be one at least.
+        $page->version = $version->version;
+        $subwiki = $DB->get_record('wiki_subwikis', array('id' => $page->subwikiid));
+        $wiki = $DB->get_record('wiki', array('id' => $subwiki->wikiid));
         $coursemodule = $DB->get_field('modules', 'id', array('name' => 'wiki'));
-        $params = array('course' => $entry->course, 'module' => $coursemodule, 'instance' => $entry->wikiid);
+        $params = array('course' => $wiki->course, 'module' => $coursemodule, 'instance' => $subwiki->wikiid);
         $cm = $DB->get_record('course_modules', $params);
         $context = context_module::instance($cm->id);
-        $arr = get_object_vars($page);
-        return new WikiSearchDocument($arr, $entry->wikiid, $entry->course, $entry->groupid, $page->userid, $context->id);
+        $vars = get_object_vars($page);
+        return new WikiSearchDocument($vars, $subwiki->wikiid, $wiki->course, $subwiki->groupid, $page->userid, $context->id);
     }
 
     /**
@@ -265,7 +274,8 @@ class wiki_document_wrapper extends document_wrapper {
 
         // Get the wiki object and all related stuff.
         $page = $DB->get_record('wiki_pages', array('id' => $thisid));
-        $wiki = $DB->get_record('wiki', array('id' => $page->wiki));
+        $subwiki = $DB->get_record('wiki_subwikis', array('id' => $page->subwikiid));
+        $wiki = $DB->get_record('wiki', array('id' => $subwiki->wikiid));
         $course = $DB->get_record('course', array('id' => $wiki->course));
         $context = $DB->get_record('context', array('id' => $contextid));
         $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));

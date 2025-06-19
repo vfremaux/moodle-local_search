@@ -15,17 +15,19 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Global Search Engine for Moodle
- *
- * @package search
- * @category core
- * @subpackage search_engine
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
- * @date 2008/03/31
- * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
- *
- * Entry page for /search
- * Redirects to query.php, because that is the most likely place a
- * user intended to go to when typing moodle.site/search
+ * @package    local_search
+ * @category   local
+ * @author     Valery Fremaux <valery.fremaux@gmail.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-require('query.php');
+defined('MOODLE_INTERNAL') || die();
+
+$capabilities = array(
+    'local/search:query' => array(
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => array(
+            'user' => CAP_ALLOW
+        )
+    ),
+);

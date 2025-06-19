@@ -20,7 +20,7 @@
  * @package local_search
  * @category local
  * @subpackage document_wrappers
- * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai on UTF-8 multibyte fixing
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -29,6 +29,9 @@
  * extend.
  */
 namespace local_search;
+
+use StdClass;
+use moodle_url;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -90,7 +93,7 @@ abstract class document_wrapper implements indexable {
      * @param instanceid the of the instance
      * @return a full featured link element as a string
      */
-    public static function make_link($instanceid) {
+    public static function make_link($instanceid, $contextid = null) {
         if (!empty(self::$modname)) {
             return new moodle_url('/mod/'.self::modname.'/view.php', array('id' => $instanceid));
         }

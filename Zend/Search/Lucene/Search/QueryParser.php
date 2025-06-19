@@ -387,13 +387,12 @@ class Zend_Search_Lucene_Search_QueryParser extends Zend_Search_Lucene_FSM
             self::$_instance->_context      = new Zend_Search_Lucene_Search_QueryParserContext(self::$_instance->_encoding);
             self::$_instance->_contextStack = array();
             self::$_instance->_tokens       = self::$_instance->_lexer->tokenize($strQuery, self::$_instance->_encoding);
-    
+
             // Empty query
             if (count(self::$_instance->_tokens) == 0) {
                 return new Zend_Search_Lucene_Search_Query_Insignificant();
             }
-    
-    
+
             foreach (self::$_instance->_tokens as $token) {
                 try {
                     self::$_instance->_currentToken = $token;
@@ -408,11 +407,11 @@ class Zend_Search_Lucene_Search_QueryParser extends Zend_Search_Lucene_FSM
                     throw $e;
                 }
             }
-    
+
             if (count(self::$_instance->_contextStack) != 0) {
                 throw new Zend_Search_Lucene_Search_QueryParserException('Syntax Error: mismatched parentheses, every opening must have closing.' );
             }
-    
+
             return self::$_instance->_context->getQuery();
         } catch (Zend_Search_Lucene_Search_QueryParserException $e) {
             if (self::$_instance->_suppressQueryParsingExceptions) {

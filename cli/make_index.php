@@ -29,8 +29,20 @@ require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php');
 require_once($CFG->dirroot.'/lib/clilib.php');
 
 list($options, $unrecognized) = cli_get_params(
-    array('help' => false, 'host' => false),
-    array('h' => 'help', 'H' => 'host')
+    array(
+        'reset' => false,
+        'help' => false,
+        'host' => false,
+        'doctype' => false,
+        'break-on-error' => false
+    ),
+    array(
+        'r' => 'reset',
+        'h' => 'help',
+        'H' => 'host',
+        'd' => 'doctype',
+        'b' => 'break-on-error'
+    )
 );
 
 if ($unrecognized) {
@@ -38,20 +50,26 @@ if ($unrecognized) {
     cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
 }
 
-if ($options['help'] || (!$options['list'] && !$options['execute'])) {
-    $help = "Scheduled cron tasks.
+if (!empty($options['help'])) {
+    $help = "Updates or builds Lucene search index.
 
     Options:
     -H, --host            Virtual root to run for
+    -r, --reset           Deletes the old index and reindex from scratch. This may take a long while...
+    -d, --doctype         Restricts to a single doctype.
+    -b, --break-on-error  If true, will break on document error.
     -h, --help            Print out this help
-    
+
     Example:
     
     Master or single Moodle
     \$sudo -u www-data /usr/bin/php local/search/cli/make_index.php
+    \$sudo -u www-data /usr/bin/php local/search/cli/make_index.php --reset
+    \$sudo -u www-data /usr/bin/php local/search/cli/make_index.php --reset --doctype=course
     
     Virtual Moodle
     \$sudo -u www-data /usr/bin/php local/search/cli/make_index.php --host=http://vmoodle1.mydomain.fr
+    \$sudo -u www-data /usr/bin/php local/search/cli/make_index.php --host=http://vmoodle1.mydomain.fr --reset
     ";
     echo $help;
     die;
@@ -65,23 +83,25 @@ if (!empty($options['host'])) {
 
 // Replay full config whenever. If vmoodle switch is armed, will switch now config.
 
-require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+if (!defined('MOODLE_INTERNAL')) {
+    require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+}
 echo('Config check : playing for '.$CFG->wwwroot."\n");
 require_once($CFG->dirroot.'/lib/cronlib.php');
 require_once($CFG->dirroot.'/local/search/lib.php');
 
-try {
-    mtrace("\n--DELETE----");
-    require($CFG->dirroot.'/local/search/delete.php');
-    mtrace("--UPDATE----");
-    require($CFG->dirroot.'/local/search/update.php');
-    mtrace("--ADD-------");
-    require($CFG->dirroot.'/local/search/add.php');
-    mtrace("------------");
-    mtrace('done');
-
-    // Set back normal values for php limits.
-} catch (Exception $ex) {
-    mtrace('Fatal exception from Lucene subsystem. Search engine may not have been updated.');
-    mtrace($ex);
+if (!empty($options['reset'])) {
+    if (empty($options['doctype'])) {
+        mtrace('Deleting old index entries.');
+        $DB->delete_records(SEARCH_DATABASE_TABLE);
+    } else {
+        mtrace('Deleting old index entries of type '.$options['doctype'].'.');
+        $DB->delete_records(SEARCH_DATABASE_TABLE, ['doctype' => $options['doctype']]);
+    }
 }
+
+// Need to bring to deep in engine code.
+global $BREAKONERROR;
+$BREAKONERROR = $options['break-on-error'];
+
+search_update($options['doctype']);

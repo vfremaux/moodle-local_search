@@ -156,10 +156,10 @@ abstract class Zend_Search_Lucene_Storage_File
     {
         $str = $this->_fread(4);
 
-        return  ord($str{0}) << 24 |
-                ord($str{1}) << 16 |
-                ord($str{2}) << 8  |
-                ord($str{3});
+        return  ord(substr($str, 0, 1)) << 24 |
+                ord(substr($str, 1, 1)) << 16 |
+                ord(substr($str, 2, 1)) << 8  |
+                ord(substr($str, 3, 1));
     }
 
 
@@ -171,9 +171,9 @@ abstract class Zend_Search_Lucene_Storage_File
     public function writeInt($value)
     {
         settype($value, 'integer');
-        $this->_fwrite( chr($value>>24 & 0xFF) .
-                        chr($value>>16 & 0xFF) .
-                        chr($value>>8  & 0xFF) .
+        $this->_fwrite( chr($value >> 24 & 0xFF) .
+                        chr($value >> 16 & 0xFF) .
+                        chr($value >> 8  & 0xFF) .
                         chr($value     & 0xFF),   4  );
     }
 
@@ -194,27 +194,27 @@ abstract class Zend_Search_Lucene_Storage_File
          * fseek() uses long for offset. Thus, largest index segment file size in 32bit mode is 2Gb
          */
         if (PHP_INT_SIZE > 4) {
-            return  ord($str{0}) << 56  |
-                    ord($str{1}) << 48  |
-                    ord($str{2}) << 40  |
-                    ord($str{3}) << 32  |
-                    ord($str{4}) << 24  |
-                    ord($str{5}) << 16  |
-                    ord($str{6}) << 8   |
-                    ord($str{7});
+            return  ord(substr($str, 0, 1)) << 56  |
+                    ord(substr($str, 1, 1)) << 48  |
+                    ord(substr($str, 2, 1)) << 40  |
+                    ord(substr($str, 3, 1)) << 32  |
+                    ord(substr($str, 4, 1)) << 24  |
+                    ord(substr($str, 5, 1)) << 16  |
+                    ord(substr($str, 6, 1)) << 8   |
+                    ord(substr($str, 7, 1));
         } else {
-            if ((ord($str{0})          != 0) ||
-                (ord($str{1})          != 0) ||
-                (ord($str{2})          != 0) ||
-                (ord($str{3})          != 0) ||
-                ((ord($str{0}) & 0x80) != 0)) {
+            if ((ord(substr($str, 0, 1))          != 0) ||
+                (ord(substr($str, 1, 1))          != 0) ||
+                (ord(substr($str, 2, 1))          != 0) ||
+                (ord(substr($str, 3, 1))          != 0) ||
+                ((ord(substr($str, 0, 1)) & 0x80) != 0)) {
                      throw new Zend_Search_Lucene_Exception('Largest supported segment size (for 32-bit mode) is 2Gb');
                  }
 
-            return  ord($str{4}) << 24  |
-                    ord($str{5}) << 16  |
-                    ord($str{6}) << 8   |
-                    ord($str{7});
+            return  ord(substr($str, 4, 1)) << 24  |
+                    ord(substr($str, 5, 1)) << 16  |
+                    ord(substr($str, 6, 1)) << 8   |
+                    ord(substr($str, 7, 1));
         }
     }
 
@@ -232,13 +232,13 @@ abstract class Zend_Search_Lucene_Storage_File
          */
         if (PHP_INT_SIZE > 4) {
             settype($value, 'integer');
-            $this->_fwrite( chr($value>>56 & 0xFF) .
-                            chr($value>>48 & 0xFF) .
-                            chr($value>>40 & 0xFF) .
-                            chr($value>>32 & 0xFF) .
-                            chr($value>>24 & 0xFF) .
-                            chr($value>>16 & 0xFF) .
-                            chr($value>>8  & 0xFF) .
+            $this->_fwrite( chr($value >> 56 & 0xFF) .
+                            chr($value >> 48 & 0xFF) .
+                            chr($value >> 40 & 0xFF) .
+                            chr($value >> 32 & 0xFF) .
+                            chr($value >> 24 & 0xFF) .
+                            chr($value >> 16 & 0xFF) .
+                            chr($value >> 8  & 0xFF) .
                             chr($value     & 0xFF),   8  );
         } else {
             if ($value > 0x7FFFFFFF) {
@@ -246,9 +246,9 @@ abstract class Zend_Search_Lucene_Storage_File
             }
 
             $this->_fwrite( "\x00\x00\x00\x00"     .
-                            chr($value>>24 & 0xFF) .
-                            chr($value>>16 & 0xFF) .
-                            chr($value>>8  & 0xFF) .
+                            chr($value >> 24 & 0xFF) .
+                            chr($value >> 16 & 0xFF) .
+                            chr($value >> 8  & 0xFF) .
                             chr($value     & 0xFF),   8  );
         }
     }
@@ -317,13 +317,13 @@ abstract class Zend_Search_Lucene_Storage_File
             $str_val = $this->_fread($strlen);
 
             for ($count = 0; $count < $strlen; $count++ ) {
-                if (( ord($str_val{$count}) & 0xC0 ) == 0xC0) {
+                if (( ord(substr($str_val, $count, 1)) & 0xC0 ) == 0xC0) {
                     $addBytes = 1;
-                    if (ord($str_val{$count}) & 0x20 ) {
+                    if (ord(substr($str_val, $count, 1)) & 0x20 ) {
                         $addBytes++;
 
                         // Never used. Java2 doesn't encode strings in four bytes
-                        if (ord($str_val{$count}) & 0x10 ) {
+                        if (ord(substr($str_val, $count, 1)) & 0x10 ) {
                             $addBytes++;
                         }
                     }
@@ -332,11 +332,11 @@ abstract class Zend_Search_Lucene_Storage_File
 
                     // Check for null character. Java2 encodes null character
                     // in two bytes.
-                    if (ord($str_val{$count})   == 0xC0 &&
-                        ord($str_val{$count+1}) == 0x80   ) {
-                        $str_val{$count} = 0;
-                        $str_val = substr($str_val,0,$count+1)
-                                 . substr($str_val,$count+2);
+                    if (ord(substr($str_val, $count, 1))   == 0xC0 &&
+                        ord(substr($str_val, $count+1, 1)) == 0x80   ) {
+                        substr_replace($str_val, 0, $count, 1);
+                        $str_val = substr($str_val, 0, $count + 1)
+                                 . substr($str_val, $count + 2);
                     }
                     $count += $addBytes;
                 }
@@ -379,20 +379,20 @@ abstract class Zend_Search_Lucene_Storage_File
              * We should only calculate actual string length and replace
              * \x00 by \xC0\x80
              */
-            if ((ord($str{$count}) & 0xC0) == 0xC0) {
+            if ((ord(substr($str, $count, 1)) & 0xC0) == 0xC0) {
                 $addBytes = 1;
-                if (ord($str{$count}) & 0x20 ) {
+                if (ord(substr($str, $count, 1)) & 0x20 ) {
                     $addBytes++;
 
                     // Never used. Java2 doesn't encode strings in four bytes
                     // and we dont't support non-BMP characters
-                    if (ord($str{$count}) & 0x10 ) {
+                    if (ord(substr($str, $count, 1)) & 0x10 ) {
                         $addBytes++;
                     }
                 }
                 $chars -= $addBytes;
 
-                if (ord($str{$count}) == 0 ) {
+                if (ord(substr($str, $count, 1)) == 0 ) {
                     $containNullChars = true;
                 }
                 $count += $addBytes;

@@ -18,7 +18,7 @@
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -48,6 +48,13 @@ function search_collect_searchables($namelist = false, $verbose = false) {
 
     $searchables = array();
     $searchablesnames = array();
+
+    // Add courses
+    $courseobj = new StdClass;
+    $courseobj->name = 'course';
+    $courseobj->location = 'internal';
+    $searchables['course'] = $courseobj;
+    $searchablesnames[] = 'course';
 
     // Get all installed modules.
     if ($mods = $DB->get_records('modules', array(), 'name', 'id,name')) {
@@ -82,13 +89,13 @@ function search_collect_searchables($namelist = false, $verbose = false) {
             $block->dirname = $block->name;
             $block->name = 'block_'.$block->name;
             if (in_array('SEARCH_TYPE_'.strtoupper($block->name), $searchabletypes)) {
-                $mod->location = 'internal';
+                $block->location = 'internal';
                 $blockssearchables[] = $block;
                 $searchablesnames[] = $block->name;
             } else {
                 $documentfile = $CFG->dirroot.'/blocks/'.$block->dirname.'/search_document.php';
                 if (file_exists($documentfile)) {
-                    $mod->location = 'blocks';
+                    $block->location = 'blocks';
                     $blockssearchables[$block->name] = $block;
                     $searchablesnames[] = $block->name;
                 }
@@ -106,14 +113,14 @@ function search_collect_searchables($namelist = false, $verbose = false) {
     if ($locals = glob($CFG->dirroot.'/local/*')) {
         $localsearchables = array();
 
-        // Prepend the "block_" prefix to discriminate document type plugins.
+        // Prepend the "local_" prefix to discriminate document type plugins.
         foreach ($locals as $localpath) {
             $component = basename($localpath);
             $local = new StdClass;
             $local->dirname = $component;
             $local->name = 'local_'.$component;
             if (in_array('SEARCH_TYPE_'.strtoupper($component), $searchabletypes)) {
-                $mod->location = 'internal';
+                $local->location = 'internal';
                 $localsearchables[] = $local;
                 $searchablesnames[] = $local->name;
             } else {
@@ -270,7 +277,7 @@ function search_get_physical_file(&$documents, &$file, &$object, $contextid, $ob
     $l2 = $contenthash[2].$contenthash[3];
     $physicalfilepath = $CFG->dataroot.'/filedir/'.$l1.'/'.$l2.'/'.$contenthash;
 
-    if (!file_exists($physicalfilepath)) {
+    if (!is_file($physicalfilepath)) {
         mtrace("Missing file at $physicalfilepath : will not be indexed.");
         return false;
     }
@@ -288,7 +295,7 @@ function search_get_physical_file(&$documents, &$file, &$object, $contextid, $ob
         return false;
     }
 
-    if (file_exists($CFG->dirroot.'/local/search/documents/physical_'.$ext.'.php')) {
+    if (is_file($CFG->dirroot.'/local/search/documents/physical_'.$ext.'.php')) {
         include_once($CFG->dirroot.'/local/search/documents/physical_'.$ext.'.php');
         $functionname = 'get_text_for_indexing_'.$ext;
         $object->alltext = $functionname($physicalfilepath);
@@ -297,7 +304,7 @@ function search_get_physical_file(&$documents, &$file, &$object, $contextid, $ob
             if ($getsingle) {
                 $vars = get_object_vars($object);
                 $single = new $objectdocumentclass($vars, $contextid);
-                mtrace("finished file $object->name ");
+                mtrace("Finished single file update $object->name ");
                 return $single;
             } else {
                 $vars = get_object_vars($object);
@@ -335,4 +342,66 @@ function search_get_comments($pluginname, $instanceid) {
     ";
     $comments = $DB->get_records_sql($sql, array($context->id));
     return $comments;
+}
+
+/**
+ * Incrementally updates the search index, deleting, updating modified entries
+ * and adding new.
+ */
+function search_update($doctype = null) {
+    global $CFG, $DB; // DB needed by includes.
+
+    try {
+        mtrace("\n--DELETE----");
+        include($CFG->dirroot.'/local/search/delete.php');
+        mtrace("--UPDATE----");
+        include($CFG->dirroot.'/local/search/update.php');
+        mtrace("--ADD-------");
+        include($CFG->dirroot.'/local/search/add.php');
+        mtrace("------------");
+        mtrace('done');
+
+        // Set back normal values for php limits.
+    } catch (Exception $ex) {
+        mtrace('Fatal exception from Lucene subsystem. Search engine may not have been updated.');
+        mtrace($ex);
+    }
+}
+
+function local_search_filter_extended_chars($text) {
+
+    $text = mb_ereg_replace('é', 'e', $text);
+    $text = mb_ereg_replace('è', 'e', $text);
+    $text = mb_ereg_replace('ê', 'e', $text);
+    $text = mb_ereg_replace('ë', 'e', $text);
+    $text = mb_ereg_replace('à', 'a', $text);
+    $text = mb_ereg_replace('â', 'a', $text);
+    $text = mb_ereg_replace('ä', 'a', $text);
+    $text = mb_ereg_replace('ù', 'u', $text);
+    $text = mb_ereg_replace('ü', 'u', $text);
+    $text = mb_ereg_replace('ü', 'u', $text);
+    $text = mb_ereg_replace('ï', 'i', $text);
+    $text = mb_ereg_replace('î', 'i', $text);
+    $text = mb_ereg_replace('ô', 'o', $text);
+    $text = mb_ereg_replace('ö', 'o', $text);
+    $text = mb_ereg_replace('ç', 'c', $text);
+    $text = mb_ereg_replace('ñ', 'n', $text);
+
+    $text = mb_ereg_replace('É', 'E', $text);
+    $text = mb_ereg_replace('È', 'E', $text);
+    $text = mb_ereg_replace('Ê', 'E', $text);
+    $text = mb_ereg_replace('Ë', 'E', $text);
+    $text = mb_ereg_replace('À', 'A', $text);
+    $text = mb_ereg_replace('Â', 'A', $text);
+    $text = mb_ereg_replace('Ä', 'A', $text);
+    $text = mb_ereg_replace('Ù', 'U', $text);
+    $text = mb_ereg_replace('Ü', 'U', $text);
+    $text = mb_ereg_replace('Ü', 'U', $text);
+    $text = mb_ereg_replace('Ï', 'I', $text);
+    $text = mb_ereg_replace('Î', 'I', $text);
+    $text = mb_ereg_replace('Ô', 'O', $text);
+    $text = mb_ereg_replace('Ö', 'O', $text);
+    $text = mb_ereg_replace('Ç', 'C', $text);
+    $text = mb_ereg_replace('Ñ', 'N', $text);
+    return $text;
 }

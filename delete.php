@@ -19,7 +19,7 @@
  *
  * @package local_search
  * @category local
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -55,18 +55,26 @@ $deletioncount = 0;
 $startcleantime = time();
 
 mtrace('Starting clean-up of removed records...');
-mtrace('Index size before: '.$config->index_size."\n");
+mtrace('Zend Index size before: '.$index->count()."\n");
 
 // Check all modules.
 
 if ($mods = search_collect_searchables(false, true)) {
 
-    foreach ($mods as $mod) {
+    foreach ($mods as $modtype => $mod) {
+
+        if (!empty($doctype)) {
+            if ($modtype != $doctype) {
+                continue;
+            }
+        }
 
         $key = 'search_in_'.$mod->name;
         if (empty($config->$key)) {
             mtrace(" module $key has been administratively disabled. Skipping...\n");
             continue;
+        } else {
+            mtrace(" Searching in $mod->name for deletions...\n");
         }
 
         // Build function names.
@@ -77,9 +85,11 @@ if ($mods = search_collect_searchables(false, true)) {
             require_once($classfile);
 
             $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
+            $dbnamesfunction = 'db_names';
+            $deletefunction = 'delete';
 
             // If both required functions exist.
-            if (function_exists($deletefunction) && function_exists($dbnamesfunction)) {
+            if (method_exists($wrapperclass, $deletefunction) && method_exists($wrapperclass, $dbnamesfunction)) {
                 mtrace("Checking $mod->name module for deletions.");
                 $valuesarr = $wrapperclass::db_names();
                 if ($valuesarr) {
@@ -122,20 +132,39 @@ if ($mods = search_collect_searchables(false, true)) {
                         }
                     }
 
+                    $i = 0;
+                    $j = 0;
                     foreach ($deletions as $delete) {
+                        ++$deletioncount;
                         // Find the specific document in the index, using it's docid and doctype as keys.
                         $doc = $index->find("+docid:{$delete->id} +doctype:$mod->name +itemtype:{$delete->itemtype}");
 
                         // Get the record, should only be one.
+                        $docsize = count($doc);
+                        mtrace("Got $docsize docs for +docid:{$delete->id} +doctype:$mod->name +itemtype:{$delete->itemtype}\n");
+                        sleep(1);
                         foreach ($doc as $thisdoc) {
-                            ++$deletioncount;
-                            $message = "  Delete: $thisdoc->title (database id = $thisdoc->dbid, ";
+                            $message = "  Delete ($j)/($deletioncount): $thisdoc->title (database id = $thisdoc->dbid, ";
                             $message .= "index id = $thisdoc->id, moodle instance id = $thisdoc->docid)";
                             mtrace($message);
 
                             // Remove it from index and database table.
                             $dbcontrol->delete_document($thisdoc);
                             $index->delete($thisdoc->id);
+                            $i++;
+                            if ($i > 5000) {
+                                // Commit each 5000, in case we crash.
+                                $i = 0;
+                                mtrace("Commiting.\n");
+                                $index->commit();
+                                sleep(2);
+                            }
+                            $j++;
+                            if ($j > 100000) {
+                                // Stop processing after 100000.
+                                mtrace("Stopping deletions at 100000.\n");
+                                break 2;
+                            }
                         }
                     }
                 } else {
@@ -154,7 +183,7 @@ $index->commit();
 // Update index date and index size.
 
 set_config('cleanup_date', $startcleantime, 'local_search');
-set_config('index_size', (int)$config->index_size - (int)$deletioncount, 'local_search');
 
 mtrace("Finished $deletioncount removals.");
-mtrace('Index size after: '.$index->count());
+mtrace('Zend Index size after: '.$index->count());
+set_config('index_size', (int)$index->count(), 'local_search');

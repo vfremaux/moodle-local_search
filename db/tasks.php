@@ -15,17 +15,24 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Global Search Engine for Moodle
+ * Definition of local search scheduled tasks.
  *
- * @package search
- * @category core
- * @subpackage search_engine
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
- * @date 2008/03/31
- * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
- *
- * Entry page for /search
- * Redirects to query.php, because that is the most likely place a
- * user intended to go to when typing moodle.site/search
+ * @package   local_search
+ * @category  task
+ * @copyright 2008 Valery Fremaux <valery.fremaux@gmail.com>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-require('query.php');
+
+defined('MOODLE_INTERNAL') || die();
+
+$tasks = array(
+    array(
+        'classname' => 'local_search\task\update_index_task',
+        'blocking' => 0,
+        'minute' => '30',
+        'hour' => '23',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*'
+    ),
+);

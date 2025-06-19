@@ -19,7 +19,7 @@
  *
  * @package local_search
  * @subpackage document_wrappers
- * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License

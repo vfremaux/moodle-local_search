@@ -20,7 +20,7 @@
  * @package local_search
  * @category local
  * @subpackage document_wrappers
- * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai on UTF-8 multibyte fixing
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -61,9 +61,9 @@ abstract class SearchDocument extends Zend_Search_Lucene_Document {
         $this->addField(Zend_Search_Lucene_Field::UnIndexed('context_id', $doc->contextid, $encoding));
 
         // Data for document.
-        $this->addField(Zend_Search_Lucene_Field::Text('title', $doc->title, $encoding));
-        $this->addField(Zend_Search_Lucene_Field::Text('author', $doc->author, $encoding));
-        $this->addField(Zend_Search_Lucene_Field::UnStored('contents', $doc->contents, $encoding));
+        $this->addField(Zend_Search_Lucene_Field::Text('title', $this->filter_extended_chars($doc->title), $encoding));
+        $this->addField(Zend_Search_Lucene_Field::Text('author', $this->filter_extended_chars($doc->author), $encoding));
+        $this->addField(Zend_Search_Lucene_Field::UnStored('contents', $this->filter_extended_chars($doc->contents), $encoding));
         $this->addField(Zend_Search_Lucene_Field::UnIndexed('url', $doc->url, $encoding));
         $this->addField(Zend_Search_Lucene_Field::UnIndexed('date', $doc->date, $encoding));
 
@@ -93,9 +93,13 @@ abstract class SearchDocument extends Zend_Search_Lucene_Document {
          */
         if (!empty($additionalkeyset)) {
             foreach ($additionalkeyset as $keyname => $keyvalue) {
-                $this->addField(Zend_Search_Lucene_Field::Keyword($keyname, $keyvalue, $encoding));
+                $this->addField(Zend_Search_Lucene_Field::Keyword($keyname, $this->filter_extended_chars($keyvalue), $encoding));
             }
         }
+    }
+
+    protected function filter_extended_chars($text) {
+        return local_search_filter_extended_chars($text);
     }
 }
 

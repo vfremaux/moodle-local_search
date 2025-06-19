@@ -20,7 +20,7 @@
  * @package local_search
  * @category local
  * @subpackage document_wrappers
- * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -35,6 +35,7 @@ use \context_course;
 use \context_system;
 use \context_user;
 use \moodle_url;
+use \moodle_exception;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -107,6 +108,10 @@ class UserPostSearchDocument extends SearchDocument {
         $doc->itemtype      = 'post';
         $doc->contextid     = $contextid;
 
+        if (empty($doc->docid)) {
+            throw new moodle_exception(print_r($doc, true));
+        }
+
         $user = $DB->get_record('user', array('id' => $userid));
 
         // We cannot call userdate with relevant locale at indexing time.
@@ -169,7 +174,7 @@ class user_document_wrapper extends document_wrapper {
      * @param itemtype
      * @return a well formed link to user information
      */
-    public static function make_link($instanceid) {
+    public static function make_link($instanceid, $contextid = null) {
 
         // Get an additional subentity id dynamically.
         $extravars = func_get_args();
@@ -235,12 +240,12 @@ class user_document_wrapper extends document_wrapper {
                     $files = $fs->get_area_files($contextid, 'blog', 'attachement', $post->id, 'filename', true);
                     if ($post->attachment && !empty($files)) {
                         $file = array_pop($files);
-                        search_get_physical_file($documents, $file, $post, $contextid, 'UserBlogAttachmentSearchDocument', false);
+                        search_get_physical_file($documents, $file, clone($post), $contextid, 'UserBlogAttachmentSearchDocument', false);
                     }
                 }
 
                 $posthash = get_object_vars($post);
-                $documents[] = new UserPostSearchDocument($posthash, $user->id, null);
+                $documents[] = new UserPostSearchDocument($posthash, $post->userid, null);
             }
         }
         return $documents;
@@ -262,14 +267,14 @@ class user_document_wrapper extends document_wrapper {
                 return new UserSearchDocument($userhash, $user->id, 'user', null);
             }
         } else if ($itemtype == 'post') {
-            if ($post = $DB->get_records('post', array('id' => $id))) {
+            if ($post = $DB->get_record('post', array('id' => $id))) {
                 $texts = array();
                 $texts[] = $post->subject;
                 $texts[] = $post->summary;
                 $texts[] = $post->content;
                 $post->description = implode(' ', $texts);
                 $posthash = get_object_vars($post);
-                return new UserPostSearchDocument($posthash, $user->id, 'post', null);
+                return new UserPostSearchDocument($posthash, $post->userid, 'post', null);
             }
         } else if ($itemtype == 'attachment' && $config->enable_file_indexing) {
             if ($post = $DB->get_records('post', array('id' => $id))) {

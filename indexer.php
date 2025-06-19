@@ -19,7 +19,7 @@
  *
  * @package local_search
  * @category local
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -43,7 +43,7 @@ require('../../config.php');
 require_once($CFG->dirroot.'/local/search/lib.php');
 require_once($CFG->dirroot.'/local/search/indexlib.php');
 
-@set_time_limit(0);
+@set_time_limit(1200);
 
 $url = new moodle_url('/local/search/indexer.php');
 $PAGE->set_url($url);
@@ -181,6 +181,9 @@ if ($searchables) {
                                 $index->commit();
                                 mtrace(".. $counter");
                             }
+                            // Micro record the index size and date so we get a size even if crashes.
+                            set_config('index_size', (int)$index->count(), 'local_search');
+                            set_config('indexer_run_date', time(), 'local_search');
                         }
                     }
                     // End transaction.

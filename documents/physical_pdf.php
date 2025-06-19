@@ -19,7 +19,7 @@
  *
  * @package local_search
  * @subpackage document_wrappers
- * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -55,6 +55,7 @@ function get_text_for_indexing_pdf($physicalfilepath) {
             mtrace('Error with pdf to text converter : executable not found at '.$moodleroot.$matches[0]);
         } else {
             $command = trim($config->pdf_to_text_cmd);
+            $command .= ' '.trim($config->pdf_to_text_params);
             if ($CFG->ostype == 'WINDOWS') {
                 $command = str_replace('/', '\\', $command);
                 $physicalfilepath = str_replace('/', '\\', $physicalfilepath);

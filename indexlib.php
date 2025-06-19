@@ -18,7 +18,7 @@
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -202,7 +202,13 @@ class IndexDBControl {
         }
 
         // Insert summary into db.
-        $id = $DB->insert_record(SEARCH_DATABASE_TABLE, $doc);
+        try {
+            $id = $DB->insert_record(SEARCH_DATABASE_TABLE, $doc);
+        } catch (dml_write_exception $ex) {
+            echo "Exception in table : ".SEARCH_DATABASE_TABLE;
+            print_object($doc);
+            throw new moodle_exception("In table : ".SEARCH_DATABASE_TABLE);
+        }
 
         return $id;
     }

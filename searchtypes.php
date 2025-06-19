@@ -19,7 +19,7 @@
  *
  * @package local_search
  * @category local
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -30,6 +30,8 @@ defined('MOODLE_INTERNAL') || die();
 
 // Document types that can be searched.
 
+define('SEARCH_TYPE_COURSE', 'course');
+define('SEARCH_TYPE_ASSIGN', 'assign');
 define('SEARCH_TYPE_ASSIGNMENT', 'assignment');
 define('SEARCH_TYPE_BOOK', 'book');
 define('SEARCH_TYPE_CHAT', 'chat');
@@ -40,6 +42,7 @@ define('SEARCH_TYPE_LABEL', 'label');
 define('SEARCH_TYPE_LESSON', 'lesson');
 define('SEARCH_TYPE_PAGE', 'page');
 define('SEARCH_TYPE_RESOURCE', 'resource');
+define('SEARCH_TYPE_SCORM', 'scorm');
 define('SEARCH_TYPE_WIKI', 'wiki');
 
 define('SEARCH_EXTRAS', 'user');

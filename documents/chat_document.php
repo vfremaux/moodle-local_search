@@ -20,7 +20,7 @@
  * @package local_search
  * @category local
  * @subpackage document_wrappers
- * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -94,7 +94,7 @@ class chat_document_wrapper extends document_wrapper {
      * @param end th end time of the session
      * @return a well formed link to session display
      */
-    public static function make_link($instanceid) {
+    public static function make_link($instanceid, $contextid = null) {
 
         // Get an additional subentity id dynamically.
         $extravars = func_get_args();
@@ -155,7 +155,7 @@ class chat_document_wrapper extends document_wrapper {
                 foreach ($messages as $message) {  // We are walking BACKWARDS through the messages.
                     $messagesleft --;              // Countdown.
 
-                    if ($message->system) {
+                    if ($message->issystem) {
                         continue;
                     }
 

@@ -1,0 +1,14 @@
+<!-- local_search/search_result -->
+
+<li class="search-result" value="{{listingnumber}}">
+<a href="{{{processedurl}}}" target="_blank">{{{listingicon}}} {{{listingtitle}}}</a> {{{listingcourse}}}
+<div class="search-result-attributes">
+    {{{typestr}}} ':' {{listingdoctype}}',' {{{scorestr}}}':' {{listingscore}}
+</div>
+{{#notauthorid}}
+    <div class="search-result-attributes">
+    {{{authorstr}}}':'{{listingauthor}}
+    </div>
+{{/notauthorid}}
+</li>
+<!-- /local_search/search_result -->

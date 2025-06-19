@@ -19,7 +19,7 @@
  *
  * @package local_search
  * @category local
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -59,22 +59,30 @@ $dbcontrol = new IndexDBControl();
 $additioncount = 0;
 $startindextime = time();
 
-$indexdate = $config->rundate;
+$indexdate = 0 + @$config->rundate;
 
 mtrace('Starting index update (additions)...');
-mtrace('Index size before: '.$config->index_size."\n");
+mtrace('Zend Index size before: '.$index->count()."\n");
 
 // Get all modules.
 if ($mods = search_collect_searchables(false, true)) {
 
     // Append virtual modules onto array.
 
-    foreach ($mods as $mod) {
+    foreach ($mods as $modtype => $mod) {
+
+        if (!empty($doctype)) {
+            if ($modtype != $doctype) {
+                continue;
+            }
+        }
 
         $key = 'search_in_'.$mod->name;
         if (empty($config->$key)) {
             mtrace(" module $key has been administratively disabled. Skipping...\n");
             continue;
+        } else {
+            mtrace(" Searching in $mod->name for additions...\n");
         }
 
         // Build include file and function names.
@@ -86,7 +94,7 @@ if ($mods = search_collect_searchables(false, true)) {
             $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
 
             // If both required functions exist.
-            mtrace("Checking $mod->name module for additions.");
+            mtrace("Checking $mod->name doctype for additions.");
 
             $valuesarr = $wrapperclass::db_names();
 
@@ -147,9 +155,24 @@ if ($mods = search_collect_searchables(false, true)) {
                     // Synchronise db with index.
                     $add->addField(Zend_Search_Lucene_Field::Keyword('dbid', $dbid));
 
-                    mtrace("Add: $add->title (database id = $add->dbid, moodle instance id = $add->docid)");
+                    mtrace("Add ($j)/($additioncount): $add->title (database id = $add->dbid, moodle instance id = $add->docid)");
 
                     $index->addDocument($add);
+
+                    $i++;
+                    if ($i > 5000) {
+                        // Commit each 5000, in case we crash.
+                        $i = 0;
+                        mtrace("Commiting.\n");
+                        $index->commit();
+                        sleep(2);
+                    }
+                    $j++;
+                    if ($j > 100000) {
+                        // Stop processing after 100000.
+                        mtrace("Stopping additions at 100000.\n");
+                        break;
+                    }
                 }
             } else {
                 mtrace("No types to add.\n");
@@ -166,10 +189,10 @@ $index->commit();
 // Update index date and size.
 
 set_config('run_date', $startindextime, 'local_search');
-set_config('index_size', (int)$config->index_size + (int)$additioncount, 'local_search');
 
 // Print some additional info.
 
 mtrace("Added $additioncount documents.");
-mtrace('Index size after: '.$index->count());
+mtrace('Zend Index size after: '.$index->count());
+set_config('index_size', $index->count(), 'local_search');
 

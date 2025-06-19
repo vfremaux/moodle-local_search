@@ -20,7 +20,7 @@
  * @package local_search
  * @category local
  * @subpackage document_wrappers
- * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -80,7 +80,7 @@ class page_document_wrapper extends document_wrapper {
      * @param pageId the of the page
      * @return a full featured link element as a string
      */
-    public static function page_make_link($instanceid) {
+    public static function make_link($instanceid, $contextid = null) {
         return new moodle_url('/mod/page/view.php', array('id' => $instanceid));
     }
 
@@ -142,7 +142,7 @@ class page_document_wrapper extends document_wrapper {
         // Rewriting with legacy moodle databse API.
         $sql = "
             SELECT
-               r.id as trueid,
+               p.id as trueid,
                cm.id as id,
                p.course as course,
                p.name as name,
@@ -158,11 +158,10 @@ class page_document_wrapper extends document_wrapper {
                 cm.course = p.course AND
                 cm.module = m.id AND
                 m.name = 'page' AND
-                ((p.type != 'file' AND
-                p.content != '' AND
+                ((p.content != '' AND
                 p.content != ' ' AND
                 p.content != '&nbsp;') OR
-                p.id = ?
+                p.id = ?)
         ";
         $page = $DB->get_record_sql($sql, array($id));
 

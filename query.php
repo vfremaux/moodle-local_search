@@ -18,7 +18,7 @@
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -50,7 +50,10 @@ require_once($CFG->dirroot.'/local/search/querylib.php');
 $pagenum  = optional_param('page', -1, PARAM_INT);
 $pages        = ($pagenum == -1) ? false : true;
 $advanced     = (optional_param('a', '0', PARAM_INT) == '1') ? true : false;
-$querystring = optional_param('query_string', '', PARAM_CLEAN);
+// Make it compatible to core search forms.
+$querystring = optional_param('query_string', optional_param('q', '', PARAM_CLEAN), PARAM_CLEAN);
+
+$SESSION->lastsearch = $querystring;
 
 $url = new moodle_url('/local/search/query.php', array('query_string' => $querystring));
 $PAGE->set_url($url);
@@ -95,6 +98,10 @@ if ($pages && isset($_SESSION['search_advanced_query'])) {
     $adv->module      = optional_param('module', '', PARAM_TEXT);
     $adv->title       = trim(optional_param('title', '', PARAM_TEXT), $chars);
     $adv->author      = trim(optional_param('author', '', PARAM_TEXT), $chars);
+
+    if (!empty($adv->mustappear)) {
+        $SESSION->lastsearch = $adv->mustappear;
+    }
 }
 
 if ($advanced) {
@@ -154,7 +161,7 @@ if ($pagenum < 1) {
 
 // Run the query against the index ensuring internal coding works in UTF-8.
 Zend_Search_Lucene_Analysis_Analyzer::setDefault(new Zend_Search_Lucene_Analysis_Analyzer_Common_Utf8_CaseInsensitive());
-$sq = new SearchQuery($querystring, $pagenum, 10, false);
+$sq = new SearchQuery(local_search_filter_extended_chars($querystring), $pagenum, 10, false);
 
 if (!$site = get_site()) {
     redirect($CFG->wwwroot);
@@ -260,15 +267,17 @@ if ($sq->is_valid()) {
 
         foreach ($hits as $listing) {
 
+            $coursename = $DB->get_field('course', 'fullname', array('id' => $listing->courseid));
             if ($listing->doctype == 'user') {
                 // A special handle for users.
                 $user = $DB->get_record('user', array('id' => $listing->userid));
                 $listing->icon = $OUTPUT->user_picture($user);
+            } if ($listing->doctype == 'course') {
+                $listing->icon = $OUTPUT->pix_icon('i/course', $coursename, 'core');
             } else {
                 $iconpath = $OUTPUT->image_url('icon', $listing->doctype);
                 $listing->icon = '<img align="top" src="'.$iconpath.'" class="activityicon" alt=""/>';
             }
-            $coursename = $DB->get_field('course', 'fullname', array('id' => $listing->courseid));
             $courseword = mb_convert_case(get_string('course', 'moodle'), MB_CASE_LOWER, 'UTF-8');
             $listing->course = ($listing->doctype != 'user') ? '<strong> ('.$courseword.': \''.$coursename.'\')</strong>' : '';
 

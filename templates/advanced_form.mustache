@@ -1,0 +1,53 @@
+<!-- local_search/advanced_form -->
+<input type="hidden" name="a" value="1" />
+<table border="0" cellpadding="3" cellspacing="3">
+    <tr>
+        <td width="240">{{#str}}thesewordsmustappear, local_search{{/str}}:</td>
+        <td><input type="text" name="mustappear" length="50" value="{{mustappear}}" /></td>
+    </tr>
+
+    <tr>
+        <td>{{#str}}thesewordsmustnotappear, local_search{{/str}}:</td>
+        <td><input type="text" name="notappear" length="50" value="{{notappear}}" /></td>
+    </tr>
+
+    <tr>
+        <td>{{#str}}thesewordshelpimproverank, local_search{{/str}}:</td>
+        <td><input type="text" name="canappear" length="50" value="{{canappear}}" /></td>
+    </tr>
+
+    <tr>
+        <td>{{#str}}whichmodulestosearch, local_search{{/str}}:</td>
+        <td>
+            {{{optionmenu}}}
+        </td>
+    </tr>
+
+    <tr>
+        <td>{{#str}}wordsintitle, local_search{{/str}}:</td>
+        <td><input type="text" name="title" length="50" value="{{title}}" /></td>
+    </tr>
+
+    <tr>
+        <td>{{#str}}authorname, local_search{{/str}}:</td>
+        <td><input type="text" name="author" length="50" value="{{author}}" /></td>
+    </tr>
+
+    <tr>
+        <td colspan="3" align="center"><br />
+            <input type="submit" value="{{#str}}search, local_search{{/str}}" />
+        </td>
+    </tr>
+
+    <tr>
+        <td colspan="3" align="center">
+            <table border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td><a href="{{{queryurl}}}">{{#str}}normalsearch, local_search{{/str}}</a> </td>
+                    <td>&nbsp<a href="{{{staturl}}}">{{#str}}statistics, local_search{{/str}}</a></td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+<!-- /local_search/advanced_form -->

@@ -14,18 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
- * Global Search Engine for Moodle
- *
- * @package search
- * @category core
- * @subpackage search_engine
- * @author Michael Champanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
- * @date 2008/03/31
- * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
- *
- * Entry page for /search
- * Redirects to query.php, because that is the most likely place a
- * user intended to go to when typing moodle.site/search
- */
-require('query.php');
+namespace local_search\privacy;
+
+defined('MOODLE_INTERNAL') || die();
+
+class provider implements \core_privacy\local\metadata\null_provider {
+    /**
+     * Get the language string identifier with the component's language
+     * file to explain why this plugin stores no data.
+     *
+     * @return  string
+     */
+    public static function get_reason() : string {
+        return 'privacy:metadata';
+    }
+}

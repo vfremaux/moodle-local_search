@@ -20,7 +20,7 @@
  * @package local_search
  * @category local
  * @subpackage document_wrappers
- * @author Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -63,19 +63,24 @@ function get_text_for_indexing_doc($physicalfilepath) {
                 $command = str_replace('/', '\\', $command);
                 $physicalfilepath = str_replace('/', '\\', $physicalfilepath);
             }
-            $textconvertercmd = "{$moodleroot}{$command} -m UTF-8.txt $physicalfilepath";
-            if ($config->word_to_text_env) {
-                putenv($config->word_to_text_env);
-            }
-            mtrace("Executing : $textconvertercmd");
-            $result = shell_exec($textconvertercmd);
-            if ($result) {
-                if (!empty($config->limit_index_body)) {
-                    $result = shorten_text($result, $config->limit_index_body);
+            if (is_file($physicalfilepath)) {
+                $textconvertercmd = "{$moodleroot}{$command} -m UTF-8.txt $physicalfilepath";
+                if ($config->word_to_text_env) {
+                    putenv($config->word_to_text_env);
                 }
-                return mb_convert_encoding($result, 'UTF-8', 'auto');
+                mtrace("Executing : $textconvertercmd");
+                $result = shell_exec($textconvertercmd);
+                if ($result) {
+                    if (!empty($config->limit_index_body)) {
+                        $result = shorten_text($result, $config->limit_index_body);
+                    }
+                    return mb_convert_encoding($result, 'UTF-8', 'auto');
+                } else {
+                    mtrace('Error with MSWord to text converter command : execution failed. ');
+                    return '';
+                }
             } else {
-                mtrace('Error with MSWord to text converter command : execution failed. ');
+                mtrace('Physical file was missing in moodledata. Skipping.');
                 return '';
             }
         }

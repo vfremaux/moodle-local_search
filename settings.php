@@ -16,25 +16,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// Settings default init.
-if (is_dir($CFG->dirroot.'/local/adminsettings')) {
-    // Integration driven code.
-    require_once($CFG->dirroot.'/local/adminsettings/lib.php');
-    list($hasconfig, $hassiteconfig, $capability) = local_adminsettings_access();
-} else {
-    // Standard Moodle code.
-    $capability = 'moodle/site:config';
-    $hasconfig = $hassiteconfig = has_capability($capability, context_system::instance());
-}
-
 if ($hassiteconfig) {
     require_once($CFG->dirroot.'/local/search/lib.php');
 
-    $settings = new admin_settingpage('local_search', get_string('pluginname', 'local_search'));
+    $settings = new admin_settingpage('localsettingsearch', get_string('pluginname', 'local_search'));
     $ADMIN->add('searchplugins', $settings);
 
     $defaultfiletypes = "PDF,TXT,HTML,PPT,XML,DOC,HTM,DOCX";
 
+    /*
     $convertoptions = array(
         '-1' => get_string('fromutf', 'local_search'),
         '0' => get_string('nochange', 'local_search'),
@@ -44,6 +34,7 @@ if ($hassiteconfig) {
     $label = get_string('configutf8transcoding', 'local_search');
     $desc = get_string('configutf8transcoding_desc', 'local_search');
     $settings->add(new admin_setting_configselect($key, $label, $desc, 0, $convertoptions));
+    */
 
     $key = 'local_search/softlock';
     $label = get_string('configusingsoftlock', 'local_search');
@@ -73,15 +64,22 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_heading('head1', get_string('pdfhandling', 'local_search'), ''));
 
     if ($CFG->ostype == 'WINDOWS') {
-        $default = "xpdf/win32/pdftotext.exe -eol dos -enc UTF-8 -q";
+        $default = "xpdf/win32/pdftotext.exe";
+        $defaultparams = " -eol dos -enc UTF-8 -q";
     } else {
-        $default = "xpdf/linux/bin64/pdftotext -enc UTF-8 -eol unix -q";
+        $default = "xpdf/linux/bin64/pdftotext";
+        $defaultparams = " -enc UTF-8 -eol unix -q";
     }
 
     $key = 'local_search/pdf_to_text_cmd';
     $label = get_string('configpdftotextcmd', 'local_search');
     $desc = get_string('configpdftotextcmd_desc', 'local_search');
     $settings->add(new admin_setting_configtext($key, $label, $desc, $default, PARAM_TEXT));
+
+    $key = 'local_search/pdf_to_text_params';
+    $label = get_string('configpdftotextparams', 'local_search');
+    $desc = get_string('configpdftotextparams_desc', 'local_search');
+    $settings->add(new admin_setting_configtext($key, $label, $desc, $defaultparams, PARAM_TEXT));
 
     $settings->add(new admin_setting_heading('head2', get_string('wordhandling', 'local_search'), ''));
 
@@ -145,7 +143,8 @@ if ($hassiteconfig) {
     $searchnames = search_collect_searchables(true);
     $searchablelist = implode("','", $searchnames);
 
-    $html = '<pre>'.$searchablelist.'</pre>';
+    $html = '<pre>'.implode(', ', $searchnames).'</pre>';
+    $searcheablenames = array_combine($searchnames, $searchnames);
     $settings->add(new admin_setting_heading('head3', get_string('searchdiscovery', 'local_search'), $html));
 
     $settings->add(new admin_setting_heading('head4', get_string('coresearchswitches', 'local_search'), ''));
@@ -158,7 +157,6 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_heading('head5', get_string('modulessearchswitches', 'local_search'), ''));
 
     $i = 0;
-    $foundsearchablemodules = 0;
     if ($modules = $DB->get_records_select('modules', " name IN ('{$searchablelist}') ", array(), 'name', 'id,name')) {
         foreach ($modules as $module) {
             $i++;
@@ -166,14 +164,13 @@ if ($hassiteconfig) {
             $label = get_string('pluginname', $module->name);
             $desc = get_string('pluginname', $module->name);
             $settings->add(new admin_setting_configcheckbox($key, $label, $desc, 1));
-            $foundsearchablemodules = 1;
+            unset($searcheablenames[$module->name]);
         }
     }
 
     $settings->add(new admin_setting_heading('head6', get_string('blockssearchswitches', 'local_search'), ''));
 
     $i = 0;
-    $foundsearchableblocks = 0;
     if ($blocks = $DB->get_records_select('block', " name IN ('{$searchablelist}') ", array(), 'name', 'id,name')) {
         foreach ($blocks as $block) {
             $i++;
@@ -181,11 +178,27 @@ if ($hassiteconfig) {
             $label = get_string('pluginname', $block->name);
             $desc = get_string('pluginname', $block->name);
             $settings->add(new admin_setting_configcheckbox($key, $label, $desc, 1));
-            $foundsearchablemodules = 1;
+            unset($searcheablenames['block_'.$block->name]);
         }
     }
 
-    $settings->add(new admin_setting_heading('head6', get_string('configenableglobalsearch', 'local_search'), ''));
+    $settings->add(new admin_setting_heading('head6', get_string('otherssearchswitches', 'local_search'), ''));
+
+    $i = 0;
+    foreach (array_keys($searcheablenames) as $pluginname) {
+        $i++;
+        $key = "local_search/search_in_{$pluginname}";
+        if ($pluginname != 'course') {
+            $label = get_string('pluginname', $pluginname);
+            $desc = get_string('pluginname', $pluginname);
+        } else {
+            $label = get_string('course');
+            $desc = get_string('course');
+        }
+        $settings->add(new admin_setting_configcheckbox($key, $label, $desc, 1));
+    }
+
+    $settings->add(new admin_setting_heading('head7', get_string('configenableglobalsearch', 'local_search'), ''));
 
     $key = 'local_search/enable';
     $label = get_string('configenableglobalsearch', 'local_search');

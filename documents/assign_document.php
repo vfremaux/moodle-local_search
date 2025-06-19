@@ -28,22 +28,22 @@
  */
 namespace local_search;
 
-use \StdClass;
-use \context_module;
-use \context_course;
-use \moodle_url;
+use StdClass;
+use context_module;
+use context_course;
+use moodle_url;
 
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/local/search/documents/document.php');
 require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
-require_once($CFG->dirroot.'/mod/assignment/lib.php');
+require_once($CFG->dirroot.'/mod/assign/lib.php');
 
 /**
  * a class for representing searchable information
  *
  */
-class AssignmentSearchDocument extends SearchDocument {
+class AssignSearchDocument extends SearchDocument {
 
     /**
      * constructor
@@ -54,7 +54,7 @@ class AssignmentSearchDocument extends SearchDocument {
         // Generic information; required.
         $doc = new StdClass;
         $doc->docid         = $assignment['id'];
-        $doc->documenttype  = SEARCH_TYPE_ASSIGNMENT;
+        $doc->documenttype  = SEARCH_TYPE_ASSIGN;
         $doc->itemtype      = $itemtype;
         $doc->contextid     = $contextid;
 
@@ -66,15 +66,14 @@ class AssignmentSearchDocument extends SearchDocument {
         $owner = $DB->get_record('user', array('id' => $ownerid));
         $doc->author        = fullname($owner);
         $doc->contents      = $assignment['intro'];
-        $doc->url           = assignment_document_wrapper::make_link($assignmentmoduleid, $itemtype, $ownerid);
+        $doc->url           = assign_document_wrapper::make_link($assignmentmoduleid, $itemtype, $ownerid);
 
         // Module specific information; optional.
         $data = new StdClass;
         $data->assignment         = $assignmentmoduleid;
-        $data->assignmenttype     = $assignment['assignmenttype'];
 
         // Construct the parent class.
-        parent::__construct($doc, $data, $courseid, 0, 0, 'mod/'.SEARCH_TYPE_ASSIGNMENT);
+        parent::__construct($doc, $data, $courseid, 0, 0, 'mod/'.SEARCH_TYPE_ASSIGN);
     }
 }
 
@@ -82,7 +81,7 @@ class AssignmentSearchDocument extends SearchDocument {
  * a class for representing searchable information
  *
  */
-class AssignmentSubmissionSearchDocument extends SearchDocument {
+class AssignSubmissionSearchDocument extends SearchDocument {
 
     /**
      * constructor
@@ -92,7 +91,7 @@ class AssignmentSubmissionSearchDocument extends SearchDocument {
         // Generic information; required.
         $doc = new StdClass;
         $doc->docid         = $submission['fileid'];
-        $doc->documenttype  = SEARCH_TYPE_ASSIGNMENT;
+        $doc->documenttype  = SEARCH_TYPE_ASSIGN;
         $doc->itemtype      = 'submission';
         $doc->contextid     = $contextid;
 
@@ -103,7 +102,7 @@ class AssignmentSubmissionSearchDocument extends SearchDocument {
         // Remove '(ip.ip.ip.ip)' from chat author list.
         $doc->author        = $submission['authors'];
         $doc->contents      = $submission['alltext'];
-        $doc->url           = assignment_document_wrapper::make_link($submission['cmid'], 'submission');
+        $doc->url           = assign_document_wrapper::make_link($submission['cmid'], 'submission');
 
         // Module specific information; optional.
         $data = new StdClass;
@@ -111,16 +110,16 @@ class AssignmentSubmissionSearchDocument extends SearchDocument {
         $data->submission         = $submission['id'];
 
         // Construct the parent class.
-        parent::__construct($doc, $data, $submission['courseid'], 0, 0, 'mod/'.SEARCH_TYPE_ASSIGNMENT);
+        parent::__construct($doc, $data, $submission['courseid'], 0, 0, 'mod/'.SEARCH_TYPE_ASSIGN);
     }
 }
 
-class assignment_document_wrapper extends document_wrapper {
+class assign_document_wrapper extends document_wrapper {
 
-    protected static $modname = 'assignment';
+    protected static $modname = 'assign';
 
     /**
-     * constructs a valid link to an assignment content
+     * constructs a valid link to an assign content
      * @param int instanceid this course module
      * @param contextid usually a context id, if link depends on context. Here used to transmit itemtype.
      * @return a well formed link to this search context display
@@ -130,10 +129,10 @@ class assignment_document_wrapper extends document_wrapper {
         $itemtype = $contextid;
 
         if ($itemtype == 'description') {
-            return new moodle_url('/mod/assignment/view.php', array('id' => $instanceid));
+            return new moodle_url('/mod/assign/view.php', array('id' => $instanceid));
         }
         if ($itemtype == 'submission') {
-            return new moodle_url('/mod/assignment/view.php', array('id' => $instanceid));
+            return new moodle_url('/mod/assign/view.php', array('id' => $instanceid));
         }
     }
 
@@ -144,7 +143,7 @@ class assignment_document_wrapper extends document_wrapper {
     public static function get_iterator() {
         global $DB;
 
-        if ($assignments = $DB->get_records('assignment')) {
+        if ($assignments = $DB->get_records('assign')) {
             return $assignments;
         } else {
             return array();
@@ -171,7 +170,7 @@ class assignment_document_wrapper extends document_wrapper {
             $instance->authors = '';
             $instance->date = $instance->timemodified;
             $arr = get_object_vars($instance);
-            $documents[] = new AssignmentSearchDocument($arr, $cm->id, 'description', $instance->course, null, $context->id);
+            $documents[] = new AssignSearchDocument($arr, $cm->id, 'description', $instance->course, null, $context->id);
 
             $submissions = assignment_get_all_submissions($instance);
             if ($submissions) {
@@ -181,6 +180,7 @@ class assignment_document_wrapper extends document_wrapper {
                     $submission->date = $submission->timemodified;
                     $submission->name = "submission:";
                     $submission->cmid = $cm->id;
+                    /*
                     if (file_exists($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.'/searchlib.php')) {
                         include_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.'/searchlib.php');
                         if (function_exists('assignment_get_submission_location')) {
@@ -204,7 +204,7 @@ class assignment_document_wrapper extends document_wrapper {
                             }
 
                             case 'offline': {
-                                continue 2; // Cannot index, no content in Moodle !!
+                                continue; // Cannot index, no content in Moodle !!
                             }
                         }
                     }
@@ -234,9 +234,10 @@ class assignment_document_wrapper extends document_wrapper {
                         }
                         closedir($submission->path);
                     }
+                    */
                 }
             }
-            mtrace("finished assignment {$assignment->name}");
+            mtrace("finished assign {$instance->name}");
             return $documents;
         }
         return array();
@@ -251,12 +252,12 @@ class assignment_document_wrapper extends document_wrapper {
         global $DB;
 
         if ($itemtype == 'description') {
-            if (!$assignment = $DB->get_record('assignment', array('id' => $id))) {
+            if (!$assignment = $DB->get_record('assign', array('id' => $id))) {
                 return null;
             }
         } else if ($itemtype == 'submission') {
-            if ($submission = $DB->get_record('assignment_submissions', array('id' => $id))) {
-                if (!$assignment = $DB->get_record('assignment', array('id' => $submission->assignment))) {
+            if ($submission = $DB->get_record('assign_submission', array('id' => $id))) {
+                if (!$assignment = $DB->get_record('assign', array('id' => $submission->assignment))) {
                     return null;
                 }
             } else {
@@ -274,7 +275,7 @@ class assignment_document_wrapper extends document_wrapper {
             // Should be only one.
             if ($itemtype == 'description') {
                 $arr = get_object_vars($assignment);
-                $document = new AssignmentSearchDocument($arr, $cm->id, 'description', $assignment->course, null, $context->id);
+                $document = new AssignSearchDocument($arr, $cm->id, 'description', $assignment->course, null, $context->id);
                 return $document;
             }
             if ($itemtype == 'submission') {
@@ -295,8 +296,8 @@ class assignment_document_wrapper extends document_wrapper {
      */
     public static function db_names() {
         return array(
-            array('id', 'assignment', 'timemodified', 'timemodified', 'description'),
-            array('id', 'assignment_submissions', 'timecreated', 'timemodified', 'submission')
+            array('id', 'assign', 'timemodified', 'timemodified', 'description'),
+            array('id', 'assign_submission', 'timecreated', 'timemodified', 'submission')
         );
     }
 
@@ -324,10 +325,10 @@ class assignment_document_wrapper extends document_wrapper {
 
         // Get the chat session and all related stuff.
         if ($itemtype == 'description') {
-            $assignment = $DB->get_record('assignment', array('id' => $thisid));
-        } else if ($itemtype == 'submission') {
-            $submission = $DB->get_record('assignment_submissions', array('id' => $thisid));
-            $assignment = $DB->get_record('assignment', array('id' => $submission->assignment));
+            $assignment = $DB->get_record('assign', array('id' => $thisid));
+        } else if ($itemtype == 'submitted') {
+            $submission = $DB->get_record('assign_submissions', array('id' => $thisid));
+            $assignment = $DB->get_record('assign', array('id' => $submission->assignment));
         }
         $context = $DB->get_record('context', array('id' => $contextid));
         $cm = get_record('course_modules', 'id', $context->instanceid);
@@ -338,7 +339,7 @@ class assignment_document_wrapper extends document_wrapper {
 
         if (!$cm->visible and !has_capability('moodle/course:viewhiddenactivities', $context)) {
             if (!empty($config->access_debug)) {
-                echo "search reject : hidden assignment ";
+                echo "search reject : hidden assign ";
             }
             return false;
         }
@@ -360,17 +361,17 @@ class assignment_document_wrapper extends document_wrapper {
 
         // User ownership check :
         // Trap if user is not owner of the resource and the ressource is a submission/attachement.
-        if ($itemtype == 'submission' && $USER->id != $submission->userid && !has_capability('mod/assignment:view', $context)) {
+        if ($itemtype == 'submission' && $USER->id != $submission->userid && !has_capability('mod/assign:view', $context)) {
             if (!empty($config->access_debug)) {
-                echo "search reject : i'm not owner of this assignment ";
+                echo "search reject : i'm not owner of this assign ";
             }
             return false;
         }
 
-        // Date check : no submission may be viewed before timedue.
-        if ($itemtype == 'submission' && $assignment->timedue < time()) {
+        // Date check : no submission may be viewed before duedate.
+        if ($itemtype == 'submission' && $assignment->duedate < time()) {
             if (!empty($config->access_debug)) {
-                echo "search reject : cannot read submissions before end of assignment ";
+                echo "search reject : cannot read submissions before end of assign ";
             }
             return false;
         }
@@ -378,7 +379,7 @@ class assignment_document_wrapper extends document_wrapper {
         // Ownership check : checks the following situations about user.
         // Trap if user is not owner and cannot see other's entries.
         // TODO : typically may be stored into indexing cache.
-        if (!has_capability('mod/assignment:view', $context)) {
+        if (!has_capability('mod/assign:view', $context)) {
             if (!empty($config->access_debug)) {
                 echo "search reject : cannot read past sessions ";
             }

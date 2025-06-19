@@ -20,7 +20,7 @@
  * @package local_search
  * @category local
  * @subpackage document_wrappers
- * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@club-internet.fr] > 1.8
+ * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
@@ -85,7 +85,7 @@ class book_document_wrapper extends document_wrapper {
      * @param entry_id the id of the book entry
      * @return a full featured link element as a string
      */
-    public static function make_link($instanceid) {
+    public static function make_link($instanceid, $contextid = null) {
 
         // Get an additional subentity id dynamically.
         $extravars = func_get_args();
@@ -151,7 +151,7 @@ class book_document_wrapper extends document_wrapper {
     public static function single_document($id, $itemtype) {
         global $DB;
 
-        $entry = $DB->get_record('book_chapter', array('id' => $id));
+        $entry = $DB->get_record('book_chapters', array('id' => $id));
         $bookcourse = $DB->get_field('book', 'course', array('id' => $entry->bookid));
         $coursemodule = $DB->get_field('modules', 'id', array('name' => 'book'));
         $params = array('course' => $bookcourse, 'module' => $coursemodule, 'instance' => $entry->bookid);
