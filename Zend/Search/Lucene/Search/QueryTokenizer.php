@@ -64,17 +64,17 @@ class Zend_Search_Lucene_Search_QueryTokenizer implements Iterator
 
         $currentToken = '';
         for ($count = 0; $count < strlen($inputString); $count++) {
-            if (ctype_alnum( $inputString{$count} ) ||
-                $inputString{$count} == '_') {
-                $currentToken .= $inputString{$count};
-            } else if ($inputString{$count} == '\\') { // Escaped character
+            if (ctype_alnum( $inputString[$count] ) ||
+                $inputString[$count] == '_') {
+                $currentToken .= $inputString[$count];
+            } else if ($inputString[$count] == '\\') { // Escaped character
                 $count++;
 
                 if ($count == strlen($inputString)) {
                     throw new Zend_Search_Lucene_Exception('Non finished escape sequence.');
                 }
 
-                $currentToken .= $inputString{$count};
+                $currentToken .= $inputString[$count];
             } else {
                 // Previous token is finished
                 if (strlen($currentToken)) {
@@ -83,13 +83,13 @@ class Zend_Search_Lucene_Search_QueryTokenizer implements Iterator
                     $currentToken = '';
                 }
 
-                if ($inputString{$count} == '+' || $inputString{$count} == '-') {
+                if ($inputString[$count] == '+' || $inputString[$count] == '-') {
                     $this->_tokens[] = new Zend_Search_Lucene_Search_QueryToken(Zend_Search_Lucene_Search_QueryToken::TOKTYPE_SIGN,
-                                                                $inputString{$count});
-                } elseif ($inputString{$count} == '(' || $inputString{$count} == ')') {
+                                                                $inputString[$count]);
+                } elseif ($inputString[$count] == '(' || $inputString[$count] == ')') {
                     $this->_tokens[] = new Zend_Search_Lucene_Search_QueryToken(Zend_Search_Lucene_Search_QueryToken::TOKTYPE_BRACKET,
-                                                                $inputString{$count});
-                } elseif ($inputString{$count} == ':' && $this->count()) {
+                                                                $inputString[$count]);
+                } elseif ($inputString[$count] == ':' && $this->count()) {
                     if ($this->_tokens[count($this->_tokens)-1]->type == Zend_Search_Lucene_Search_QueryToken::TOKTYPE_WORD) {
                         $this->_tokens[count($this->_tokens)-1]->type = Zend_Search_Lucene_Search_QueryToken::TOKTYPE_FIELD;
                     }
