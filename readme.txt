@@ -90,3 +90,15 @@ Future extensions
 - Should be added more information to index such as forum and glossary attachements, 
   so will other standard module contents.
 - extending the search capability to a mnet network information space by aggregating remote search responses.
+
+=============== 2021032300 (X.X.0003) :
+
+Search documents model : the global search engine now resolves the document wrapper of each searchable plugin in <component>\local\search\document_wrapper (engine types in local_search\document\<name>_document_wrapper) instead of the legacy search_document.php files. Access checks, indexing, update, deletion and result display use the same resolver. Fixes data and course wrappers signatures and namespaces, book wrapper import, assign submission document import, and the base make_link() static property access. Physical file indexing handlers are read from classes/document.
+
+=============== 2021032300 (X.X.0004) :
+
+Core document types aligned with the local_search\document layout (one class per file): forum, glossary, label, lesson, page, scorm, user and wiki are split into <type>_document_wrapper and <type>_*_document classes extending local_search\document. Resource wrapper namespace and imports fixed. Scorm documents were linking through the resource wrapper.
+
+=============== 2021032300 (X.X.0005) :
+
+Label search documents : the label intro is now indexed with the name, the useless mod/resource/lib.php include is removed, the access check reads the course module with a valid record query, ignores missing records and honors the course module visibility of the searching user. Missing course modules no more break indexing.

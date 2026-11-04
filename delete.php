@@ -30,6 +30,10 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+// Abusive PSR12 rule : adds useless spaces in string concatenation.
+// phpcs:disable PSR12.Operators.OperatorSpacing.NoSpaceBefore
+// phpcs:disable PSR12.Operators.OperatorSpacing.NoSpaceAfter
+
 // Makes inclusions of the Zend Engine more reliable.
 $dirsep = DIRECTORY_SEPARATOR;
 ini_set('include_path', $CFG->dirroot.$dirsep.'local'.$dirsep.'search'.PATH_SEPARATOR.ini_get('include_path'));
@@ -60,9 +64,7 @@ mtrace('Zend Index size before: '.$index->count()."\n");
 // Check all modules.
 
 if ($mods = search_collect_searchables(false, true)) {
-
     foreach ($mods as $modtype => $mod) {
-
         if (!empty($doctype)) {
             if ($modtype != $doctype) {
                 continue;
@@ -77,14 +79,11 @@ if ($mods = search_collect_searchables(false, true)) {
             mtrace(" Searching in $mod->name for deletions...\n");
         }
 
-        // Build function names.
-        $classfile = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
-        $deletions = array();
+        // Resolve the document wrapper class.
+        $wrapperclass = search_get_wrapper_class($mod);
+        $deletions = [];
 
-        if (file_exists($classfile)) {
-            require_once($classfile);
-
-            $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
+        if ($wrapperclass) {
             $dbnamesfunction = 'db_names';
             $deletefunction = 'delete';
 
@@ -152,17 +151,17 @@ if ($mods = search_collect_searchables(false, true)) {
                             $dbcontrol->delete_document($thisdoc);
                             $index->delete($thisdoc->id);
                             $i++;
-                            if ($i > 5000) {
-                                // Commit each 5000, in case we crash.
+                            if ($i > 1000) {
+                                // Commit each 1000, in case we crash.
                                 $i = 0;
                                 mtrace("Commiting.\n");
                                 $index->commit();
                                 sleep(2);
                             }
                             $j++;
-                            if ($j > 100000) {
-                                // Stop processing after 100000.
-                                mtrace("Stopping deletions at 100000.\n");
+                            if ($j > 10000) {
+                                // Stop processing after 10000.
+                                mtrace("Stopping deletions at 10000.\n");
                                 break 2;
                             }
                         }

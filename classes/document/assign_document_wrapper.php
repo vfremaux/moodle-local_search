@@ -18,7 +18,6 @@
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @category local
  * @subpackage document_wrappers
  * @author Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
@@ -26,96 +25,17 @@
  *
  * document handling for assignment activity module
  */
-namespace local_search;
+namespace local_search\document;
 
-use StdClass;
-use context_module;
-use context_course;
+use local_search\document_wrapper;
 use moodle_url;
-
-defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->dirroot.'/local/search/documents/document.php');
-require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
-require_once($CFG->dirroot.'/mod/assign/lib.php');
+use context_module;
 
 /**
- * a class for representing searchable information
- *
+ * the document wrapper
  */
-class AssignSearchDocument extends SearchDocument {
-
-    /**
-     * constructor
-     */
-    public function __construct(&$assignment, $assignmentmoduleid, $itemtype, $courseid, $ownerid, $contextid) {
-        global $DB;
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid         = $assignment['id'];
-        $doc->documenttype  = SEARCH_TYPE_ASSIGN;
-        $doc->itemtype      = $itemtype;
-        $doc->contextid     = $contextid;
-
-        // We cannot call userdate with relevant locale at indexing time.
-        $doc->title         = "{$itemtype}: {$assignment['name']}";
-        $doc->date          = $assignment['datemodified'];
-
-        // Remove '(ip.ip.ip.ip)' from chat author list.
-        $owner = $DB->get_record('user', array('id' => $ownerid));
-        $doc->author        = fullname($owner);
-        $doc->contents      = $assignment['intro'];
-        $doc->url           = assign_document_wrapper::make_link($assignmentmoduleid, $itemtype, $ownerid);
-
-        // Module specific information; optional.
-        $data = new StdClass;
-        $data->assignment         = $assignmentmoduleid;
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, $courseid, 0, 0, 'mod/'.SEARCH_TYPE_ASSIGN);
-    }
-}
-
-/**
- * a class for representing searchable information
- *
- */
-class AssignSubmissionSearchDocument extends SearchDocument {
-
-    /**
-     * constructor
-     */
-    public function __construct(&$submission, $contextid) {
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid         = $submission['fileid'];
-        $doc->documenttype  = SEARCH_TYPE_ASSIGN;
-        $doc->itemtype      = 'submission';
-        $doc->contextid     = $contextid;
-
-        // We cannot call userdate with relevant locale at indexing time.
-        $doc->title         = "Submission: {$submission['assignmentname']}";
-        $doc->date          = $submission['timecreated'];
-
-        // Remove '(ip.ip.ip.ip)' from chat author list.
-        $doc->author        = $submission['authors'];
-        $doc->contents      = $submission['alltext'];
-        $doc->url           = assign_document_wrapper::make_link($submission['cmid'], 'submission');
-
-        // Module specific information; optional.
-        $data = new StdClass;
-        $data->assignment         = $submission['cmid'];
-        $data->submission         = $submission['id'];
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, $submission['courseid'], 0, 0, 'mod/'.SEARCH_TYPE_ASSIGN);
-    }
-}
-
 class assign_document_wrapper extends document_wrapper {
-
+    /** @var string $modname */
     protected static $modname = 'assign';
 
     /**
@@ -129,10 +49,10 @@ class assign_document_wrapper extends document_wrapper {
         $itemtype = $contextid;
 
         if ($itemtype == 'description') {
-            return new moodle_url('/mod/assign/view.php', array('id' => $instanceid));
+            return new moodle_url('/mod/assign/view.php', ['id' => $instanceid]);
         }
         if ($itemtype == 'submission') {
-            return new moodle_url('/mod/assign/view.php', array('id' => $instanceid));
+            return new moodle_url('/mod/assign/view.php', ['id' => $instanceid]);
         }
     }
 
@@ -146,7 +66,7 @@ class assign_document_wrapper extends document_wrapper {
         if ($assignments = $DB->get_records('assign')) {
             return $assignments;
         } else {
-            return array();
+            return [];
         }
     }
 
@@ -157,11 +77,11 @@ class assign_document_wrapper extends document_wrapper {
     public static function get_content_for_index(&$instance) {
         global $CFG, $DB;
 
-        $documents = array();
+        $documents = [];
         $fs = get_file_storage();
 
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'assignment'));
-        $params = array('course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'assignment']);
+        $params = ['course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id];
         $cm = $DB->get_record('course_modules', $params);
 
         if ($cm) {
@@ -170,77 +90,22 @@ class assign_document_wrapper extends document_wrapper {
             $instance->authors = '';
             $instance->date = $instance->timemodified;
             $arr = get_object_vars($instance);
-            $documents[] = new AssignSearchDocument($arr, $cm->id, 'description', $instance->course, null, $context->id);
+            $documents[] = new assign_document($arr, $cm->id, 'description', $instance->course, null, $context->id);
 
             $submissions = assignment_get_all_submissions($instance);
             if ($submissions) {
                 foreach ($submissions as $submission) {
-                    $owner = $DB->get_record('user', array('id' => $submission->userid));
+                    $owner = $DB->get_record('user', ['id' => $submission->userid]);
                     $submission->authors = fullname($owner);
                     $submission->date = $submission->timemodified;
                     $submission->name = "submission:";
                     $submission->cmid = $cm->id;
-                    /*
-                    if (file_exists($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.'/searchlib.php')) {
-                        include_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.'/searchlib.php');
-                        if (function_exists('assignment_get_submission_location')) {
-                            $submitted = assignment_get_submission_location($instance, $submission);
-                        }
-                    }
-                    if (empty($submitted)) {
-
-                        // This is for moodle legacy types that would need not to be patched for searchlib.php.
-                        switch ($instance->assignmenttype) {
-                            case 'online': {
-                                $submitted->source = 'text';
-                                $submitted->data = $submission->data1;
-                                break;
-                            }
-
-                            case 'uploadsingle':
-                            case 'upload': {
-                                $submitted->source = 'files';
-                                break;
-                            }
-
-                            case 'offline': {
-                                continue; // Cannot index, no content in Moodle !!
-                            }
-                        }
-                    }
-                    if (empty($submitted)) {
-                        continue; // Ignoring.
-                    }
-
-                    if ($submitted->source = 'text') {
-                        $submission->description = $submitted->data;
-                        $submission->description = preg_replace("/<[^>]*>/", '', $submission->description); // Strip all tags.
-                        $arr = get_object_vars($submission);
-                        $documents[] = new AssignmentSearchDocument($arr, $cm->id, 'submission', $assignment->course,
-                                                                    $submission->userid, $context->id);
-                        mtrace("finished online submission for {$submission->authors} in assignement {$assignment->name}");
-                    } else if ($submitted->source = 'files') {
-                        if ($files = $fs->get_area_files($context->id, 'mod_assignment', 'submission', $submission->id,
-                                                         'filepath,filename', true)) {
-                            foreach ($files as $file) {
-                                $submission->fileid = $file->id; // Registers unique id in index.
-                                $submission->courseid = $instance->course;
-                                search_get_physical_file($documents, $file, $submission, $context->id,
-                                                         'AssignmentSubmissionSearchDocument', false);
-                                $message = "finished submission {$submission->id} by {$submission->authors}";
-                                $message .= " in assignement {$assignment->name}";
-                                mtrace($message);
-                            }
-                        }
-                        closedir($submission->path);
-                    }
-                    */
                 }
             }
             mtrace("finished assign {$instance->name}");
             return $documents;
         }
-        return array();
+        return [];
     }
 
     /**
@@ -252,21 +117,21 @@ class assign_document_wrapper extends document_wrapper {
         global $DB;
 
         if ($itemtype == 'description') {
-            if (!$assignment = $DB->get_record('assign', array('id' => $id))) {
+            if (!$assignment = $DB->get_record('assign', ['id' => $id])) {
                 return null;
             }
         } else if ($itemtype == 'submission') {
-            if ($submission = $DB->get_record('assign_submission', array('id' => $id))) {
-                if (!$assignment = $DB->get_record('assign', array('id' => $submission->assignment))) {
+            if ($submission = $DB->get_record('assign_submission', ['id' => $id])) {
+                if (!$assignment = $DB->get_record('assign', ['id' => $submission->assignment])) {
                     return null;
                 }
             } else {
                 return null;
             }
         }
-        $course = $DB->get_record('course', array('id' => $assignment->course));
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'assignment'));
-        $params = array('course' => $course->id, 'module' => $coursemodule, 'instance' => $assignment->id);
+        $course = $DB->get_record('course', ['id' => $assignment->course]);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'assignment']);
+        $params = ['course' => $course->id, 'module' => $coursemodule, 'instance' => $assignment->id];
         $cm = $DB->get_record('course_modules', $params);
 
         if ($cm) {
@@ -275,15 +140,21 @@ class assign_document_wrapper extends document_wrapper {
             // Should be only one.
             if ($itemtype == 'description') {
                 $arr = get_object_vars($assignment);
-                $document = new AssignSearchDocument($arr, $cm->id, 'description', $assignment->course, null, $context->id);
+                $document = new assign_document($arr, $cm->id, 'description', $assignment->course, null, $context->id);
                 return $document;
             }
             if ($itemtype == 'submission') {
                 $file = $fs->get_file_by_id($id);
-                $void = array();
+                $void = [];
                 $submission->courseid = $assignment->course;
-                return search_get_physical_file($void, $file, $submission, $context->id,
-                                                'AssignmentSubmissionSearchDocument', true);
+                return search_get_physical_file(
+                    $void,
+                    $file,
+                    $submission,
+                    $context->id,
+                    'assign_submission_document',
+                    true
+                );
             }
         }
         return null;
@@ -295,10 +166,10 @@ class assign_document_wrapper extends document_wrapper {
      * // [primary id], [table name], [time created field name], [time modified field name], [itemtype]
      */
     public static function db_names() {
-        return array(
-            array('id', 'assign', 'timemodified', 'timemodified', 'description'),
-            array('id', 'assign_submission', 'timecreated', 'timemodified', 'submission')
-        );
+        return [
+            ['id', 'assign', 'timemodified', 'timemodified', 'description'],
+            ['id', 'assign_submission', 'timecreated', 'timemodified', 'submission'],
+        ];
     }
 
     /**
@@ -325,12 +196,12 @@ class assign_document_wrapper extends document_wrapper {
 
         // Get the chat session and all related stuff.
         if ($itemtype == 'description') {
-            $assignment = $DB->get_record('assign', array('id' => $thisid));
+            $assignment = $DB->get_record('assign', ['id' => $thisid]);
         } else if ($itemtype == 'submitted') {
-            $submission = $DB->get_record('assign_submissions', array('id' => $thisid));
-            $assignment = $DB->get_record('assign', array('id' => $submission->assignment));
+            $submission = $DB->get_record('assign_submissions', ['id' => $thisid]);
+            $assignment = $DB->get_record('assign', ['id' => $submission->assignment]);
         }
-        $context = $DB->get_record('context', array('id' => $contextid));
+        $context = $DB->get_record('context', ['id' => $contextid]);
         $cm = get_record('course_modules', 'id', $context->instanceid);
 
         if (empty($cm)) {
@@ -394,7 +265,6 @@ class assign_document_wrapper extends document_wrapper {
      *
      */
     public static function link_post_processing($title) {
-
         if (!function_exists('search_assignment_getstring')) {
             function search_assignment_getstring($matches) {
                 return get_string($matches[1], 'assignment');

@@ -18,8 +18,6 @@
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @category local
- * @subpackage document_wrappers
  * @author Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
  * @date 2008/03/31
@@ -32,61 +30,17 @@
  * in this file, rather than mod/chat/lib.php
  *
  */
-namespace local_search;
+namespace local_search\document;
 
-use \StdClass;
-use \context_module;
-use \context_course;
-use \moodle_url;
-
-defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->dirroot.'/local/search/documents/document.php');
-require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
-require_once($CFG->dirroot.'/mod/chat/lib.php');
+use local_search\document_wrapper;
+use moodle_url;
+use StdClass;
+use context_module;
 
 /**
- * a class for representing searchable information
- *
+ * Document wrapper class.
  */
-class ChatTrackSearchDocument extends SearchDocument {
-
-    /**
-     * constructor
-     */
-    public function __construct(&$chatsession, $chatid, $chatmoduleid, $courseid, $groupid, $contextid) {
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid         = $chatid.'-'.$chatsession['sessionstart'].'-'.$chatsession['sessionend'];
-        $doc->documenttype  = SEARCH_TYPE_CHAT;
-        $doc->itemtype      = 'session';
-        $doc->contextid     = $contextid;
-
-        $duration           = $chatsession['sessionend'] - $chatsession['sessionstart'];
-        // We cannot call userdate with relevant locale at indexing time.
-        $doc->title         = get_string('chatreport', 'chat').' '.get_string('openedon', 'search');
-        $doc->title         .= ' TT_'.$chatsession['sessionstart'].'_TT ('.get_string('duration', 'search');
-        $doc->title         .= ' : '.get_string('numseconds', '', $duration).')';
-        $doc->date          = $chatsession['sessionend'];
-
-        // Remove '(ip.ip.ip.ip)' from chat author list.
-        $doc->author        = preg_replace('/\(.*?\)/', '', $chatsession['authors']);
-        $doc->contents      = $chatsession['content'];
-        $doc->url           = chat_document_wrapper::make_link($chatmoduleid, $chatsession['sessionstart'],
-                                                               $chatsession['sessionend']);
-
-        // Module specific information; optional.
-        $data = new StdClass;
-        $data->chat         = $chatid;
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, $courseid, $groupid, 0, 'mod/'.SEARCH_TYPE_CHAT);
-    }
-}
-
 class chat_document_wrapper extends document_wrapper {
-
     /**
      * constructs a valid link to a chat content
      * @param cm_id the chat course module
@@ -102,7 +56,7 @@ class chat_document_wrapper extends document_wrapper {
         $start = array_shift($extravars);
         $end = array_shift($extravars);
 
-        return new moodle_url('/mod/chat/report.php', array('id' => $instanceid, 'start' => $start, 'end' => $end));
+        return new moodle_url('/mod/chat/report.php', ['id' => $instanceid, 'start' => $start, 'end' => $end]);
     }
 
     /**
@@ -118,25 +72,25 @@ class chat_document_wrapper extends document_wrapper {
     protected static function get_session_tracks($chatid, $fromtime = 0, $totime = 0) {
         global $CFG, $DB;
 
-        $chat = $DB->get_record('chat', array('id' => $chatid));
-        $course = $DB->get_record('course', array('id' => $chat->course));
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'chat'));
-        $cm = $DB->get_record('course_modules', array('course' => $course->id, 'module' => $coursemodule, 'instance' => $chat->id));
+        $chat = $DB->get_record('chat', ['id' => $chatid]);
+        $course = $DB->get_record('course', ['id' => $chat->course]);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'chat']);
+        $cm = $DB->get_record('course_modules', ['course' => $course->id, 'module' => $coursemodule, 'instance' => $chat->id]);
         if (empty($cm)) {
             // Shirai 20090530.
             mtrace("Missing this chat: Course=".$chat->course."/ ChatID=".$chatid);
-            return array();
+            return [];
         }
         $groupmode = groups_get_activity_groupmode($cm, $course);
 
         $fromtimeclause = ($fromtime) ? "AND timestamp >= {$fromtime}" : '';
         $totimeclause = ($totime) ? "AND timestamp <= {$totime}" : '';
-        $tracks = array();
+        $tracks = [];
         $select = " chatid = ? $fromtimeclause $totimeclause ";
-        $messages = $DB->get_records_select('chat_messages', $select, array($chatid), "timestamp DESC");
+        $messages = $DB->get_records_select('chat_messages', $select, [$chatid], "timestamp DESC");
         if ($messages) {
             // Splits discussions against groups.
-            $groupedmessages = array();
+            $groupedmessages = [];
             if ($groupmode != SEPARATEGROUPS) {
                 foreach ($messages as $amessage) {
                     $groupedmessages[$amessage->groupid][] = $amessage;
@@ -147,7 +101,7 @@ class chat_document_wrapper extends document_wrapper {
             $sessiongap = 5 * 60;    // Keep 5 minutes silence means a new session.
             $sessionend = 0;
             $sessionstart = 0;
-            $sessionusers = array();
+            $sessionusers = [];
             $lasttime = time();
 
             foreach ($groupedmessages as $groupid => $messages) {  // We are walking BACKWARDS through the messages.
@@ -176,7 +130,7 @@ class chat_document_wrapper extends document_wrapper {
                         $track->sessionstart = $message->timestamp;
                         $track->content = $message->message;
                         // Reset the accumulator of users.
-                        $track->sessionusers = array();
+                        $track->sessionusers = [];
                         $track->sessionusers[$message->userid] = $message->userid;
                         $track->groupid = $groupid;
                         $tracks[] = $track;
@@ -206,10 +160,10 @@ class chat_document_wrapper extends document_wrapper {
     public static function get_content_for_index(&$instance) {
         global $DB;
 
-        $documents = array();
-        $course = $DB->get_record('course', array('id' => $instance->course));
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'chat'));
-        $params = array('course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id);
+        $documents = [];
+        $course = $DB->get_record('course', ['id' => $instance->course]);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'chat']);
+        $params = ['course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id];
         $cm = $DB->get_record('course_modules', $params);
         if ($cm) {
             $context = context_module::instance($cm->id);
@@ -219,16 +173,16 @@ class chat_document_wrapper extends document_wrapper {
             if ($sessiontracks) {
                 foreach ($sessiontracks as $atrackid => $atrack) {
                     foreach ($atrack->sessionusers as $auserid) {
-                        $user = $DB->get_record('user', array('id' => $auserid));
+                        $user = $DB->get_record('user', ['id' => $auserid]);
                         $atrack->authors = ($user) ? fullname($user) : '';
                         $trackarr = get_object_vars($atrack);
-                        $documents[] = new ChatTrackSearchDocument($trackarr, $instance->id, $cm->id, $instance->course, $atrack->groupid, $context->id);
+                        $documents[] = new chat_track_document($trackarr, $instance->id, $cm->id, $instance->course, $atrack->groupid, $context->id);
                     }
                 }
             }
             return $documents;
         }
-        return array();
+        return [];
     }
 
     /**
@@ -244,10 +198,10 @@ class chat_document_wrapper extends document_wrapper {
         global $DB;
 
         list($chatid, $sessionstart, $sessionend) = explode('-', $id);
-        $chat = $DB->get_record('chat', array('id' => $chatid));
-        $course = $DB->get_record('course', array('id' => $chat->course));
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'chat'));
-        $params = array('course' => $course->id, 'module' => $coursemodule, 'instance' => $chat->id);
+        $chat = $DB->get_record('chat', ['id' => $chatid]);
+        $course = $DB->get_record('course', ['id' => $chat->course]);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'chat']);
+        $params = ['course' => $course->id, 'module' => $coursemodule, 'instance' => $chat->id];
         $cm = $DB->get_record('course_modules', $params);
         if ($cm) {
             $context = context_module::instance($cm->id);
@@ -257,7 +211,7 @@ class chat_document_wrapper extends document_wrapper {
             if ($tracks) {
                 $atrack = $tracks[0];
                 $arr = get_object_vars($atrack);
-                $document = new ChatTrackSearchDocument($arr, $chatid, $cm->id, $chat->course, $atrack->groupid, $context->id);
+                $document = new chat_track_document($arr, $chatid, $cm->id, $chat->course, $atrack->groupid, $context->id);
                 return $document;
             }
         }
@@ -297,9 +251,9 @@ class chat_document_wrapper extends document_wrapper {
 
         list($chatid, $sessionstart, $sessionend) = explode('-', $thisid);
         // Get the chat session and all related stuff.
-        $chat = $DB->get_record('chat', array('id' => $chatid));
-        $context = $DB->get_record('context', array('id' => $contextid));
-        $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));
+        $chat = $DB->get_record('chat', ['id' => $chatid]);
+        $context = $DB->get_record('context', ['id' => $contextid]);
+        $cm = $DB->get_record('course_modules', ['id' => $context->instanceid]);
         if (empty($cm)) {
             return false; // Shirai 20090530 - MDL19342 - course module might have been delete.
         }
@@ -313,7 +267,7 @@ class chat_document_wrapper extends document_wrapper {
 
         // Group consistency check : checks the following situations about groups.
         // Trap if user is not same group and groups are separated.
-        $course = $DB->get_record('course', array('id' => $chat->course));
+        $course = $DB->get_record('course', ['id' => $chat->course]);
         if ((groups_get_activity_groupmode($cm, $course) == SEPARATEGROUPS) &&
                 !ismember($groupid) && !has_capability('moodle/site:accessallgroups', $context)) {
             if (!empty($config->access_debug)) {

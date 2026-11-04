@@ -117,7 +117,7 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_configtext($key, $label, $desc, $default, PARAM_TEXT));
 
     // Ensures it comes from real DB.
-    $filetypes = $DB->get_field('config_plugins', 'value', array('plugin' => 'local_search', 'name' => 'filetypes'));
+    $filetypes = $DB->get_field('config_plugins', 'value', ['plugin' => 'local_search', 'name' => 'filetypes']);
     $types = explode(',', $filetypes);
     if (!empty($types)) {
         foreach ($types as $type) {
@@ -157,7 +157,7 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_heading('head5', get_string('modulessearchswitches', 'local_search'), ''));
 
     $i = 0;
-    if ($modules = $DB->get_records_select('modules', " name IN ('{$searchablelist}') ", array(), 'name', 'id,name')) {
+    if ($modules = $DB->get_records_select('modules', " name IN ('{$searchablelist}') ", [], 'name', 'id,name')) {
         foreach ($modules as $module) {
             $i++;
             $key = "local_search/search_in_{$module->name}";
@@ -171,7 +171,7 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_heading('head6', get_string('blockssearchswitches', 'local_search'), ''));
 
     $i = 0;
-    if ($blocks = $DB->get_records_select('block', " name IN ('{$searchablelist}') ", array(), 'name', 'id,name')) {
+    if ($blocks = $DB->get_records_select('block', " name IN ('{$searchablelist}') ", [], 'name', 'id,name')) {
         foreach ($blocks as $block) {
             $i++;
             $key = "local_search/search_in_{$block->name}";

@@ -18,8 +18,6 @@
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @category local
- * @subpackage document_wrappers
  * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
@@ -31,55 +29,16 @@
  * in this file, rather than mod/glossary/lib.php
  *
  */
-namespace local_search;
+namespace local_search\document;
 
-use \StdClass;
-use \context_module;
-use \context_course;
-use \moodle_url;
-
-defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->dirroot.'/local/search/documents/document.php');
-require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
+use moodle_url;
+use local_search\document_wrapper;
+use context_module;
 
 /**
- * a class for representing searchable information
- *
+ * Document Wrapper.
  */
-class BookPageSearchDocument extends SearchDocument {
-
-    /**
-     * document constructor
-     *
-     */
-    public function __construct(&$entry, $courseid, $contextid) {
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid     = $entry['id'];
-        $doc->documenttype  = SEARCH_TYPE_BOOK;
-        $doc->itemtype      = 'standard';
-        $doc->contextid     = $contextid;
-
-        $doc->title     = $entry['title'];
-        $doc->date      = $entry['timecreated'];
-
-        $doc->author    = '';
-        $doc->contents  = strip_tags($entry['content']);
-        $doc->url       = book_document_wrapper::make_link($entry['bookid'], $entry['id']);
-
-        // Module specific information; optional.
-        $data = new StdClass;
-        $data->book = $entry['bookid'];
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, $courseid, -1, 0, 'mod/'.SEARCH_TYPE_BOOK);
-    }
-}
-
 class book_document_wrapper extends document_wrapper {
-
     /**
      * constructs valid access links to information
      * @param entry_id the id of the book entry
@@ -98,7 +57,7 @@ class book_document_wrapper extends document_wrapper {
          * preserve glossary pop-up, be careful where you place your ' and "s
          * this function is meant to return a url that is placed between href='[url here]'
          */
-        return new moodle_url('/mod/book/showentry.php', array('chapterid' => $entryid, 'bid' => $instanceid));
+        return new moodle_url('/mod/book/showentry.php', ['chapterid' => $entryid, 'bid' => $instanceid]);
     }
 
     /**
@@ -121,20 +80,20 @@ class book_document_wrapper extends document_wrapper {
         global $DB;
 
         // Get context.
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'book'));
-        $params = array('course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'book']);
+        $params = ['course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id];
         $cm = $DB->get_record('course_modules', $params);
         $context = context_module::instance($cm->id);
 
-        $documents = array();
+        $documents = [];
 
         // Index entries.
-        $entries = $DB->get_records('book_chapters', array('bookid' => $instance->id));
+        $entries = $DB->get_records('book_chapters', ['bookid' => $instance->id]);
         if ($entries) {
             foreach ($entries as $entry) {
                 if (strlen($entry->content) > 0) {
                     $arr = get_object_vars($entry);
-                    $documents[] = new BookPageSearchDocument($arr, $instance->course, $context->id);
+                    $documents[] = new book_page_document($arr, $instance->course, $context->id);
                 }
             }
         }
@@ -151,14 +110,14 @@ class book_document_wrapper extends document_wrapper {
     public static function single_document($id, $itemtype) {
         global $DB;
 
-        $entry = $DB->get_record('book_chapters', array('id' => $id));
-        $bookcourse = $DB->get_field('book', 'course', array('id' => $entry->bookid));
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'book'));
-        $params = array('course' => $bookcourse, 'module' => $coursemodule, 'instance' => $entry->bookid);
+        $entry = $DB->get_record('book_chapters', ['id' => $id]);
+        $bookcourse = $DB->get_field('book', 'course', ['id' => $entry->bookid]);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'book']);
+        $params = ['course' => $bookcourse, 'module' => $coursemodule, 'instance' => $entry->bookid];
         $cm = $DB->get_record('course_modules', $params);
         $context = context_module::instance($cm->id);
         $vars = get_object_vars($entry);
-        return new BookPageSearchDocument($vars, $bookcourse, $context->id);
+        return new book_page_document($vars, $bookcourse, $context->id);
     }
 
     /**
@@ -167,9 +126,9 @@ class book_document_wrapper extends document_wrapper {
      *
      */
     public static function db_names() {
-        return array(
-            array('id', 'book_chapters', 'timecreated', 'timemodified', 'standard'),
-        );
+        return [
+            ['id', 'book_chapters', 'timecreated', 'timemodified', 'standard'],
+        ];
     }
 
     /**
@@ -192,9 +151,9 @@ class book_document_wrapper extends document_wrapper {
         global $DB;
 
         // Get the glossary object and all related stuff.
-        $entry = $DB->get_record('glossary_entries', array('id' => $thisid));
-        $context = $DB->get_record('context', array('id' => $contextid));
-        $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));
+        $entry = $DB->get_record('glossary_entries', ['id' => $thisid]);
+        $context = $DB->get_record('context', ['id' => $contextid]);
+        $cm = $DB->get_record('course_modules', ['id' => $context->instanceid]);
 
         if (!$cm->visible && !has_capability('moodle/course:viewhiddenactivities', $context)) {
             return false;

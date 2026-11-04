@@ -58,7 +58,7 @@ class local_search_renderer extends plugin_renderer_base {
         $template->authorstr = $authorstr;
         $template->notauthorid = (!empty($listing->author) && !is_numeric($listing->author));
         $template->processedurl = str_replace('DEFAULT_POPUP_SETTINGS', DEFAULT_POPUP_SETTINGS, $listing->url);
-        
+
         return $OUTPUT->render_from_template('local_search/search_result', $template);
     }
 
@@ -66,7 +66,7 @@ class local_search_renderer extends plugin_renderer_base {
         global $OUTPUT;
 
         $template = new StdClass;
-        $template->searchurl = new moodle_url('/local/search/query.php', array('a' => 1));
+        $template->searchurl = new moodle_url('/local/search/query.php', ['a' => 1]);
         $template->staturl = new moodle_url('/local/search/stats.php');
         $template->querystring = $querystring;
 
@@ -75,7 +75,7 @@ class local_search_renderer extends plugin_renderer_base {
 
     public function advanced_form($adv, $moduletypes) {
         global $OUTPUT;
-        
+
         $template = new StdClass;
         $template->mustappear = $adv->mustappear;
         $template->notappear = $adv->notappear;
@@ -98,14 +98,14 @@ class local_search_renderer extends plugin_renderer_base {
             }
         }
         $template->optionmenu = (html_writer::select($optionsmenu, 'module', $adv->module));
-        
+
         return $OUTPUT->render_from_template('local_search/advanced_form', $template);
     }
 
     public function course_search_form($value) {
         $template = new StdClass;
         $params = [
-            'a' => 1
+            'a' => 1,
         ];
         $template->coursesearchurl = new moodle_url('/local/search/query.php', $params);
         $template->querystring = $value;

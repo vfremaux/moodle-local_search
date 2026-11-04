@@ -416,18 +416,14 @@ class SearchQuery {
          * final checks
          */
         // Then give back indexing data to the module for local check.
-        $searchable_instance = $searchables[$doctype];
-        if ($searchable_instance->location == 'internal') {
-            include_once "{$CFG->dirroot}/local/search/documents/{$doctype}_document.php";
-        } else {
-            include_once "{$CFG->dirroot}/{$searchable_instance->location}/$doctype/search_document.php";
+        if (!array_key_exists($doctype, $searchables)) {
+            // The document type is not searchable any more (plugin uninstalled or disabled).
+            return false;
         }
-        $access_check_function = "{$doctype}_check_text_access";
 
-        if (function_exists($access_check_function)) {
-            $modulecheck = $access_check_function($path, $itemtype, $thisid, $user, $groupid, $contextid);
-            // echo "module said $modulecheck for item $doctype/$itemtype/$thisid";
-            return($modulecheck);
+        $wrapperclass = search_get_wrapper_class($searchables[$doctype], false);
+        if ($wrapperclass) {
+            return $wrapperclass::check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid);
         }
 
         return true;

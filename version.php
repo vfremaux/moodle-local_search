@@ -33,5 +33,5 @@ $plugin->release = '4.5.0 (Build 2021032300)';
 $plugin->supported = [403, 405];
 
 // Non moodle attributes.
-$plugin->codeincrement = '4.5.0002';
+$plugin->codeincrement = '4.5.0005';
 $plugin->privacy = 'public';

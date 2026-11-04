@@ -85,13 +85,11 @@ if ($mods = search_collect_searchables(false, true)) {
             mtrace(" Searching in $mod->name for additions...\n");
         }
 
-        // Build include file and function names.
-        $classfile = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
-        $additions = array();
+        // Resolve the document wrapper class.
+        $wrapperclass = search_get_wrapper_class($mod);
+        $additions = [];
 
-        if (file_exists($classfile)) {
-            require_once($classfile);
-            $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
+        if ($wrapperclass) {
 
             // If both required functions exist.
             mtrace("Checking $mod->name doctype for additions.");
@@ -116,7 +114,7 @@ if ($mods = search_collect_searchables(false, true)) {
                             doctype = '{$values[1]}'
                             $itemtypes
                     ";
-                    $docids = $DB->get_records_sql_menu($sql, array($mod->name));
+                    $docids = $DB->get_records_sql_menu($sql, [$mod->name]);
                     $docidlist = ($docids) ? implode("','", array_keys($docids)) : '';
 
                     $sql = "

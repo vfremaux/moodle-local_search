@@ -25,80 +25,46 @@
  * @date 2008/03/31
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  *
- * document handling for all resources
- * This file contains the mapping between a resource and it's indexable counterpart,
- *
- * Functions for iterating and retrieving the necessary records are now also included
- * in this file, rather than mod/resource/lib.php
+ * document handling for labels
+ * This file contains the mapping between a label and it's indexable counterpart.
  */
-namespace local_search;
+namespace local_search\document;
 
-use StdClass;
-use moodle_url;
-use context_module;
-use context_course;
 use context;
-
-defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->dirroot.'/local/search/documents/document.php');
-require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
-require_once($CFG->dirroot.'/mod/resource/lib.php');
+use context_course;
+use context_module;
+use local_search\document_wrapper;
+use moodle_url;
+use StdClass;
 
 /**
- * a class for representing searchable information
- *
+ * Document wrapper for core labels.
  */
-class LabelSearchDocument extends SearchDocument {
-
-    public function __construct(&$label, $contextid) {
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid     = $label['id'];
-        $doc->documenttype = SEARCH_TYPE_LABEL;
-        $doc->itemtype     = 'label';
-        $doc->contextid    = $contextid;
-
-        $doc->title     = strip_tags($label['name']);
-        $doc->date      = $label['timemodified'];
-        $doc->author    = '';
-        $doc->contents  = strip_tags($label['name']);
-        $doc->url       = label_document_wrapper::make_link($label['course'], $contextid);
-
-        // Module specific information; optional.
-        $data = new StdClass;
-        $data = array();
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, $label['course'], 0, 0, 'mod/'.SEARCH_TYPE_LABEL);
-    }
-}
-
 class label_document_wrapper extends document_wrapper {
 
     /**
      * constructs valid access links to information
-     * @param resourceId the of the resource
+     * @param int $instanceid the id of the course the label belongs to
+     * @param int $contextid the module context of the label
      * @return a full featured link element as a string
      */
     public static function make_link($instanceid, $contextid = null) {
         global $DB;
 
         $format = $DB->get_field('course', 'format', ['id' => $instanceid]);
-        if ($format == 'page') {
+        if ($format == 'page' && $contextid) {
             // We need search on which page an occurrence of the search was found.
             $context = context::instance_by_id($contextid);
             $params = ['cmid' => $context->instanceid];
             $pages = $DB->get_records('format_page_items', $params);
             if ($pages) {
                 $firstitemoccurence = array_shift($pages);
-                $courseurl = new moodle_url('/course/view.php', array('id' => $instanceid, 'page' => $firstitemoccurence->pageid));
+                $courseurl = new moodle_url('/course/view.php', ['id' => $instanceid, 'page' => $firstitemoccurence->pageid]);
             }
         }
 
         if (empty($courseurl)) {
-            $courseurl = new moodle_url('/course/view.php', array('id' => $instanceid));
+            $courseurl = new moodle_url('/course/view.php', ['id' => $instanceid]);
         }
 
         return $courseurl;
@@ -129,15 +95,19 @@ class label_document_wrapper extends document_wrapper {
         global $DB;
 
         // Starting with Moodle native resources.
-        $documents = array();
+        $documents = [];
 
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'label'));
-        $params = array('course' => $label->course, 'module' => $coursemodule, 'instance' => $label->id);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'label']);
+        $params = ['course' => $label->course, 'module' => $coursemodule, 'instance' => $label->id];
         $cm = $DB->get_record('course_modules', $params);
+        if (!$cm) {
+            // The course module is gone.
+            return $documents;
+        }
         $context = context_module::instance($cm->id);
 
         $obj = get_object_vars($label);
-        $documents[] = new LabelSearchDocument($obj, $context->id);
+        $documents[] = new label_document($obj, $context->id);
 
         mtrace("finished label {$label->id}");
         return $documents;
@@ -153,16 +123,19 @@ class label_document_wrapper extends document_wrapper {
         global $DB;
         static $labelmodule = null;
 
-        $label = $DB->get_record('label', array('id' => $id));
+        $label = $DB->get_record('label', ['id' => $id]);
         if (is_null($labelmodule)) {
             $labelmodule = $DB->get_record('modules', ['name' => 'label']);
         }
 
         if ($label) {
             $cm = $DB->get_record('course_modules', ['module' => $labelmodule->id, 'instance' => $label->id]);
+            if (!$cm) {
+                return null;
+            }
             $context = context_module::instance($cm->id);
             $arr = get_object_vars($label);
-            return new LabelSearchDocument($arr, $context->id);
+            return new label_document($arr, $context->id);
         }
         return null;
     }
@@ -175,7 +148,7 @@ class label_document_wrapper extends document_wrapper {
          * [primary id], [table name], [time created field name], [time modified field name], [docsubtype],
          * [additional where conditions for sql]
          */
-        return array(array('id', 'label', 'timemodified', 'timemodified', 'label', ''));
+        return [['id', 'label', 'timemodified', 'timemodified', 'label', '']];
     }
 
     /**
@@ -192,11 +165,14 @@ class label_document_wrapper extends document_wrapper {
     public static function check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid) {
         global $DB;
 
-        $r = $DB->get_record('label', array('id' => $thisid));
-        $modulecontext = $DB->get_record('context', array('id' => $contextid));
-        $cm = $DB->get_record('course_modules', 'id', $modulecontext->instanceid);
+        $r = $DB->get_record('label', ['id' => $thisid]);
+        $modulecontext = $DB->get_record('context', ['id' => $contextid]);
+        if (!$r || !$modulecontext) {
+            return false;
+        }
+        $cm = $DB->get_record('course_modules', ['id' => $modulecontext->instanceid]);
         if (empty($cm)) {
-            return false; // Shirai 20093005 - MDL19342 - course module might have been delete.
+            return false; // Course module might have been deleted.
         }
 
         $coursecontext = context_course::instance($r->course);
@@ -211,6 +187,8 @@ class label_document_wrapper extends document_wrapper {
             return false;
         }
 
-        return true;
+        // The raw course module record has no user visibility : ask the course modinfo for the searching user.
+        $cminfo = get_fast_modinfo($cm->course, $user->id)->get_cm($cm->id);
+        return (bool)$cminfo->uservisible;
     }
 }

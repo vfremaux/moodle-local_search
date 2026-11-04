@@ -22,12 +22,12 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
-$capabilities = array(
-    'local/search:query' => array(
+$capabilities = [
+    'local/search:query' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_SYSTEM,
-        'archetypes' => array(
-            'user' => CAP_ALLOW
-        )
-    ),
-);
+        'archetypes' => [
+            'user' => CAP_ALLOW,
+        ],
+    ],
+];

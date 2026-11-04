@@ -64,7 +64,7 @@ mtrace("Checking activity modules:\n");
  */
 
 // Get all installed modules.
-if ($mods = $DB->get_records('modules', array(), 'name', 'id,name')) {
+if ($mods = $DB->get_records('modules', [], 'name', 'id,name')) {
 
     $searchabletypes = array_values(search_get_document_types());
 
@@ -84,8 +84,8 @@ if ($mods = $DB->get_records('modules', array(), 'name', 'id,name')) {
 }
 
 // Collects blocks as indexable information may be found in blocks either.
-if ($blocks = $DB->get_records('block', array(), 'name', 'id,name')) {
-    $blockssearchables = array();
+if ($blocks = $DB->get_records('block', [], 'name', 'id,name')) {
+    $blockssearchables = [];
     // Prepend the "block_" prefix to discriminate document type plugins.
     foreach ($blocks as $block) {
         $block->dirname = $block->name;

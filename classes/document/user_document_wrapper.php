@@ -27,144 +27,20 @@
  *
  * special (EXTRA) document handling for user related data
  */
-namespace local_search;
+namespace local_search\document;
 
-use \StdClass;
-use \context_module;
-use \context_course;
-use \context_system;
-use \context_user;
-use \moodle_url;
-use \moodle_exception;
+use context_course;
+use context_module;
+use context_system;
+use context_user;
+use local_search\document_wrapper;
+use moodle_exception;
+use moodle_url;
+use StdClass;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot.'/local/search/documents/document.php');
-require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
 require_once($CFG->dirroot.'/blog/lib.php');
-
-/**
- * A class for representing searchable information in user metadata.
- */
-class UserSearchDocument extends SearchDocument {
-
-    /**
-     * Constructor.
-     */
-    public function __construct(&$userhash, $userid, $contextid) {
-        global $DB;
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid         = $userhash['id'];
-        $doc->documenttype  = SEARCH_TYPE_USER;
-        $doc->itemtype      = 'user';
-        $doc->contextid     = $contextid;
-
-        $user = $DB->get_record('user', array('id' => $userid));
-        $doc->title         = get_string('user').': '.fullname($user);
-        $doc->date          = ($userhash['lastaccess']) ? $userhash['lastaccess'] : time();
-
-        // Remove '(ip.ip.ip.ip)' from chat author list.
-        $doc->author        = $user->id;
-        $doc->contents      = $userhash['description'];
-        $doc->url           = user_document_wrapper::make_link($userid, 'user');
-
-        // Module specific information; optional.
-
-        /*
-         * construct the parent class
-         * Shirai : User pictures are not displayed in results of blogs (2009/05/29) MDL19341
-         */
-        parent::__construct($doc, $data, 0, 0, $userid, PATH_FOR_SEARCH_TYPE_USER);
-
-        // Add extra fields.
-
-        $encoding = 'UTF-8';
-
-        $this->addField(\Zend_Search_Lucene_Field::Keyword('institution', $userhash['institution'], $encoding));
-        $this->addField(\Zend_Search_Lucene_Field::Keyword('department', $userhash['department'], $encoding));
-        $this->addField(\Zend_Search_Lucene_Field::Keyword('country', $userhash['country'], $encoding));
-
-    }
-}
-
-/**
- * A class for representing searchable information in user metadata
- *
- */
-class UserPostSearchDocument extends SearchDocument {
-
-    /**
-     * Constructor.
-     */
-    public function __construct(&$post, $userid, $contextid) {
-        global $DB;
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid         = $post['id'];
-        $doc->documenttype  = SEARCH_TYPE_USER;
-        $doc->itemtype      = 'post';
-        $doc->contextid     = $contextid;
-
-        if (empty($doc->docid)) {
-            throw new moodle_exception(print_r($doc, true));
-        }
-
-        $user = $DB->get_record('user', array('id' => $userid));
-
-        // We cannot call userdate with relevant locale at indexing time.
-        $doc->title         = $post['subject'];
-        $doc->date          = $post['created'];
-
-        // Remove '(ip.ip.ip.ip)' from chat author list.
-        $doc->author        = fullname($user);
-        $doc->contents      = $post['description'];
-        $doc->url           = user_document_wrapper::make_link($post['id'], 'post');
-
-        // Module specific information; optional.
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, 0, 0, $userid, PATH_FOR_SEARCH_TYPE_USER);
-    }
-}
-
-/**
- * a class for representing searchable information in user metadata
- */
-class UserBlogAttachmentSearchDocument extends SearchDocument {
-
-    /**
-     * constructor
-     */
-    public function __construct(&$post, $contextid) {
-        global $DB;
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid         = $post['id'];
-        $doc->documenttype  = SEARCH_TYPE_USER;
-        $doc->itemtype      = 'attachment';
-        $doc->contextid     = $contextid;
-
-        $user = $DB->get_record('user', array('id' => $post['userid']));
-
-        // We cannot call userdate with relevant locale at indexing time.
-        $doc->title         = get_string('file').' : '.$post['subject'];
-        $doc->date          = $post['created'];
-
-        // Remove '(ip.ip.ip.ip)' from chat author list.
-        $doc->author        = fullname($user);
-        $doc->contents      = $post['alltext'];
-        $doc->url           = user_document_wrapper::make_link($post['id'], 'attachment');
-
-        // Module specific information; optional.
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, 0, 0, $post['userid'], PATH_FOR_SEARCH_TYPE_USER);
-    }
-}
 
 class user_document_wrapper extends document_wrapper {
 
@@ -182,11 +58,11 @@ class user_document_wrapper extends document_wrapper {
         $itemtype = array_shift($extravars);
 
         if ($itemtype == 'user') {
-            return new moodle_url('/user/view.php', array('id' => $instanceid));
+            return new moodle_url('/user/view.php', ['id' => $instanceid]);
         } else if ($itemtype == 'post') {
-            return new moodle_url('/blog/index.php', array('postid' => $instanceid));
+            return new moodle_url('/blog/index.php', ['postid' => $instanceid]);
         } else if ($itemtype == 'attachment') {
-            $post = $DB->get_record('post', array('id' => $instanceid));
+            $post = $DB->get_record('post', ['id' => $instanceid]);
             // TODO : change to pluginfile
             /*
             if (!$CFG->slasharguments){
@@ -219,16 +95,16 @@ class user_document_wrapper extends document_wrapper {
     public static function get_content_for_index(&$user) {
         global $CFG, $DB;
 
-        $documents = array();
+        $documents = [];
         $config = get_config('local_search');
         $fs = get_file_storage();
 
         $userhash = get_object_vars($user);
-        $documents[] = new UserSearchDocument($userhash, $user->id, null);
+        $documents[] = new user_document($userhash, $user->id, null);
 
-        if ($posts = $DB->get_records('post', array('userid' => $user->id), 'created')) {
+        if ($posts = $DB->get_records('post', ['userid' => $user->id], 'created')) {
             foreach ($posts as $post) {
-                $texts = array();
+                $texts = [];
                 $texts[] = $post->subject;
                 $texts[] = $post->summary;
                 $texts[] = $post->content;
@@ -240,12 +116,12 @@ class user_document_wrapper extends document_wrapper {
                     $files = $fs->get_area_files($contextid, 'blog', 'attachement', $post->id, 'filename', true);
                     if ($post->attachment && !empty($files)) {
                         $file = array_pop($files);
-                        search_get_physical_file($documents, $file, clone($post), $contextid, 'UserBlogAttachmentSearchDocument', false);
+                        search_get_physical_file($documents, $file, clone($post), $contextid, '\\local_search\\document\\user_blog_attachment_document', false);
                     }
                 }
 
                 $posthash = get_object_vars($post);
-                $documents[] = new UserPostSearchDocument($posthash, $post->userid, null);
+                $documents[] = new user_post_document($posthash, $post->userid, null);
             }
         }
         return $documents;
@@ -262,25 +138,25 @@ class user_document_wrapper extends document_wrapper {
         $config = get_config('local_search');
 
         if ($itemtype == 'user') {
-            if ($user = $DB->get_record('user', array('id' => $id))) {
+            if ($user = $DB->get_record('user', ['id' => $id])) {
                 $userhash = get_object_vars($user);
-                return new UserSearchDocument($userhash, $user->id, 'user', null);
+                return new user_document($userhash, $user->id, 'user', null);
             }
         } else if ($itemtype == 'post') {
-            if ($post = $DB->get_record('post', array('id' => $id))) {
-                $texts = array();
+            if ($post = $DB->get_record('post', ['id' => $id])) {
+                $texts = [];
                 $texts[] = $post->subject;
                 $texts[] = $post->summary;
                 $texts[] = $post->content;
                 $post->description = implode(' ', $texts);
                 $posthash = get_object_vars($post);
-                return new UserPostSearchDocument($posthash, $post->userid, 'post', null);
+                return new user_post_document($posthash, $post->userid, 'post', null);
             }
         } else if ($itemtype == 'attachment' && $config->enable_file_indexing) {
-            if ($post = $DB->get_records('post', array('id' => $id))) {
+            if ($post = $DB->get_records('post', ['id' => $id])) {
                 $contextid = context_user::instance($post->userid)->id;
                 if ($post->attachment) {
-                    return search_get_physical_file($documents, $file, $post, $contextid, 'UserBlogAttachmentSearchDocument', true);
+                    return search_get_physical_file($documents, $file, $post, $contextid, '\\local_search\\document\\user_blog_attachment_document', true);
                 }
             }
         }
@@ -294,11 +170,11 @@ class user_document_wrapper extends document_wrapper {
      * [select restriction clause]
      */
     public static function db_names() {
-        return array(
-            array('id', 'user', 'firstaccess', 'timemodified', 'user'),
-            array('id', 'post', 'created', 'lastmodified', 'post'),
-            array('id', 'post', 'created', 'lastmodified', 'attachment')
-        );
+        return [
+            ['id', 'user', 'firstaccess', 'timemodified', 'user'],
+            ['id', 'post', 'created', 'lastmodified', 'post'],
+            ['id', 'post', 'created', 'lastmodified', 'attachment'],
+        ];
     }
 
     /**
@@ -325,7 +201,7 @@ class user_document_wrapper extends document_wrapper {
 
         if ($itemtype == 'user') {
             // Get the user.
-            $userrecord = $DB->get_record('user', array('id' => $thisid));
+            $userrecord = $DB->get_record('user', ['id' => $thisid]);
 
             // We cannot see nothing from unconfirmed users.
             if (!$userrecord->confirmed &&
@@ -337,13 +213,13 @@ class user_document_wrapper extends document_wrapper {
             }
         } else if ($itemtype == 'post' || $itemtype == 'attachment') {
             // Get the post.
-            $post = $DB->get_record('post', array('id' => $thisid));
-            $userrecord = $DB->get_record('user', array('id' => $post->userid));
+            $post = $DB->get_record('post', ['id' => $thisid]);
+            $userrecord = $DB->get_record('user', ['id' => $post->userid]);
 
             // We can try using blog visibility check.
             return blog_user_can_view_user_post($user->id, $post);
         }
-        $context = $DB->get_record('context', array('id' => $contextid));
+        $context = $DB->get_record('context', ['id' => $contextid]);
 
         return true;
     }

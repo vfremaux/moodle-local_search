@@ -53,7 +53,7 @@ function get_text_for_indexing_ppt($physicalfilepath) {
     $text = implode('', file($physicalfilepath));
 
     $remains = $text;
-    $fragments = array();
+    $fragments = [];
     while (preg_match('/\x00\x9F\x0F\x04.{9}(......)(.*)/s', $remains, $matches)) {
         $unpacked = unpack("ncode/Llength", $matches[1]);
         $sequencecode = $unpacked['code'];

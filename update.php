@@ -77,13 +77,10 @@ if ($mods = search_collect_searchables(false, true)) {
             continue;
         }
 
-        $classfile = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
-        $updates = array();
+        $wrapperclass = search_get_wrapper_class($mod);
+        $updates = [];
 
-        if (file_exists($classfile)) {
-            require_once($classfile);
-
-            $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
+        if ($wrapperclass) {
 
             // If both required functions exist.
             mtrace("Checking $mod->name module for updates.");
@@ -107,7 +104,7 @@ if ($mods = search_collect_searchables(false, true)) {
                             doctype = '{$values[1]}'
                             $itemtypes
                     ";
-                    $docids = $DB->get_records_sql_menu($query, array($mod->name));
+                    $docids = $DB->get_records_sql_menu($query, [$mod->name]);
                     $docidlist = ($docids) ? implode("','", array_keys($docids)) : '';
 
                     $sql = "

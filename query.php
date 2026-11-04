@@ -55,7 +55,7 @@ $querystring = optional_param('query_string', optional_param('q', '', PARAM_CLEA
 
 $SESSION->lastsearch = $querystring;
 
-$url = new moodle_url('/local/search/query.php', array('query_string' => $querystring));
+$url = new moodle_url('/local/search/query.php', ['query_string' => $querystring]);
 $PAGE->set_url($url);
 
 $context = context_system::instance();
@@ -111,7 +111,7 @@ if ($advanced) {
     $querystring = '';
 
     // Get all available module types adding third party modules.
-    $moduletypes = array_merge(array('all'), array_values(search_get_document_types()));
+    $moduletypes = array_merge(['all'], array_values(search_get_document_types()));
     $moduletypes = array_merge($moduletypes, array_values(search_get_document_types('X_SEARCH_TYPE')));
     $adv->module = in_array($adv->module, $moduletypes) ? $adv->module : 'all';
 
@@ -267,12 +267,12 @@ if ($sq->is_valid()) {
 
         foreach ($hits as $listing) {
 
-            $coursename = $DB->get_field('course', 'fullname', array('id' => $listing->courseid));
+            $coursename = $DB->get_field('course', 'fullname', ['id' => $listing->courseid]);
             if ($listing->doctype == 'user') {
                 // A special handle for users.
-                $user = $DB->get_record('user', array('id' => $listing->userid));
+                $user = $DB->get_record('user', ['id' => $listing->userid]);
                 $listing->icon = $OUTPUT->user_picture($user);
-            } if ($listing->doctype == 'course') {
+            } else if ($listing->doctype == 'course') {
                 $listing->icon = $OUTPUT->pix_icon('i/course', $coursename, 'core');
             } else {
                 $iconpath = $OUTPUT->image_url('icon', $listing->doctype);
@@ -281,14 +281,12 @@ if ($sq->is_valid()) {
             $courseword = mb_convert_case(get_string('course', 'moodle'), MB_CASE_LOWER, 'UTF-8');
             $listing->course = ($listing->doctype != 'user') ? '<strong> ('.$courseword.': \''.$coursename.'\')</strong>' : '';
 
-            $searchableinstance = $searchables[$listing->doctype];
-            if ($searchableinstance->location == 'internal') {
-                include_once($CFG->dirroot.'/local/search/documents/'.$listing->doctype.'_document.php');
-            } else {
-                include_once($CFG->dirroot.'/'.$searchableinstance->location.'/'.$listing->doctype.'/search_document.php');
+            if (array_key_exists($listing->doctype, $searchables)) {
+                $wrapperclass = search_get_wrapper_class($searchables[$listing->doctype], false);
+                if ($wrapperclass) {
+                    $listing->title = $wrapperclass::link_post_processing($listing->title);
+                }
             }
-            $wrapperclass = '\\local_search\\'.$listing->doctype.'_document_wrapper';
-            $listing->title = $wrapperclass::link_post_processing($listing->title);
 
             echo $renderer->search_result($listing);
         }

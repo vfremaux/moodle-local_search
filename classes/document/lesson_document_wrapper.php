@@ -31,52 +31,17 @@
  * Functions for iterating and retrieving the necessary records are now also included
  * in this file, rather than mod/lesson/lib.php
  */
-namespace local_search;
+namespace local_search\document;
 
-use \StdClass;
-use \context_module;
-use \context_course;
-use \moodle_url;
+use context_course;
+use context_module;
+use local_search\document_wrapper;
+use moodle_url;
+use StdClass;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot.'/local/search/documents/document.php');
-require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
 require_once($CFG->dirroot.'/mod/lesson/lib.php');
-
-/**
- * a class for representing searchable information
- *
- */
-class LessonPageSearchDocument extends SearchDocument {
-
-    /**
-     * constructor
-     *
-     */
-    public function __construct(&$page, $lessonmoduleid, $courseid, $itemtype, $contextid) {
-
-        // Generic information.
-        $doc = new StdClass;
-        $doc->docid        = $page['id'];
-        $doc->documenttype = SEARCH_TYPE_LESSON;
-        $doc->itemtype     = $itemtype;
-        $doc->contextid    = $contextid;
-
-        $doc->title        = $page['title'];
-
-        $doc->author       = '';
-        $doc->contents     = $page['contents'];
-        $doc->date         = $page['timecreated'];
-        $doc->url          = lesson_document_wrapper::make_link($lessonmoduleid, $itemtype, $page['id']);
-
-        // Module specific information.
-        $data = new StdClass;
-        $data->lesson      = $page['lessonid'];
-
-        parent::__construct($doc, $data, $courseid, 0, 0, 'mod/'.SEARCH_TYPE_LESSON);
-    }
-}
 
 class lesson_document_wrapper extends document_wrapper {
 
@@ -96,9 +61,9 @@ class lesson_document_wrapper extends document_wrapper {
         if ($itemtype == 'page') {
 
             $itemid = array_shift($extravars);
-            return new moodle_url('/mod/lesson/view.php', array('id' => $instanceid, 'pageid' => $itemid));
+            return new moodle_url('/mod/lesson/view.php', ['id' => $instanceid, 'pageid' => $itemid]);
         }
-        return new moodle_url('/mod/lesson/view.php', array('id' => $instanceid));
+        return new moodle_url('/mod/lesson/view.php', ['id' => $instanceid]);
     }
 
     /**
@@ -111,7 +76,7 @@ class lesson_document_wrapper extends document_wrapper {
         if ($lessons = $DB->get_records('lesson')) {
             return $lessons;
         } else {
-            return array();
+            return [];
         }
     }
 
@@ -123,20 +88,20 @@ class lesson_document_wrapper extends document_wrapper {
     public static function get_content_for_index(&$instance) {
         global $DB;
 
-        $documents = array();
+        $documents = [];
         if (!$instance) {
             return $documents;
         }
 
-        $pages = $DB->get_records('lesson_pages', array('lessonid' => $instance->id));
+        $pages = $DB->get_records('lesson_pages', ['lessonid' => $instance->id]);
         if ($pages) {
-            $coursemodule = $DB->get_field('modules', 'id', array('name' => 'lesson'));
-            $params = array('course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id);
+            $coursemodule = $DB->get_field('modules', 'id', ['name' => 'lesson']);
+            $params = ['course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id];
             $cm = $DB->get_record('course_modules', $params);
             $context = context_module::instance($cm->id);
             foreach ($pages as $apage) {
                 $arr = get_object_vars($apage);
-                $documents[] = new LessonPageSearchDocument($arr, $cm->id, $instance->course, 'page', $context->id);
+                $documents[] = new lesson_document($arr, $cm->id, $instance->course, 'page', $context->id);
             }
         }
 
@@ -152,16 +117,16 @@ class lesson_document_wrapper extends document_wrapper {
         global $DB;
 
         // Only page is known yet.
-        $page = $DB->get_record('lesson_pages', array('id' => $id));
-        $lesson = $DB->get_record('lesson', array('id' => $page->lessonid));
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'lesson'));
-        $params = array('course' => $lesson->course, 'module' => $coursemodule, 'instance' => $page->lessonid);
+        $page = $DB->get_record('lesson_pages', ['id' => $id]);
+        $lesson = $DB->get_record('lesson', ['id' => $page->lessonid]);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'lesson']);
+        $params = ['course' => $lesson->course, 'module' => $coursemodule, 'instance' => $page->lessonid];
         $cm = $DB->get_record('course_modules', $params);
         if ($cm) {
             $context = context_module::instance($cm->id);
             $lesson->groupid = 0;
             $arr = get_object_vars($page);
-            return new LessonPageSearchDocument($arr, $cm->id, $lesson->course, $itemtype, $context->id);
+            return new lesson_document($arr, $cm->id, $lesson->course, $itemtype, $context->id);
         }
         return null;
     }
@@ -175,7 +140,7 @@ class lesson_document_wrapper extends document_wrapper {
          * [primary id], [table name], [time created field name], [time modified field name] [itemtype]
          * [select for getting itemtype]
          */
-        return array(array('id', 'lesson_pages', 'timecreated', 'timemodified', 'page'));
+        return [['id', 'lesson_pages', 'timecreated', 'timemodified', 'page']];
     }
 
     /**
@@ -201,10 +166,10 @@ class lesson_document_wrapper extends document_wrapper {
         include_once("{$CFG->dirroot}/{$path}/lib.php");
 
         // Get the lesson page.
-        $page = $DB->get_record('lesson_pages', array('id' => $thisid));
-        $lesson = $DB->get_record('lesson', array('id' => $page->lessonid));
-        $context = $DB->get_record('context', array('id' => $contextid));
-        $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));
+        $page = $DB->get_record('lesson_pages', ['id' => $thisid]);
+        $lesson = $DB->get_record('lesson', ['id' => $page->lessonid]);
+        $context = $DB->get_record('context', ['id' => $contextid]);
+        $cm = $DB->get_record('course_modules', ['id' => $context->instanceid]);
         if (empty($cm)) {
             return false; // Shirai 20093005 - MDL19342 - course module might have been delete.
         }
@@ -233,7 +198,7 @@ class lesson_document_wrapper extends document_wrapper {
         }
 
         // The user have it seen yet ? did he tried one time at least.
-        $params = array('lessonid' => $lesson->id, 'pageid' => $page->id, 'userid' => $USER->id);
+        $params = ['lessonid' => $lesson->id, 'pageid' => $page->id, 'userid' => $USER->id];
         $attempt = $DB->get_record('lesson_attempts', $params);
         if (!$attempt && !$lessonsuperuser) {
             if (!empty($CFG->search_access_debug)) {

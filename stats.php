@@ -100,26 +100,26 @@ if (has_capability('moodle/site:config', context_system::instance())) {
 
     $admintable = new html_table();
     $admintable->tablealign = "center";
-    $admintable->align = array ("right", "left");
-    $admintable->wrap = array ("nowrap", "nowrap");
+    $admintable->align = ["right", "left"];
+    $admintable->wrap = ["nowrap", "nowrap"];
     $admintable->cellpadding = 5;
     $admintable->cellspacing = 0;
     $admintable->width = '500';
 
-    $admintable->data[] = array("<strong>{$datadirectorystr}</strong>", '<em><strong>'.$indexinfo->path.'</strong></em>');
-    $admintable->data[] = array($inindexdirectorystr, $indexinfo->filecount);
-    $admintable->data[] = array($totalsizestr, $indexinfo->size);
+    $admintable->data[] = ["<strong>{$datadirectorystr}</strong>", '<em><strong>'.$indexinfo->path.'</strong></em>'];
+    $admintable->data[] = [$inindexdirectorystr, $indexinfo->filecount];
+    $admintable->data[] = [$totalsizestr, $indexinfo->size];
 
     if ($indexinfo->time > 0) {
-        $admintable->data[] = array(get_string('createdon', 'local_search'), date('r', $indexinfo->time));
+        $admintable->data[] = [get_string('createdon', 'local_search'), date('r', $indexinfo->time)];
     } else {
-        $admintable->data[] = array(get_string('createdon', 'local_search'), '-');
+        $admintable->data[] = [get_string('createdon', 'local_search'), '-'];
     }
 
     if (!$indexinfo->valid($errors)) {
-        $admintable->data[] = array("<strong>{$errorsstr}</strong>", '&nbsp;');
+        $admintable->data[] = ["<strong>{$errorsstr}</strong>", '&nbsp;'];
         foreach ($errors as $key => $value) {
-            $admintable->data[] = array($key.' ... ', $value);
+            $admintable->data[] = [$key.' ... ', $value];
         }
     }
 
@@ -129,16 +129,16 @@ if (has_capability('moodle/site:config', context_system::instance())) {
 
     unset($admintable->data);
     if (isset($errors['dir'])) {
-        $admintable->data[] = array($checkdirstr, $checkdiradvicestr);
+        $admintable->data[] = [$checkdirstr, $checkdiradvicestr];
     }
     if (isset($errors['db'])) {
-        $admintable->data[] = array($checkdbstr, $checkdbadvicestr);
+        $admintable->data[] = [$checkdbstr, $checkdbadvicestr];
     }
 
     $url = new moodle_url('/local/search/tests/index.php');
-    $admintable->data[] = array($runindexerteststr, '<a href="'.$url.'" target="_blank">tests/index.php</a>');
+    $admintable->data[] = [$runindexerteststr, '<a href="'.$url.'" target="_blank">tests/index.php</a>'];
     $url = new moodle_url('/local/search/indexersplash.php');
-    $admintable->data[] = array($runindexerstr, '<a href="'.$url.'" target="_blank">indexersplash.php</a>');
+    $admintable->data[] = [$runindexerstr, '<a href="'.$url.'" target="_blank">indexersplash.php</a>'];
 
     echo html_writer::table($admintable);
 }
@@ -147,35 +147,35 @@ if (has_capability('moodle/site:config', context_system::instance())) {
 
 $table = new html_table;
 $table->tablealign = 'center';
-$table->align = array ('right', 'left');
-$table->wrap = array ('nowrap', 'nowrap');
+$table->align = ['right', 'left'];
+$table->wrap = ['nowrap', 'nowrap'];
 $table->cellpadding = 5;
 $table->cellspacing = 0;
 $table->width = '500';
 
-$table->data[] = array("<strong>{$databasestr}</strong>", "<em><strong>{$CFG->prefix}".SEARCH_DATABASE_TABLE.'</strong></em>');
+$table->data[] = ["<strong>{$databasestr}</strong>", "<em><strong>{$CFG->prefix}".SEARCH_DATABASE_TABLE.'</strong></em>'];
 
 // Add extra fields if we're admin.
 
 if (has_capability('moodle/site:config', context_system::instance())) {
 
     // Don't want to confuse users if the two totals don't match (hint: they should).
-    $table->data[] = array($documentsinindexstr, $indexinfo->indexcount);
+    $table->data[] = [$documentsinindexstr, $indexinfo->indexcount];
 
     /*
      * *cough* they should match if deletions were actually removed from the index,
      * as it turns out, they're only marked as deleted and not returned in search results
      */
-    $table->data[] = array($deletionsinindexstr, (int)$indexinfo->indexcount - (int)$indexinfo->dbcount);
+    $table->data[] = [$deletionsinindexstr, (int)$indexinfo->indexcount - (int)$indexinfo->dbcount];
 }
 
-$table->data[] = array($documentsindatabasestr, $indexinfo->dbcount);
+$table->data[] = [$documentsindatabasestr, $indexinfo->dbcount];
 
 foreach ($indexinfo->types as $key => $value) {
     if ($key != 'course') {
-        $table->data[] = array(get_string('documentsfor', 'local_search') . " '".get_string('modulenameplural', $key)."'", $value);
+        $table->data[] = [get_string('documentsfor', 'local_search') . " '".get_string('modulenameplural', $key)."'", $value];
     } else {
-        $table->data[] = array(get_string('documentsfor', 'local_search') . " '".get_string('courses')."'", $value);
+        $table->data[] = [get_string('documentsfor', 'local_search') . " '".get_string('courses')."'", $value];
     }
 }
 

@@ -24,7 +24,7 @@ function xmldb_local_search_upgrade($oldversion = 0) {
         // Transfer all block settings to local scope.
         $blockconfig = get_config('block_search');
         foreach ($blockconfig as $key => $value) {
-            if (!in_array($key, array('text', 'button'))) {
+            if (!in_array($key, ['text', 'button'])) {
                 set_config($key, $value, 'local_config');
                 set_config($key, null, 'block_config');
             }

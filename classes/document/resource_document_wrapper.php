@@ -18,9 +18,6 @@
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @category local
- * @subpackage document_wrappers
- * @author Valery Fremaux [valery.fremaux@gmail.com] > 2.0
  * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
  * @date 2008/03/31
@@ -32,61 +29,24 @@
  * Functions for iterating and retrieving the necessary records are now also included
  * in this file, rather than mod/resource/lib.php
  */
-namespace local_search;
+namespace local_search\document;
 
-use \StdClass;
-use \context_module;
-use \context_course;
-use \moodle_url;
-use \moodle_exception;
-
-defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->dirroot.'/local/search/documents/document.php');
-require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
+use local_search\document_wrapper;
+use context_course;
+use context_module;
+use moodle_url;
 
 /**
- * a class for representing searchable information
+ * Document wrapper for core resource.
  */
-class ScormSearchDocument extends SearchDocument {
-    public function __construct(&$scorm, $contextid) {
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid     = $scorm['trueid'];
-        $doc->documenttype = SEARCH_TYPE_SCORM;
-        $doc->itemtype     = '';
-        $doc->contextid    = $contextid;
-
-        $doc->title     = strip_tags($scorm['name']);
-        $doc->date      = $scorm['timemodified'];
-        $doc->author    = '';
-        $doc->contents  = strip_tags($scorm['intro']).' '.strip_tags($scorm['alltext']);
-        $doc->url       = resource_document_wrapper::make_link($scorm['id']);
-
-        if (!array_key_exists('alltext', $scorm)) {
-            debugging("Empty text");
-            throw new moodle_exception(print_r($scorm, true));
-        }
-
-        // Module specific information; optional.
-        $data = new StdClass;
-        $data = array();
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, $scorm['course'], 0, 0, 'mod/'.SEARCH_TYPE_SCORM);
-    }
-}
-
-class scorm_document_wrapper extends document_wrapper {
-
+class resource_document_wrapper extends document_wrapper {
     /**
      * constructs valid access links to information
      * @param resourceId the of the resource
      * @return a full featured link element as a string
      */
     public static function make_link($instanceid, $contextid = null) {
-        return new moodle_url('/mod/scorm/view.php', array('id' => $instanceid));
+        return new moodle_url('/mod/resource/view.php', ['id' => $instanceid]);
     }
 
     /**
@@ -99,7 +59,7 @@ class scorm_document_wrapper extends document_wrapper {
          * this document to only use the below function to return info
          * to be searched
          */
-        return array(true);
+        return [true];
     }
 
     /**
@@ -115,36 +75,37 @@ class scorm_document_wrapper extends document_wrapper {
         $config = get_config('local_search');
 
         // Starting with Moodle native resources.
-        $documents = array();
+        $documents = [];
         $sql = "
             SELECT
                 id as trueid,
-                s.*
+                r.*
             FROM
-                {scorm} s
+                {resource} r
         ";
-        if ($scorms = $DB->get_records_sql($sql)) {
-            foreach ($scorms as $ascorm) {
-                $ascorm->alltext = '';
-                $coursemodule = $DB->get_field('modules', 'id', array('name' => 'resource'));
-                $params = array('course' => $ascorm->course, 'module' => $coursemodule, 'instance' => $ascorm->id);
+        if ($resources = $DB->get_records_sql($sql)) {
+            foreach ($resources as $aresource) {
+                $coursemodule = $DB->get_field('modules', 'id', ['name' => 'resource']);
+                $params = ['course' => $aresource->course, 'module' => $coursemodule, 'instance' => $aresource->id];
+                $aresource->alltext = '';
                 if ($cm = $DB->get_record('course_modules', $params)) {
                     $context = context_module::instance($cm->id);
-                    $ascorm->id = $cm->id;
+                    $aresource->id = $cm->id;
+                    $aresource->alltext = '';
 
                     $fs = get_file_storage();
-                    $hasdocument = !$fs->is_area_empty($context->id, 'mod_scorm', 'content', 0, true);
+                    $hasdocument = !$fs->is_area_empty($context->id, 'mod_resource', 'content', 0, true);
 
                     if (empty($config->enable_file_indexing) || !$hasdocument) {
                         // Make a simple document only with DB data.
-                        $vars = get_object_vars($ascorm);
-                        $documents[] = new ScormSearchDocument($vars, $context->id);
-                        mtrace("finished $ascorm->name");
+                        $vars = get_object_vars($aresource);
+                        $documents[] = new resource_document($vars, $context->id);
+                        mtrace("finished $aresource->name");
                     } else {
-                        $files = $fs->get_area_files($context->id, 'mod_scorm', 'content', 0, true);
+                        $files = $fs->get_area_files($context->id, 'mod_resource', 'content', 0, true);
                         $file = array_shift($files);
-                        search_get_physical_file($documents, $file, $ascorm, $context->id, 'ScormSearchDocument');
-                        mtrace("finished scorm content $ascorm->name");
+                        search_get_physical_file($documents, $file, $aresource, $context->id, '\\local_search\\document\\resource_document');
+                        mtrace("finished physical $aresource->name");
                     }
                 }
             }
@@ -159,57 +120,61 @@ class scorm_document_wrapper extends document_wrapper {
      * @return a searchable object or null if failure
      */
     public static function single_document($id, $itemtype) {
-        global $DB;
+        global $DB, $breakonerror;
 
         $config = get_config('local_search');
 
         // Rewriting with legacy moodle databse API.
         $sql = "
             SELECT
-               s.id as trueid,
+               r.id as trueid,
                cm.id as id,
-               s.course as course,
-               s.name as name,
-               s.intro as intro,
-               s.timemodified as timemodified
+               r.course as course,
+               r.name as name,
+               r.intro as intro,
+               r.timemodified as timemodified
             FROM
-                {scorm} s,
+                {resource} r,
                 {course_modules} cm,
                 {modules} m
             WHERE
-                cm.instance = s.id AND
-                cm.course = s.course AND
+                cm.instance = r.id AND
+                cm.course = r.course AND
                 cm.module = m.id AND
-                m.name = 'scorm' AND
-                s.id = ?
+                m.name = 'resource' AND
+                r.id = ?
         ";
-        $scorm = $DB->get_record_sql($sql, array($id));
+        $resource = $DB->get_record_sql($sql, [$id]);
 
-        if ($scorm) {
-            $scorm->alltext = '';
-            $cm = $DB->get_record('course_modules', array('id' => $scorm->id));
+        if ($resource) {
+            $cm = $DB->get_record('course_modules', ['id' => $resource->id]);
             $context = context_module::instance($cm->id);
 
             $fs = get_file_storage();
 
-            $hasdocument = !$fs->is_area_empty($context->id, 'mod_scorm', 'content', 0, true);
-            $documents = array(); // Foo array.
+            $hasdocument = !$fs->is_area_empty($context->id, 'mod_resource', 'content', 0, true);
+            $documents = []; // Foo array.
 
-            if ($hasdocument && @$config->enable_file_indexing) {
-                $files = $fs->get_area_files($context->id, 'mod_scorm', 'content', 0, true);
+            if ($hasdocument && ($config->enable_file_indexing ?? false)) {
+                $files = $fs->get_area_files($context->id, 'mod_resource', 'content', 0, true);
                 $file = array_shift($files);
-                $void = array();
-                $document = search_get_physical_file($void, $file, $scorm, $context->id, 'ScormSearchDocument');
+                $void = [];
+                $document = search_get_physical_file($void, $file, $resource, $context->id, '\\local_search\\document\\resource_document', true);
                 if (!$document) {
-                    mtrace("Warning : this document {$resource->name} will not be indexed");
+                    mtrace("Warning : this document \"{$resource->name}\" will not be indexed. Empty physical counterpart.");
+                    if (!empty($breakonerror)) {
+                        mtrace("Break on error option ON. Dying...");
+                        die;
+                    }
                 }
                 return $document;
             } else {
-                $vars = get_object_vars($scorm);
-                return new ScormSearchDocument($vars, $context->id);
+                mtrace("Indexing \"{$resource->name}\" as record.");
+                $vars = get_object_vars($resource);
+                return new resource_document($vars, $context->id);
             }
         }
-        mtrace("null scorm");
+        mtrace("null resource");
         return null;
     }
 
@@ -220,7 +185,7 @@ class scorm_document_wrapper extends document_wrapper {
      *
      */
     public static function db_names() {
-        return array(array('id', 'scorm', 'timemodified', 'timemodified', ''));
+        return [['id', 'resource', 'timemodified', 'timemodified', '']];
     }
 
     /**
@@ -235,18 +200,18 @@ class scorm_document_wrapper extends document_wrapper {
      * @return true if access is allowed, false elsewhere
      */
     public static function check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid) {
-        global $CFG;
+        global $CFG, $DB;
 
         include_once("{$CFG->dirroot}/{$path}/lib.php");
 
-        $r = $DB->get_record('scorm', array('id' => $thisid));
-        $modulecontext = $DB->get_record('context', array('id' => $contextid));
-        $cm = $DB->get_record('course_modules', array('id' => $modulecontext->instanceid));
+        $r = $DB->get_record('resource', ['id' => $thisid]);
+        $modulecontext = $DB->get_record('context', ['id' => $contextid]);
+        $cm = $DB->get_record('course_modules', ['id' => $modulecontext->instanceid]);
         if (empty($cm)) {
             return false; // Shirai 20090530 - MDL19342 - course module might have been delete.
         }
         $coursecontext = context_course::instance($r->course);
-        $course = $DB->get_record('course', array('id' => $r->course));
+        $course = $DB->get_record('course', ['id' => $r->course]);
 
         // Check if course is visible.
         if (!$course->visible && !has_capability('moodle/course:viewhiddencourses', $coursecontext)) {
@@ -259,8 +224,10 @@ class scorm_document_wrapper extends document_wrapper {
         }
 
         // Check if found course module is visible.
-        if (!$cm->visible &&
-                !has_capability('moodle/course:viewhiddenactivities', $modulecontext)) {
+        if (
+            !$cm->visible &&
+            !has_capability('moodle/course:viewhiddenactivities', $modulecontext)
+        ) {
             return false;
         }
 

@@ -31,95 +31,18 @@
  * in this file, rather than mod/forum/lib.php
  *
  */
-namespace local_search;
+namespace local_search\document;
 
-use \StdClass;
-use \context_module;
-use \context_course;
-use \context_system;
-use \moodle_url;
+use context_course;
+use context_module;
+use context_system;
+use local_search\document_wrapper;
+use moodle_url;
+use StdClass;
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot.'/local/search/documents/document.php');
-require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
 require_once($CFG->dirroot.'/mod/forum/lib.php');
-
-/**
- * a class for representing searchable information
- *
- */
-class ForumSearchDocument extends SearchDocument {
-
-    /**
-     * constructor
-     */
-    public function __construct(&$post, $forumid, $courseid, $itemtype, $contextid) {
-        global $DB;
-
-        // Generic information.
-        $doc = new StdClass;
-        $doc->docid        = $post['id'];
-        $doc->documenttype = SEARCH_TYPE_FORUM;
-        $doc->itemtype     = $itemtype;
-        $doc->contextid    = $contextid;
-
-        $doc->title        = $post['subject'];
-
-        $user = $DB->get_record('user', array('id' => $post['userid']));
-        $doc->author       = fullname($user);
-        $doc->contents     = $post['message'];
-        $doc->date         = $post['created'];
-        $doc->url          = forum_document_wrapper::make_link($post['discussion'], $post['id']);
-
-        // Module specific information.
-        $data = new StdClass;
-        $data->forum      = $forumid;
-        $data->discussion = $post['discussion'];
-
-        parent::__construct($doc, $data, $courseid, $post['groupid'], $post['userid'], 'mod/'.SEARCH_TYPE_FORUM);
-    }
-}
-
-/**
- * a class for representing searchable information for attachments
- *
- */
-class ForumAttachmentSearchDocument extends SearchDocument {
-
-    /**
-     * constructor
-     */
-    public function __construct(&$post, $forumid, $filearea, $itemid, $courseid, $itemtype, $contextid) {
-        global $DB;
-
-        // Generic information.
-        $doc = new StdClass;
-
-        $doc->title        = $post['subject'];
-
-        // Invert to fake the codecopy detector.
-        $user = $DB->get_record('user', array('id' => $post['userid']));
-        $doc->author       = fullname($user);
-        $doc->contents     = $post['message'];
-        $doc->date         = $post['created'];
-        $doc->url          = forum_document_wrapper::make_link($post['discussion'], $post['id']);
-        // Invert to fake the codecopy detector.
-        $doc->docid        = $post['id'];
-        $doc->documenttype = SEARCH_TYPE_FORUM;
-        $doc->itemtype     = $itemtype;
-        $doc->contextid    = $contextid;
-
-        // Module specific information.
-        $data = new StdClass;
-        $data->forum      = $forumid;
-        $data->discussion = $post['discussion'];
-        $data->filearea = $filearea;
-        $data->itemid = $itemid;
-
-        parent::__construct($doc, $data, $courseid, $post['groupid'], $post['userid'], 'mod/'.SEARCH_TYPE_FORUM);
-    }
-}
 
 class forum_document_wrapper extends document_wrapper {
 
@@ -135,7 +58,7 @@ class forum_document_wrapper extends document_wrapper {
         array_shift($extravars);
         $postid = array_shift($extravars);
 
-        return new moodle_url('/mod/forum/discuss.php', array('d' => $discussionid));
+        return new moodle_url('/mod/forum/discuss.php', ['d' => $discussionid]);
     }
 
     /**
@@ -159,7 +82,7 @@ class forum_document_wrapper extends document_wrapper {
 
         $fs = get_file_storage();
 
-        $documents = array();
+        $documents = [];
         if (!$forum) {
             return $documents;
         }
@@ -170,8 +93,8 @@ class forum_document_wrapper extends document_wrapper {
             return $documents;
         }
 
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'forum'));
-        $params = array('course' => $forum->course, 'module' => $coursemodule, 'instance' => $forum->id);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'forum']);
+        $params = ['course' => $forum->course, 'module' => $coursemodule, 'instance' => $forum->id];
         $cm = $DB->get_record('course_modules', $params);
         $context = context_module::instance($cm->id);
 
@@ -181,7 +104,7 @@ class forum_document_wrapper extends document_wrapper {
                 if (!empty($apost->message)) {
                     echo "*";
                     $vars = get_object_vars($apost);
-                    $documents[] = new ForumSearchDocument($vars, $forum->id, $forum->course, 'head', $context->id);
+                    $documents[] = new forum_document($vars, $forum->id, $forum->course, 'head', $context->id);
                 }
                 if ($children = self::get_child_posts_fast($apost->id, $forum->id)) {
                     foreach ($children as $achild) {
@@ -189,7 +112,7 @@ class forum_document_wrapper extends document_wrapper {
                         $achild->itemtype = 'post';
                         if (strlen($achild->message) > 0) {
                             $arr = get_object_vars($achild);
-                            $documents[] = new ForumSearchDocument($arr, $forum->id, $forum->course, 'post', $context->id);
+                            $documents[] = new forum_document($arr, $forum->id, $forum->course, 'post', $context->id);
                         }
                     }
                 }
@@ -208,16 +131,16 @@ class forum_document_wrapper extends document_wrapper {
         global $DB;
 
         // Both known item types are posts so get them the same way.
-        $post = $DB->get_record('forum_posts', array('id' => $id));
-        $discussion = $DB->get_record('forum_discussions', array('id' => $post->discussion));
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'forum'));
-        $params = array('course' => $discussion->course, 'module' => $coursemodule, 'instance' => $discussion->forum);
+        $post = $DB->get_record('forum_posts', ['id' => $id]);
+        $discussion = $DB->get_record('forum_discussions', ['id' => $post->discussion]);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'forum']);
+        $params = ['course' => $discussion->course, 'module' => $coursemodule, 'instance' => $discussion->forum];
         $cm = $DB->get_record('course_modules', $params);
         if ($cm) {
             $context = context_module::instance($cm->id);
             $post->groupid = $discussion->groupid;
             $arr = get_object_vars($post);
-            return new ForumSearchDocument($arr, $discussion->forum, $discussion->course, $itemtype, $context->id);
+            return new forum_document($arr, $discussion->forum, $discussion->course, $itemtype, $context->id);
         }
         return null;
     }
@@ -228,10 +151,10 @@ class forum_document_wrapper extends document_wrapper {
      *
      */
     public static function db_names() {
-        return array(
-            array('id', 'forum_posts', 'created', 'modified', 'head', 'parent = 0'),
-            array('id', 'forum_posts', 'created', 'modified', 'post', 'parent != 0')
-        );
+        return [
+            ['id', 'forum_posts', 'created', 'modified', 'head', 'parent = 0'],
+            ['id', 'forum_posts', 'created', 'modified', 'post', 'parent != 0'],
+        ];
     }
 
     /**
@@ -287,7 +210,7 @@ class forum_document_wrapper extends document_wrapper {
             ORDER BY
                 d.timemodified DESC
         ";
-        return $DB->get_records_sql($sql, array($forumid));
+        return $DB->get_records_sql($sql, [$forumid]);
     }
 
     /**
@@ -327,7 +250,7 @@ class forum_document_wrapper extends document_wrapper {
             ORDER BY
                 p.created ASC
         ";
-        return $DB->get_records_sql($sql, array($parent));
+        return $DB->get_records_sql($sql, [$parent]);
     }
 
     /**
@@ -354,10 +277,10 @@ class forum_document_wrapper extends document_wrapper {
         include_once("{$CFG->dirroot}/{$path}/lib.php");
 
         // Get the forum post and all related stuff.
-        $post = $DB->get_record('forum_posts', array('id' => $thisid));
-        $discussion = $DB->get_record('forum_discussions', array('id' => $post->discussion));
-        $context = $DB->get_record('context', array('id' => $contextid));
-        $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));
+        $post = $DB->get_record('forum_posts', ['id' => $thisid]);
+        $discussion = $DB->get_record('forum_discussions', ['id' => $post->discussion]);
+        $context = $DB->get_record('context', ['id' => $contextid]);
+        $cm = $DB->get_record('course_modules', ['id' => $context->instanceid]);
         if (empty($cm)) {
             return false; // Shirai 20093005 - MDL19342 - course module might have been delete.
         }
@@ -380,7 +303,7 @@ class forum_document_wrapper extends document_wrapper {
         }
 
         // Group check : entries should be in accessible groups.
-        $course = $DB->get_record('course', array('id' => $discussion->course));
+        $course = $DB->get_record('course', ['id' => $discussion->course]);
         if ($groupid >= 0 &&
                 (groups_get_activity_groupmode($cm) == SEPARATEGROUPS) &&
                         (groups_is_member($groupid)) &&

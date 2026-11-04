@@ -18,8 +18,6 @@
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @category local
- * @subpackage document_wrappers
  * @author Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai 20090530
  * @date 2008/03/31
@@ -32,87 +30,29 @@
  * in this file, rather than mod/chat/lib.php
  *
  */
-namespace local_search;
+namespace local_search\document;
 
-use \StdClass;
-use \context_module;
-use \context_course;
-use \moodle_url;
-
-defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->dirroot.'/local/search/documents/document.php');
-require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
-require_once($CFG->dirroot.'/mod/chat/lib.php');
+use context_course;
+use moodle_url;
+use stdClass;
+use local_search\document_wrapper;
 
 /**
- * a class for representing searchable information for searching courses
- *
+ * Document wrapper implementation
  */
-class CourseSearchDocument extends SearchDocument {
-
-    /**
-     * constructor
-     */
-    public function __construct(&$courseobj, $courseid, $unusedmodid, $unusedcourseid, $unusedgroupid, $contextid) {
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid         = $courseid;
-        $doc->documenttype  = SEARCH_TYPE_COURSE;
-        $doc->itemtype      = 'coursedata';
-        $doc->contextid     = $contextid;
-
-        // We cannot call userdate with relevant locale at indexing time.
-        $doc->title         = $courseobj->fullname;
-        $doc->date          = $courseobj->timecreated;
-        $doc->author        = '';
-
-        if (!empty($courseobj->teachers)) {
-            foreach ($courseobj->teachers as $t) {
-                $teachersstrs[] = $t->firstname.' '.$t->lastname;
-            }
-            $doc->author = implode(', ', $teachersstrs);
-        }
-
-        // Remove '(ip.ip.ip.ip)' from chat author list.
-        $doc->contents      = $courseobj->summary;
-        $doc->url           = course_document_wrapper::make_link($courseid);
-
-        // course specific information; optional.
-        $data = new StdClass;
-        $data->graders      = '';
-        if (!empty($courseobj->graders)) {
-            foreach ($courseobj->graders as $g) {
-                $gradersstrs[] = $g->firstname.' '.$g->lastname;
-            }
-            $data->graders = implode(', ', $gradersstrs);
-        }
-        $data->course        = $courseid;
-        $data->start         = $courseobj->startdate;
-        $data->end           = $courseobj->enddate;
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, $courseid, 0, 0, SEARCH_TYPE_COURSE);
-    }
-}
-
 class course_document_wrapper extends document_wrapper {
-
     /**
-     * constructs a valid link to a chat content
-     * @param cm_id the chat course module
-     * @param start the start time of the session
-     * @param end th end time of the session
+     * constructs a valid link to the course
+     * @param int $instanceid the instance id
+     * @param int $contextid
      * @return a well formed link to session display
      */
     public static function make_link($instanceid, $contextid = null) {
-        return new moodle_url('/course/view.php', array('id' => $instanceid));
+        return new moodle_url('/course/view.php', ['id' => $instanceid]);
     }
 
     /**
      * part of search engine API
-     *
      */
     public static function get_iterator() {
         global $DB;
@@ -123,13 +63,13 @@ class course_document_wrapper extends document_wrapper {
 
     /**
      * part of search engine API
-     *
+     * @param object $instance
      */
     public static function get_content_for_index(&$instance) {
         global $DB;
 
-        $documents = array();
-        $course = $DB->get_record('course', array('id' => $instance->id));
+        $documents = [];
+        $course = $DB->get_record('course', ['id' => $instance->id]);
         $context = context_course::instance($course->id);
 
         $course->teachers = get_users_by_capability($context, 'moodle/course:manageactivities', 'u.id,u.firstname,u.lastname');
@@ -140,19 +80,19 @@ class course_document_wrapper extends document_wrapper {
         }
         $course->graders = get_users_by_capability($context, 'moodle/course:grade', 'u.id,u.firstname,u.lastname', '', '', '', '', $teacherkeystoexclude);
 
-        $documents[] = new CourseSearchDocument($course, $course->id, 0, $course, 0, $context->id);
+        $documents[] = new course_document($course, $course->id, 0, $course, 0, $context->id);
         return $documents;
     }
 
     /**
      * returns a single data search document based on a course id
-     * @param id the course id
-     * @param itemtype the type of information (course is the only type)
+     * @param int $id the course id
+     * @param string $itemtype the type of information (course is the only type)
      */
     public static function single_document($id, $itemtype) {
         global $DB;
 
-        $course = $DB->get_record('course', array('id' => $id));
+        $course = $DB->get_record('course', ['id' => $id]);
         $context = context_course::instance($course->id);
 
         $course->teachers = get_users_by_capability($context, 'moodle/course:manageactivities', 'u.id,u.firstname,u.lastname');
@@ -163,7 +103,7 @@ class course_document_wrapper extends document_wrapper {
         }
         $course->graders = get_users_by_capability($context, 'moodle/course:grade', 'u.id,u.firstname,u.lastname', '', '', '', '', $teacherkeystoexclude);
 
-        $document = new CourseSearchDocument($course, $course->id, 0, $course, 0, $context->id);
+        $document = new course_document($course, $course->id, 0, $course, 0, $context->id);
         return $document;
     }
 
@@ -173,9 +113,9 @@ class course_document_wrapper extends document_wrapper {
      * [primary id], [table name], [time created field name], [time modified field name]
      */
     public static function db_names() {
-        return array(
-            array('id', 'course', 'timecreated', 'timemodified', 'coursedata'),
-        );
+        return [
+            ['id', 'course', 'timecreated', 'timemodified', 'coursedata'],
+        ];
     }
 
     /**
@@ -185,13 +125,13 @@ class course_document_wrapper extends document_wrapper {
      * - user is legitimate in the surrounding context
      * - user may be guest and guest access is allowed to the module
      * - the function may perform local checks within the module information logic
-     * @param path the access path to the module script code
-     * @param itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
-     * @param this_id the item id within the information class denoted by entry_type. In chats, this id
+     * @param stirng $path the access path to the module script code
+     * @param string $itemtype the information subclassing (usefull for complex modules, defaults to 'standard')
+     * @param int $thisid the item id within the information class denoted by entry_type. In chats, this id
      * points out a session history which is a close sequence of messages.
-     * @param user the user record denoting the user who searches
-     * @param group_id the current group used by the user when searching
-     * @uses CFG
+     * @param object $user the user record denoting the user who searches
+     * @param int $groupid the current group used by the user when searching
+     * @param int $contextid
      * @return true if access is allowed, false elsewhere
      */
     public static function check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid) {
@@ -201,9 +141,9 @@ class course_document_wrapper extends document_wrapper {
         $config = get_config('local_search');
 
         // Get the chat session and all related stuff.
-        $course = $DB->get_record('course', array('id' => $thisid));
-        $coursecat = $DB->get_record('course_categories', array('id' => $course->category));
-        $context = $DB->get_record('context', array('id' => $contextid));
+        $course = $DB->get_record('course', ['id' => $thisid]);
+        $coursecat = $DB->get_record('course_categories', ['id' => $course->category]);
+        $context = $DB->get_record('context', ['id' => $contextid]);
 
         if (!$course->visible && !has_capability('moodle/course:viewhiddencourses', $context)) {
             if (!empty($config->access_debug)) {

@@ -67,9 +67,8 @@ function search_collect_searchables($namelist = false, $verbose = false) {
                 $searchables[$mod->name] = $mod;
                 $searchablesnames[] = $mod->name;
             } else {
-                $documentfile = $CFG->dirroot."/mod/{$mod->name}/search_document.php";
                 $mod->location = 'mod';
-                if (file_exists($documentfile)) {
+                if (search_plugin_has_wrapper('mod_'.$mod->name)) {
                     $searchables[$mod->name] = $mod;
                     $searchablesnames[] = $mod->name;
                 }
@@ -93,8 +92,7 @@ function search_collect_searchables($namelist = false, $verbose = false) {
                 $blockssearchables[] = $block;
                 $searchablesnames[] = $block->name;
             } else {
-                $documentfile = $CFG->dirroot.'/blocks/'.$block->dirname.'/search_document.php';
-                if (file_exists($documentfile)) {
+                if (search_plugin_has_wrapper($block->name)) {
                     $block->location = 'blocks';
                     $blockssearchables[$block->name] = $block;
                     $searchablesnames[] = $block->name;
@@ -124,8 +122,7 @@ function search_collect_searchables($namelist = false, $verbose = false) {
                 $localsearchables[] = $local;
                 $searchablesnames[] = $local->name;
             } else {
-                $documentfile = $CFG->dirroot."/local/{$component}/search_document.php";
-                if (file_exists($documentfile)) {
+                if (search_plugin_has_wrapper($local->name)) {
                     $local->location = 'local';
                     $localsearchables[$local->name] = $local;
                     $searchablesnames[] = $local->name;
@@ -152,6 +149,66 @@ function search_collect_searchables($namelist = false, $verbose = false) {
         return $searchablesnames;
     }
     return $searchables;
+}
+
+/**
+ * Tells if a plugin provides a search document wrapper in its standard location :
+ * <component>\local\search\document_wrapper (classes/local/search/document_wrapper.php).
+ * The check is file based, so that no plugin class is autoloaded just for discovering searchables.
+ * @param string $component the frankenstyle component name (mod_xxx, block_xxx, local_xxx).
+ * @return bool
+ */
+function search_plugin_has_wrapper($component) {
+    $dir = core_component::get_component_directory($component);
+    if (!$dir) {
+        return false;
+    }
+    return is_readable($dir.'/classes/local/search/document_wrapper.php');
+}
+
+/**
+ * Gets the frankenstyle component of a searchable descriptor.
+ * @param object $searchable a searchable descriptor as given by search_collect_searchables()
+ * @return string the component name, or 'local_search' for engine internal document types.
+ */
+function search_get_searchable_component($searchable) {
+    switch ($searchable->location) {
+        case 'internal':
+            return 'local_search';
+
+        case 'mod':
+            return 'mod_'.$searchable->name;
+
+        default:
+            // Blocks and local plugins names are already prefixed.
+            return $searchable->name;
+    }
+}
+
+/**
+ * Resolves the document wrapper class that handles a searchable.
+ * - Engine internal document types (core objects and standard modules) are wrapped by
+ *   \local_search\document\<name>_document_wrapper.
+ * - Plugin document types are wrapped by \<component>\local\search\document_wrapper.
+ * @param object $searchable a searchable descriptor as given by search_collect_searchables()
+ * @param bool $verbose if true, reports unresolved wrappers.
+ * @return string the fully qualified class name, or null if the wrapper cannot be resolved.
+ */
+function search_get_wrapper_class($searchable, $verbose = true) {
+    if ($searchable->location == 'internal') {
+        $classname = '\\local_search\\document\\'.$searchable->name.'_document_wrapper';
+    } else {
+        $classname = '\\'.search_get_searchable_component($searchable).'\\local\\search\\document_wrapper';
+    }
+
+    if (class_exists($classname)) {
+        return $classname;
+    }
+
+    if ($verbose) {
+        mtrace(" Document wrapper {$classname} not found for {$searchable->name}. Skipping...\n");
+    }
+    return null;
 }
 
 /**
@@ -263,8 +320,11 @@ function search_get_physical_file(&$documents, &$file, &$object, $contextid, $ob
 
     $config = get_config('local_search');
 
-    if (strpos($objectdocumentclass, '\\local_search\\') === false) {
+    // Bare class names are legacy engine classes. Fully qualified names (plugins) are used as is.
+    if (strpos($objectdocumentclass, '\\') === false) {
         $objectdocumentclass = '\\local_search\\'.$objectdocumentclass;
+    } else if ($objectdocumentclass[0] != '\\') {
+        $objectdocumentclass = '\\'.$objectdocumentclass;
     }
 
     // Cannot index missing file.
@@ -295,8 +355,8 @@ function search_get_physical_file(&$documents, &$file, &$object, $contextid, $ob
         return false;
     }
 
-    if (is_file($CFG->dirroot.'/local/search/documents/physical_'.$ext.'.php')) {
-        include_once($CFG->dirroot.'/local/search/documents/physical_'.$ext.'.php');
+    if (is_file($CFG->dirroot.'/local/search/classes/document/physical_'.$ext.'.php')) {
+        include_once($CFG->dirroot.'/local/search/classes/document/physical_'.$ext.'.php');
         $functionname = 'get_text_for_indexing_'.$ext;
         $object->alltext = $functionname($physicalfilepath);
 

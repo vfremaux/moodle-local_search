@@ -31,95 +31,13 @@
  * in this file, rather than mod/glossary/lib.php
  *
  */
-namespace local_search;
+namespace local_search\document;
 
-use \StdClass;
-use \context_module;
-use \context_course;
-use \moodle_url;
-
-defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->dirroot.'/local/search/documents/document.php');
-require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
-
-/**
- * a class for representing searchable information
- *
- */
-class GlossarySearchDocument extends SearchDocument {
-
-    /**
-     * document constructor
-     *
-     */
-    public function __construct(&$entry, $courseid, $contextid) {
-        global $DB;
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid     = $entry['id'];
-        $doc->documenttype  = SEARCH_TYPE_GLOSSARY;
-        $doc->itemtype      = 'standard';
-        $doc->contextid     = $contextid;
-
-        $doc->title     = $entry['concept'];
-        $doc->date      = $entry['timecreated'];
-
-        if ($entry['userid']) {
-            $user = $DB->get_record('user', array('id' => $entry['userid']));
-        }
-        $doc->author    = ($user ) ? $user->firstname.' '.$user->lastname : '';
-        $doc->contents  = strip_tags($entry['definition']);
-        $doc->url       = glossary_document_wrapper::make_link($entry['id']);
-
-        // Module specific information; optional.
-        $data = new StdClass;
-        $data->glossary = $entry['glossaryid'];
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, $courseid, -1, $entry['userid'], 'mod/'.SEARCH_TYPE_GLOSSARY);
-    }
-}
-
-/**
- * a class for representing searchable information
- * comments are stroed into the gneeral mdl_comments table
- */
-class GlossaryCommentSearchDocument extends SearchDocument {
-
-    /**
-     * document constructor
-     */
-    public function __construct(&$entry, $courseid, $contextid) {
-        global $DB;
-
-        // Generic information; required.
-        $doc = new StdClass();
-        $doc->docid         = $entry['id'];
-        $doc->documenttype  = SEARCH_TYPE_GLOSSARY;
-        $doc->itemtype      = 'comment';
-        $doc->contextid     = $contextid;
-
-        $doc->title     = get_string('commenton', 'search').' '.$entry['concept'];
-        $doc->date      = $entry['timemodified'];
-
-        if ($entry['userid']) {
-            $user = $DB->get_record('user', array('id' => $entry['userid']));
-        }
-        $doc->author    = ($user) ? fullname($user) : '';
-        $doc->contents  = strip_tags($entry['content']);
-        $doc->url       = glossary_document_wrapper::make_link($entry['entryid']);
-
-        // Module specific information; optional.
-        $data = new Stdclass;
-        $data->glossary = $entry['glossaryid'];
-        $data->entryid = $entry['entryid'];
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, $courseid, -1, $entry['userid'], 'mod/'.SEARCH_TYPE_GLOSSARY);
-    }
-}
+use context_course;
+use context_module;
+use local_search\document_wrapper;
+use moodle_url;
+use StdClass;
 
 class glossary_document_wrapper extends document_wrapper {
 
@@ -129,7 +47,7 @@ class glossary_document_wrapper extends document_wrapper {
      * @return a full featured link element as a string
      */
     public static function make_link($instanceid, $contextid = null) {
-        return new moodle_url('/mod/glossary/showentry.php', array('eid' => $instanceid));
+        return new moodle_url('/mod/glossary/showentry.php', ['eid' => $instanceid]);
     }
 
     /**
@@ -152,23 +70,23 @@ class glossary_document_wrapper extends document_wrapper {
         global $DB;
 
         // Get context.
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'glossary'));
-        $params = array('course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'glossary']);
+        $params = ['course' => $instance->course, 'module' => $coursemodule, 'instance' => $instance->id];
         $cm = $DB->get_record('course_modules', $params);
         $context = context_module::instance($cm->id);
 
-        $documents = array();
-        $entryids = array();
+        $documents = [];
+        $entryids = [];
 
         // Index entries.
-        $entries = $DB->get_records('glossary_entries', array('glossaryid' => $instance->id));
+        $entries = $DB->get_records('glossary_entries', ['glossaryid' => $instance->id]);
         if ($entries) {
             foreach ($entries as $entry) {
                 $concepts[$entry->id] = $entry->concept;
                 if (strlen($entry->definition) > 0) {
                     $entryids[] = $entry->id;
                     $arr = get_object_vars($entry);
-                    $documents[] = new GlossarySearchDocument($arr, $instance->course, $context->id);
+                    $documents[] = new glossary_document($arr, $instance->course, $context->id);
                 }
             }
         }
@@ -183,7 +101,7 @@ class glossary_document_wrapper extends document_wrapper {
                     $acomment->entryid = $acomment->itemid;
                     $acomment->timemodified = $acomment->timecreated;
                     $vars = get_object_vars($acomment);
-                    $documents[] = new GlossaryCommentSearchDocument($vars, $instance->course, $context->id);
+                    $documents[] = new glossary_comment_document($vars, $instance->course, $context->id);
                 }
             }
         }
@@ -200,22 +118,22 @@ class glossary_document_wrapper extends document_wrapper {
         global $DB;
 
         if ($itemtype == 'standard') {
-            $entry = $DB->get_record('glossary_entries', array('id' => $id));
+            $entry = $DB->get_record('glossary_entries', ['id' => $id]);
         } else if ($itemtype == 'comment') {
-            $comment = $DB->get_record('comments', array('id' => $id));
-            $entry = $DB->get_record('glossary_entries', array('id' => $comment->itemid));
+            $comment = $DB->get_record('comments', ['id' => $id]);
+            $entry = $DB->get_record('glossary_entries', ['id' => $comment->itemid]);
         }
-        $glossarycourse = $DB->get_field('glossary', 'course', array('id' => $entry->glossaryid));
-        $coursemodule = $DB->get_field('modules', 'id', array('name' => 'glossary'));
-        $params = array('course' => $glossarycourse, 'module' => $coursemodule, 'instance' => $entry->glossaryid);
+        $glossarycourse = $DB->get_field('glossary', 'course', ['id' => $entry->glossaryid]);
+        $coursemodule = $DB->get_field('modules', 'id', ['name' => 'glossary']);
+        $params = ['course' => $glossarycourse, 'module' => $coursemodule, 'instance' => $entry->glossaryid];
         $cm = $DB->get_record('course_modules', $params);
         $context = context_module::instance($cm->id);
         if ($itemtype == 'standard') {
             $vars = get_object_vars($entry);
-            return new GlossarySearchDocument($vars, $glossarycourse, $context->id);
+            return new glossary_document($vars, $glossarycourse, $context->id);
         } else if ($itemtype == 'comment') {
             $vars = get_object_vars($comment);
-            return new GlossaryCommentSearchDocument($vars, $glossarycourse, $context->id);
+            return new glossary_comment_document($vars, $glossarycourse, $context->id);
         }
     }
 
@@ -233,10 +151,10 @@ class glossary_document_wrapper extends document_wrapper {
         ';
         $commentjoinextension = ' c ,{glossary_entries} ge, {course_modules} cm, {context} ctx ';
 
-        return array(
-            array('id', 'glossary_entries', 'timecreated', 'timemodified', 'standard'),
-            array('c.id', 'comments', 'c.timecreated', 'c.timecreated', 'comment', $commentwhere, $commentjoinextension)
-        );
+        return [
+            ['id', 'glossary_entries', 'timecreated', 'timemodified', 'standard'],
+            ['c.id', 'comments', 'c.timecreated', 'c.timecreated', 'comment', $commentwhere, $commentjoinextension],
+        ];
     }
 
     /**
@@ -259,9 +177,9 @@ class glossary_document_wrapper extends document_wrapper {
         global $DB;
 
         // Get the glossary object and all related stuff.
-        $entry = $DB->get_record('glossary_entries', array('id' => $thisid));
-        $context = $DB->get_record('context', array('id' => $contextid));
-        $cm = $DB->get_record('course_modules', array('id' => $context->instanceid));
+        $entry = $DB->get_record('glossary_entries', ['id' => $thisid]);
+        $context = $DB->get_record('context', ['id' => $contextid]);
+        $cm = $DB->get_record('course_modules', ['id' => $context->instanceid]);
 
         if (!$cm->visible && !has_capability('moodle/course:viewhiddenactivities', $context)) {
             return false;

@@ -31,47 +31,13 @@
  * Functions for iterating and retrieving the necessary records are now also included
  * in this file, rather than mod/page/lib.php
  */
-namespace local_search;
+namespace local_search\document;
 
-use \StdClass;
-use \context_module;
-use \context_course;
-use \moodle_url;
-
-defined('MOODLE_INTERNAL') || die();
-
-require_once($CFG->dirroot.'/local/search/documents/document.php');
-require_once($CFG->dirroot.'/local/search/documents/document_wrapper.class.php');
-
-/**
- * a class for representing searchable information
- *
- */
-class PageSearchDocument extends SearchDocument {
-
-    public function __construct(&$page, $contextid) {
-
-        // Generic information; required.
-        $doc = new StdClass;
-        $doc->docid         = $page['id'];
-        $doc->documenttype  = SEARCH_TYPE_PAGE;
-        $doc->itemtype      = 'page';
-        $doc->contextid     = $contextid;
-
-        $doc->title     = strip_tags($page['name']);
-        $doc->date      = $page['timemodified'];
-        $doc->author    = '';
-        $doc->contents  = strip_tags($page['intro']).' '.strip_tags($page['content']);
-        $doc->url       = page_document_wrapper::make_link($page['id']);
-
-        // Module specific information; optional.
-        $data = new StdClass;
-        $data = array();
-
-        // Construct the parent class.
-        parent::__construct($doc, $data, $page['course'], 0, 0, 'mod/'.SEARCH_TYPE_PAGE);
-    }
-}
+use context_course;
+use context_module;
+use local_search\document_wrapper;
+use moodle_url;
+use StdClass;
 
 class page_document_wrapper extends document_wrapper {
 
@@ -81,12 +47,11 @@ class page_document_wrapper extends document_wrapper {
      * @return a full featured link element as a string
      */
     public static function make_link($instanceid, $contextid = null) {
-        return new moodle_url('/mod/page/view.php', array('id' => $instanceid));
+        return new moodle_url('/mod/page/view.php', ['id' => $instanceid]);
     }
 
     /**
      * part of standard API
-     *
      */
     public static function get_iterator() {
         global $DB;
@@ -104,7 +69,7 @@ class page_document_wrapper extends document_wrapper {
         global $DB;
 
         // Starting with Moodle native pages.
-        $documents = array();
+        $documents = [];
 
         $sql = "
             SELECT
@@ -116,13 +81,13 @@ class page_document_wrapper extends document_wrapper {
         if ($pages = $DB->get_records_sql($sql)) {
 
             foreach ($pages as $apage) {
-                $coursemodule = $DB->get_field('modules', 'id', array('name' => 'page'));
-                $params = array('course' => $apage->course, 'module' => $coursemodule, 'instance' => $apage->id);
+                $coursemodule = $DB->get_field('modules', 'id', ['name' => 'page']);
+                $params = ['course' => $apage->course, 'module' => $coursemodule, 'instance' => $apage->id];
                 if ($cm = $DB->get_record('course_modules', $params)) {
                     $context = context_module::instance($cm->id);
                     $apage->id = $cm->id;
                     $vars = get_object_vars($apage);
-                    $documents[] = new PageSearchDocument($vars, $context->id);
+                    $documents[] = new page_document($vars, $context->id);
                     mtrace("finished $apage->name");
                 }
             }
@@ -163,13 +128,13 @@ class page_document_wrapper extends document_wrapper {
                 p.content != '&nbsp;') OR
                 p.id = ?)
         ";
-        $page = $DB->get_record_sql($sql, array($id));
+        $page = $DB->get_record_sql($sql, [$id]);
 
         if ($page) {
-            $cm = $DB->get_record('course_modules', array('id' => $page->id));
+            $cm = $DB->get_record('course_modules', ['id' => $page->id]);
             $context = context_module::instance($cm->id);
             $vars = get_object_vars($page);
-            return new PageSearchDocument($vars, $context->id);
+            return new page_document($vars, $context->id);
         }
         mtrace("no pages");
         return null;
@@ -187,7 +152,7 @@ class page_document_wrapper extends document_wrapper {
             content != ' ' AND
             content != '&nbsp;')
         ";
-        return array(array('id', 'page', 'timemodified', 'timemodified', 'any', $select));
+        return [['id', 'page', 'timemodified', 'timemodified', 'any', $select]];
     }
 
     /**
@@ -206,16 +171,16 @@ class page_document_wrapper extends document_wrapper {
 
         include_once("{$CFG->dirroot}/{$path}/lib.php");
 
-        $p = $DB->get_record('page', array('id' => $thisid));
-        $modulecontext = $DB->get_record('context', array('id' => $contextid));
-        $cm = $DB->get_record('course_modules', array('id' => $modulecontext->instanceid));
+        $p = $DB->get_record('page', ['id' => $thisid]);
+        $modulecontext = $DB->get_record('context', ['id' => $contextid]);
+        $cm = $DB->get_record('course_modules', ['id' => $modulecontext->instanceid]);
 
         if (empty($cm)) {
             return false; // Shirai 20090530 - MDL19342 - course module might have been deleted.
         }
 
         $coursecontext = context_course::instance($p->course);
-        $course = $DB->get_record('course', array('id' => $p->course));
+        $course = $DB->get_record('course', ['id' => $p->course]);
 
         // Check if course is visible.
         if (!$course->visible && !has_capability('moodle/course:viewhiddencourses', $coursecontext)) {

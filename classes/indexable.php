@@ -18,8 +18,6 @@
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @category local
- * @subpackage document_wrappers
  * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai on UTF-8 multibyte fixing
  * @date 2008/03/31
@@ -29,11 +27,6 @@
  * extend.
  */
 namespace local_search;
-
-use StdClass;
-use moodle_url;
-
-defined('MOODLE_INTERNAL') || die();
 
 interface indexable {
     /**
@@ -78,58 +71,4 @@ interface indexable {
      * @return true if access is allowed, false elsewhere
      */
     public static function check_text_access($path, $itemtype, $thisid, $user, $groupid, $contextid);
-
-}
-
-abstract class document_wrapper implements indexable {
-
-    /**
-     * If the searchable object is a course module, the module name here.
-     */
-    protected static $modname;
-
-    /**
-     * constructs valid access links to information
-     * @param instanceid the of the instance
-     * @return a full featured link element as a string
-     */
-    public static function make_link($instanceid, $contextid = null) {
-        if (!empty(self::$modname)) {
-            return new moodle_url('/mod/'.self::modname.'/view.php', array('id' => $instanceid));
-        }
-    }
-
-    /**
-     * dummy delete function that aggregates id with itemtype.
-     * this was here for a reason, but I can't remember it at the moment.
-     *
-     */
-    public static function delete($info, $itemtype) {
-        $object = new StdClass;
-        $object->id = $info;
-        $object->itemtype = $itemtype;
-        return $object;
-    }
-
-    /**
-     * TODO : Check is deprecated.
-     * post processes the url for cleaner output.
-     * @param string $title
-     */
-    public static function link_post_processing($title) {
-
-        setlocale(LC_TIME, substr(current_language(), 0, 2));
-        $title = preg_replace('/TT_(.*)_TT/', userdate("\\1"), $title);
-
-        $config = get_config('local_search');
-
-        if (!$config->utf8dir) {
-            return $title;
-        }
-        if ($config->utf8dir) {
-            return mb_convert_encoding($title, 'UTF-8', 'auto');
-        }
-        return mb_convert_encoding($title, 'auto', 'UTF-8');
-    }
-
 }

@@ -143,17 +143,9 @@ if ($searchables) {
             continue;
         }
 
-        if ($mod->location == 'internal') {
-            $classfile = $CFG->dirroot.'/local/search/documents/'.$mod->name.'_document.php';
-        } else {
-            $classfile = $CFG->dirroot.'/'.$mod->location.'/'.$mod->name.'/search_document.php';
-        }
+        $wrapperclass = search_get_wrapper_class($mod);
 
-        if (file_exists($classfile)) {
-
-            include_once($classfile);
-
-            $wrapperclass = '\\local_search\\'.$mod->name.'_document_wrapper';
+        if ($wrapperclass) {
 
             $counter = 0;
             mtrace(" Processing module ...");

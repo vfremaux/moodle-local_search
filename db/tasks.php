@@ -25,14 +25,14 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$tasks = array(
-    array(
+$tasks = [
+    [
         'classname' => 'local_search\task\update_index_task',
         'blocking' => 0,
         'minute' => '30',
         'hour' => '23',
         'day' => '*',
         'month' => '*',
-        'dayofweek' => '*'
-    ),
-);
+        'dayofweek' => '*',
+    ],
+];

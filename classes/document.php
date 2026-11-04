@@ -18,8 +18,6 @@
  * Global Search Engine for Moodle
  *
  * @package local_search
- * @category local
- * @subpackage document_wrappers
  * @author Michael Campanis (mchampan) [cynnical@gmail.com], Valery Fremaux [valery.fremaux@gmail.com] > 1.8
  * @contributor Tatsuva Shirai on UTF-8 multibyte fixing
  * @date 2008/03/31
@@ -30,15 +28,23 @@
  */
 namespace local_search;
 
-use \Zend_Search_Lucene_Document;
-use \Zend_Search_Lucene_field;
+use Zend_Search_Lucene_Document;
+use Zend_Search_Lucene_field;
 
 defined('MOODLE_INTERNAL') || die();
 
-abstract class SearchDocument extends Zend_Search_Lucene_Document {
-
-    public function __construct(&$doc, &$data, $courseid, $groupid, $userid, $path, $additionalkeyset = null) {
-
+abstract class document extends Zend_Search_Lucene_Document {
+    /**
+     * Constructor.
+     * @param document $doc specialized document object
+     * @param object $data
+     * @param object $courseid
+     * @param object $groupid
+     * @param object $userid
+     * @param object $path
+     * @param object $additionalkeyset
+     */
+    public function __construct($doc, $data, $courseid, $groupid, $userid, $path, $additionalkeyset = null) {
         $encoding = 'UTF-8';
 
         // Document identification and indexing.
@@ -98,6 +104,11 @@ abstract class SearchDocument extends Zend_Search_Lucene_Document {
         }
     }
 
+    /**
+     * Filtaerig damageable chars
+     * @param string $text
+     * @return filtered string.
+     */
     protected function filter_extended_chars($text) {
         return local_search_filter_extended_chars($text);
     }
